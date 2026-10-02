@@ -68,12 +68,19 @@ async function setupUser(tag) {
   const password = randomBytes(18).toString('base64url') + '1';
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: `Isolation ${tag}` } });
   if (error) throw new Error(`createUser ${tag}: ${error.message}`);
-  cleanup.push(async () => admin.auth.admin.deleteUser(data.user.id));
+  cleanup.push(async () => {
+    const { error } = await admin.auth.admin.deleteUser(data.user.id);
+    if (error) throw new Error(`delete test user ${email}: ${error.message}`);
+  });
   const s = await signIn(email, password);
   const slug = `iso-${tag}-${randomBytes(3).toString('hex')}`;
   const { data: ws, error: wsErr } = await s.client.rpc('create_workspace', { p_name: `Isolation ${tag}`, p_slug: slug });
   if (wsErr) throw new Error(`create_workspace ${tag}: ${wsErr.message}`);
-  cleanup.unshift(async () => admin.from('workspaces').delete().eq('id', ws.id));
+  cleanup.unshift(async () => {
+    await admin.storage.from('recordings').remove([`${ws.id}/`]).catch(() => {});
+    const { error } = await admin.from('workspaces').delete().eq('id', ws.id);
+    if (error) throw new Error(`delete test workspace ${ws.id}: ${error.message}`);
+  });
   return { ...s, workspaceId: ws.id };
 }
 
@@ -93,6 +100,9 @@ async function seed(a) {
   if (admin) {
     path = `${a.workspaceId}/${callId}.mp3`;
     await admin.storage.from('recordings').upload(path, new Blob([randomBytes(64)]), { contentType: 'audio/mpeg', upsert: true });
+    cleanup.unshift(async () => {
+      await admin.storage.from('recordings').remove([path]);
+    });
     await admin.from('recordings').insert({ workspace_id: a.workspaceId, call_id: callId, storage_path: path, duration_seconds: 1 });
   }
   if (!auto) {
@@ -196,12 +206,17 @@ try {
   console.error(`Setup failed: ${e.message}`);
   code = 2;
 } finally {
+  const cleanupErrors = [];
   for (const fn of cleanup) {
     try {
       await fn();
-    } catch {
-      /* best effort */
+    } catch (e) {
+      cleanupErrors.push(e.message);
     }
+  }
+  if (cleanupErrors.length) {
+    console.error(`Cleanup failed (test data left behind):\n  ${cleanupErrors.join('\n  ')}`);
+    if (code === 0) code = 3;
   }
 }
 const failed = results.filter((r) => !r.pass);
