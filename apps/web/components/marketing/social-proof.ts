@@ -14,18 +14,26 @@ export const showSocialProof = SOCIAL_PROOF_APPROVED || process.env.NODE_ENV !==
 
 export interface Brand {
   name: string;
-  logo?: string; // transparent image in /public/landing/logos; text wordmark if absent
+  logo?: string; // transparent image in /public/landing/logos, cropped tight; text wordmark if absent
+  /** Intrinsic size of the cropped logo, used to give every logo the same optical size. */
+  w?: number;
+  h?: number;
 }
 
 export const BRANDS: Brand[] = [
-  { name: 'Response AI', logo: '/landing/logos/response.webp' },
+  { name: 'Response AI', logo: '/landing/logos/response.webp', w: 157, h: 36 },
   { name: 'Saral Influencers' },
-  { name: 'GreatLab', logo: '/landing/logos/greatlab.webp' },
+  { name: 'GreatLab', logo: '/landing/logos/greatlab.webp', w: 139, h: 26 },
   { name: 'Quolum' },
-  { name: 'Linq', logo: '/landing/logos/linq.webp' },
-  { name: 'Bionic Talent', logo: '/landing/logos/bionic-talent.webp' },
-  { name: 'Seer', logo: '/landing/logos/seer.webp' },
+  { name: 'Linq', logo: '/landing/logos/linq.webp', w: 120, h: 56 },
+  { name: 'Bionic Talent', logo: '/landing/logos/bionic-talent.webp', w: 137, h: 33 },
+  { name: 'Seer', logo: '/landing/logos/seer.webp', w: 79, h: 30 },
   { name: 'Comb' },
+  { name: 'Capfern' },
+  { name: 'For You Advertising', logo: '/landing/logos/for-you.webp', w: 391, h: 61 },
+  { name: 'Paper Schedule' },
+  { name: 'Centrale' },
+  { name: 'SpotList' },
 ];
 
 export interface Testimonial {

@@ -574,3 +574,13 @@ html:has([data-page-scroll]) {
 .logo-marquee:hover .marquee-track { animation-play-state: paused; }
 .t-fade { animation: fade-in 420ms var(--ease-out) both; }
 @media (prefers-reduced-motion: reduce) { .t-fade { animation: none; } }
+
+/* landing engine: the active phase's bar fills over the 4.5s it stays on screen */
+@keyframes engine-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.engine-progress { animation: engine-progress 4500ms linear both; }
+@media (prefers-reduced-motion: reduce) {
+  .engine-progress { animation: none; transform: scaleX(1); }
+}

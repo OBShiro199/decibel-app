@@ -54,24 +54,35 @@ export function Testimonials() {
         </div>
       </div>
 
-      {/* quote: fixed min-height so switching never moves the section */}
-      <figure key={t.name} className="t-fade min-h-[300px]" aria-live="polite">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={t.logo} alt={t.brand} width={176} height={44} className="-ml-6 h-11 w-auto object-contain object-left" />
-        <blockquote className="mt-3 text-xl leading-[1.45] tracking-[-0.02em] text-black-400 md:text-[26px] md:leading-[1.4]">“{t.quote}”</blockquote>
-        <figcaption className="mt-5 text-md">
-          <span className="font-medium text-black-400">{t.name},</span> <span className="text-black-700">{t.role}</span>
-        </figcaption>
-        <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-dashed border-white-800 pt-5 text-base">
-          <span className="text-[#c2662d]">{t.brand}’s favourite features</span>
-          {t.features.map((f) => {
-            const Icon = ICONS[f] ?? PhoneCall;
-            return (
-              <span key={f} className="flex items-center gap-1.5 border-l border-white-800 pl-3 text-black-700">
-                <Icon size={15} strokeWidth={1.5} className="text-white-900" /> {f}
-              </span>
-            );
-          })}
+      {/* every quote is rendered in the same grid cell; only the active one is visible.
+          The block is always as tall as the longest quote, so switching never jitters. */}
+      <div>
+        <div className="grid">
+          {TESTIMONIALS.map((q, i) => (
+            <figure
+              key={q.name}
+              aria-hidden={i !== active}
+              className={cn('[grid-area:1/1] transition-opacity duration-500', i === active ? 'opacity-100' : 'pointer-events-none opacity-0')}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={q.logo} alt={q.brand} width={120} height={28} className="h-7 max-w-[140px] w-auto object-contain object-left" />
+              <blockquote className="mt-3 text-xl leading-[1.45] tracking-[-0.02em] text-black-400 md:text-[26px] md:leading-[1.4]">“{q.quote}”</blockquote>
+              <figcaption className="mt-5 text-md">
+                <span className="font-medium text-black-400">{q.name},</span> <span className="text-black-700">{q.role}</span>
+              </figcaption>
+              <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-dashed border-white-800 pt-5 text-base">
+                <span className="text-[#c2662d]">{q.brand}’s favourite features</span>
+                {q.features.map((f) => {
+                  const Icon = ICONS[f] ?? PhoneCall;
+                  return (
+                    <span key={f} className="flex items-center gap-1.5 border-l border-white-800 pl-3 text-black-700">
+                      <Icon size={15} strokeWidth={1.5} className="text-white-900" /> {f}
+                    </span>
+                  );
+                })}
+              </div>
+            </figure>
+          ))}
         </div>
         <div className="mt-6 flex gap-1.5" role="tablist" aria-label="Customer stories">
           {TESTIMONIALS.map((x, i) => (
@@ -88,7 +99,7 @@ export function Testimonials() {
             />
           ))}
         </div>
-      </figure>
+      </div>
     </div>
   );
 }

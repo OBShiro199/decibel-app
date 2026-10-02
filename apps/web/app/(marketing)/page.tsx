@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 import { CtaLink, TrackView } from '@/components/marketing/analytics';
 import { AsciiCanvas, Engine, HeroConsole, LivePill, Marquee, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
 import { DemoButton } from '@/components/marketing/demo-dialog';
@@ -9,8 +10,8 @@ import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Decibel · Turn up your outbound' },
-  description: 'Verified UK & EU mobiles, a browser dialler and a pipeline, in one place.',
+  title: { absolute: 'Decibel · 1 million verified mobiles & the dialler to reach them all' },
+  description: 'Search UK and EU decision makers, reveal a direct mobile for one credit and call it from your browser. TPS screening, call recording and a self-updating pipeline built in.',
 };
 
 const FAQS: FaqItem[] = [
@@ -79,16 +80,19 @@ export default function LandingPage() {
       {/* hero */}
       <section className="rail dotgrid relative overflow-hidden">
         <Corner className="left-5 top-5">[ UK + EU ]</Corner>
-        <Corner className="right-5 top-5">[ 14M+ contacts* ]</Corner>
+        <Corner className="right-5 top-5">[ 1M+ verified mobiles* ]</Corner>
         <div className="mx-auto max-w-[760px] px-5 pb-12 pt-16 text-center md:pt-24">
           <Reveal eager>
-            <LivePill>Calling now · London eu-west-2</LivePill>
+            <LivePill>Unlimited calls &amp; mobile exports</LivePill>
           </Reveal>
           <Reveal eager delay={90}>
-            <h1 className="t-display mt-7 text-black-400">Turn up your outbound.</h1>
+            <h1 className="t-display mx-auto mt-7 max-w-[720px] text-black-400">1 million verified mobiles &amp; the dialler to reach them all.</h1>
           </Reveal>
           <Reveal eager delay={180}>
-            <p className="mx-auto mt-5 max-w-[520px] text-md leading-[27px] text-black-700">Verified UK &amp; EU mobiles, a browser dialler and a pipeline, in one place.</p>
+            <p className="mx-auto mt-5 max-w-[600px] text-md leading-[27px] text-black-700">
+              Search UK and EU decision makers by title, seniority, company size and country. Reveal a direct mobile for one credit, call it from
+              your browser, and every outcome lands in your pipeline. TPS screening and call recording are built in.
+            </p>
           </Reveal>
           <Reveal eager delay={270}>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -109,9 +113,9 @@ export default function LandingPage() {
 
       {/* customer logos (hidden on the live site until SOCIAL_PROOF_APPROVED) */}
       {showSocialProof ? (
-        <section className="rail py-8">
+        <section className="rail py-5">
           <p className="eyebrow text-center">[ Outbound teams calling with Decibel ]</p>
-          <div className="mt-6">
+          <div className="mt-3">
             <LogoMarquee />
           </div>
         </section>
@@ -124,9 +128,9 @@ export default function LandingPage() {
             Three tools that usually live in three tabs, built to work as one.
           </Head>
         </div>
-        <div className="grid border-t border-white-800 md:grid-cols-3">
+        <div className="grid border-t border-white-800 md:grid-cols-3 md:grid-rows-[auto_auto]">
           {PILLARS.map(([id, label, pitch, body], i) => (
-            <Reveal key={id} delay={i * 110} className={i < 2 ? 'border-b border-white-800 md:border-b-0 md:border-r' : ''}>
+            <Reveal key={id} delay={i * 110} className={cn('grid min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto] md:row-span-2 md:grid-rows-subgrid', i < 2 && 'border-b border-white-800 md:border-b-0 md:border-r')}>
               <div id={id === 'data' ? 'data' : undefined} className="px-5 pb-6 pt-8 md:px-8">
                 <p className="eyebrow">[ {label} ]</p>
                 <h3 className="mt-3 text-lg font-medium leading-[25px] tracking-[-0.03em] text-black-400">{pitch}</h3>
@@ -136,12 +140,14 @@ export default function LandingPage() {
                 {id === 'data' ? (
                   <RevealPanel />
                 ) : id === 'dialler' ? (
-                  <div className="relative h-[258px] bg-white-100">
-                    <AsciiCanvas scene="bars" />
-                    <span className="absolute left-4 top-4">
+                  <div className="relative h-[258px] overflow-hidden bg-white-100">
+                    <div className="absolute inset-x-0 bottom-0 top-12">
+                      <AsciiCanvas scene="bars" color="#c4c4bf" cell={12} intensity={0.6} />
+                    </div>
+                    <span className="absolute left-5 top-4 flex w-[calc(100%-40px)] items-center justify-between">
                       <Status color="#c0462e">Recording</Status>
+                      <span className="tabular-nums text-sm text-black-400">02:14</span>
                     </span>
-                    <span className="absolute bottom-4 right-4 tabular-nums text-lg tracking-[-0.02em] text-black-400">02:14</span>
                   </div>
                 ) : (
                   <PipelinePanel />
@@ -157,7 +163,7 @@ export default function LandingPage() {
         <Marquee rows={[['Search', 'Reveal', 'Dial', 'Connect', 'Book'], ['No answer', 'Voicemail', 'Call back', 'Meeting booked', 'Next']]} />
       </section>
 
-      {/* dark engine */}
+      {/* the engine: light, contained, no scroll-jacking */}
       <Engine />
 
       {/* how it works */}
@@ -250,7 +256,7 @@ export default function LandingPage() {
           </div>
         </Reveal>
         <p className="mx-auto mt-12 max-w-[560px] tabular-nums text-xs leading-[17px] tracking-[0.06em] text-faint">
-          * 14M+ is our launch target, not a current count. The product ships with labelled sample data while licensed sources are onboarded.
+          * 1M+ verified mobiles is our launch target, not a current count. The product ships with labelled sample data while licensed sources are onboarded.
         </p>
       </section>
     </>
