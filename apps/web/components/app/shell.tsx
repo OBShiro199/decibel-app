@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { SidebarCallWidget, SoftphoneToggle } from '@/components/app/quick-dial';
 import { SoftphoneProvider } from '@/components/softphone/provider';
 import { Avatar, CompanyLogo } from '@/components/ui/display';
+import { LogoMark } from '@/components/marketing/logo';
 import { Dialog, MenuItem, Popover } from '@/components/ui/overlay';
 
 const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
@@ -115,6 +116,10 @@ function Sidebar() {
       aria-label="Main"
       className="flex w-[var(--sidebar-width)] shrink-0 flex-col border-r border-white-800 bg-canvas transition-[width]"
     >
+      <Link href="/app" aria-label="Decibel home" className="flex h-11 shrink-0 items-center gap-1.5 border-b border-white-800 px-4 max-[1100px]:justify-center max-[1100px]:px-0">
+        <LogoMark size={20} />
+        <span className="font-semibold tracking-[-0.02em] text-black-400 max-[1100px]:hidden">Decibel</span>
+      </Link>
       <div className="p-2">
         <Popover
           className="w-60"
