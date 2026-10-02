@@ -584,3 +584,14 @@ html:has([data-page-scroll]) {
 @media (prefers-reduced-motion: reduce) {
   .engine-progress { animation: none; transform: scaleX(1); }
 }
+
+/* hero flags: a slow, barely-there bob, the two flags out of step */
+@keyframes flag-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-0.06em) rotate(-1.5deg); }
+}
+.flag-float { animation: flag-float 4.8s ease-in-out infinite; transform-origin: 50% 100%; will-change: transform; }
+.flag-float-late { animation-delay: -2.4s; }
+@media (prefers-reduced-motion: reduce) {
+  .flag-float { animation: none; }
+}

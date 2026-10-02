@@ -31,7 +31,7 @@ export function Testimonials() {
   const others = TESTIMONIALS.map((x, i) => ({ x, i })).filter(({ i }) => i !== active);
 
   return (
-    <div className="grid items-center gap-10 md:grid-cols-[1fr_1.15fr] md:gap-14">
+    <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:gap-14">
       {/* portraits */}
       <div className="flex items-center justify-center">
         {others.map(({ x, i }) => (
@@ -42,22 +42,22 @@ export function Testimonials() {
               setHeld(true);
             }}
             aria-label={`Show ${x.name}'s story`}
-            className="group flex h-[220px] w-[110px] shrink-0 items-center justify-center border-r border-white-800 sm:w-[140px]"
+            className="group flex h-[160px] w-[76px] shrink-0 items-center justify-center border-r border-white-800 sm:h-[220px] sm:w-[140px]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={x.photo} alt="" width={96} height={96} className="h-20 w-20 object-contain opacity-50 grayscale transition-opacity duration-300 group-hover:opacity-80 sm:h-24 sm:w-24" />
+            <img src={x.photo} alt="" width={96} height={96} className="h-14 w-14 object-contain opacity-50 grayscale transition-opacity duration-300 group-hover:opacity-80 sm:h-24 sm:w-24" />
           </button>
         ))}
-        <div className="flex h-[220px] w-[200px] shrink-0 items-center justify-center sm:w-[240px]">
+        <div className="flex h-[160px] w-[160px] shrink-0 items-center justify-center sm:h-[220px] sm:w-[240px]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img key={t.photo} src={t.photo} alt={t.name} width={200} height={200} className="t-fade h-[170px] w-[170px] object-contain sm:h-[200px] sm:w-[200px]" />
+          <img key={t.photo} src={t.photo} alt={t.name} width={200} height={200} className="t-fade h-[136px] w-[136px] object-contain sm:h-[200px] sm:w-[200px]" />
         </div>
       </div>
 
       {/* every quote is rendered in the same grid cell; only the active one is visible.
           The block is always as tall as the longest quote, so switching never jitters. */}
       <div>
-        <div className="grid">
+        <div className="grid grid-cols-[minmax(0,1fr)]">
           {TESTIMONIALS.map((q, i) => (
             <figure
               key={q.name}

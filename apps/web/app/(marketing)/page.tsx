@@ -90,8 +90,8 @@ export default function LandingPage() {
             <h1 className="t-display mx-auto mt-7 max-w-[720px] text-black-400">
               1 million verified{' '}
               <span className="inline-flex translate-y-[-0.08em] items-center gap-[0.12em] align-middle">
-                <UkFlag className="h-[0.6em] w-[0.9em] rounded-[0.08em]" />
-                <EuFlag className="h-[0.6em] w-[0.9em] rounded-[0.08em]" />
+                <UkFlag className="flag-float h-[0.6em] w-[0.9em] rounded-[0.08em]" />
+                <EuFlag className="flag-float flag-float-late h-[0.6em] w-[0.9em] rounded-[0.08em]" />
               </span>{' '}
               mobiles &amp; the dialler to reach them all.
             </h1>

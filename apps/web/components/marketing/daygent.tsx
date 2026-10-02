@@ -268,7 +268,7 @@ export function HeroConsole() {
   const phase = tick % 5;
   return (
     <Console file="today.queue" right={<Status>{STATES[Math.max(1, phase)]}</Status>}>
-      <div className="grid md:grid-cols-[1.1fr_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="relative h-[250px] border-b border-rule md:h-[330px] md:border-b-0 md:border-r">
           <AsciiCanvas scene="signal" />
           <span className="absolute left-3 top-3 tabular-nums text-xs tracking-[0.06em] text-faint">[ Outbound ]</span>
@@ -288,7 +288,7 @@ export function HeroConsole() {
                   <span className="block truncate text-xs text-white-900">{company} · {number}</span>
                 </span>
                 <span
-                  className={cn('w-[124px] shrink-0 text-right text-xs tracking-[0.06em]', blocked ? 'text-danger-500' : live ? 'text-accent-500' : done ? 'text-success-500' : 'text-faint')}
+                  className={cn('w-[92px] shrink-0 text-right text-xs tracking-[0.06em] md:w-[124px]', blocked ? 'text-danger-500' : live ? 'text-accent-500' : done ? 'text-success-500' : 'text-faint')}
                 >
                   {live ? <span className="pulse-dot mr-1.5 bg-accent-500 align-middle" style={{ width: 6, height: 6 }} /> : null}
                   {label}
