@@ -103,7 +103,7 @@ export default function LandingPage() {
             </p>
           </Reveal>
           <Reveal eager delay={270}>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <div className="mx-auto mt-8 flex max-w-[280px] flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
               <CtaLink location="hero" href="/signup" variant="primary" size="lg">
                 Start free trial
               </CtaLink>

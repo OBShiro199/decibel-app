@@ -595,3 +595,10 @@ html:has([data-page-scroll]) {
 @media (prefers-reduced-motion: reduce) {
   .flag-float { animation: none; }
 }
+
+/* desktop-only sign-up: phones and touch tablets see the note, everything else sees the form */
+.desktop-gate { display: none; }
+@media (max-width: 767px), (pointer: coarse) and (max-width: 1366px) {
+  .desktop-gate { display: block; }
+  .desktop-content { display: none; }
+}
