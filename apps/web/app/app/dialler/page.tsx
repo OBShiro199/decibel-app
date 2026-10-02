@@ -6,7 +6,7 @@
 // Layout regions all have fixed heights, so moving between up next, ringing, in call
 // and wrap-up swaps content in place without anything jumping.
 import { useQuery } from '@tanstack/react-query';
-import { Mic, MicOff, Pause, Phone, PhoneOff, Play, SkipForward, Square, Zap } from 'lucide-react';
+import { Check, Mic, MicOff, Pause, Phone, PhoneOff, Play, SkipForward, Square, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '@/lib/app-context';
 import { OUTCOMES, outcomeMeta } from '@/lib/constants';
@@ -19,7 +19,7 @@ import type { CallOutcome } from '@/lib/types';
 import { cn, formatDuration, formatPhone, normalizePhone } from '@/lib/utils';
 import { FilterMenu } from '@/components/app/filter-menu';
 import { isBlocked } from '@/components/app/records';
-import { useSoftphoneActions, useSoftphoneState } from '@/components/softphone/provider';
+import { useSoftphoneActions, useSoftphoneState, type NoteSaveStatus } from '@/components/softphone/provider';
 import { Button } from '@/components/ui/button';
 import { Avatar, Badge, Skeleton, Tag } from '@/components/ui/display';
 import { Input, Textarea } from '@/components/ui/form';
@@ -71,6 +71,11 @@ export default function DiallerPage() {
   const [wrap, setWrap] = useState<{ remaining: number; total: number } | null>(null);
   const [choice, setChoice] = useState<CallOutcome | null>(null);
   const [notes, setNotesLocal] = useState('');
+  // autosave state for the notes pill; 'local' = practice call, kept only for this session
+  const [noteStatus, setNoteStatus] = useState<NoteSaveStatus | 'local' | null>(null);
+  // bumps whenever the notes box is cleared for a new lead, so a late save reply for
+  // the previous call can't flip the pill on the next one
+  const noteToken = useRef(0);
   const [notice, setNotice] = useState<string | null>(null);
   const answeredRef = useRef(false);
   const dialingRef = useRef<string | null>(null);
@@ -91,20 +96,30 @@ export default function DiallerPage() {
 
   const setNotes = (v: string) => {
     setNotesLocal(v);
-    actions.setNotes(v);
+    const token = noteToken.current;
+    const practice = !!current?.practice;
+    actions.setNotes(v, (status) => {
+      if (token !== noteToken.current) return;
+      setNoteStatus(practice ? (status === 'saving' ? 'saving' : 'local') : status);
+    });
   };
+  const clearNotes = useCallback(() => {
+    noteToken.current += 1;
+    setNotesLocal('');
+    setNoteStatus(null);
+  }, []);
 
   const advance = useCallback(() => {
     setWrap(null);
     setChoice(null);
-    setNotesLocal('');
+    clearNotes();
     dialingRef.current = null;
     setIndex((i) => {
       const next = i + 1;
       if (next >= leads.length) setMode('finished');
       return next;
     });
-  }, [leads.length]);
+  }, [leads.length, clearNotes]);
 
   /** Saves the call (outcome + notes) and moves on. */
   const commit = useCallback(() => {
@@ -200,7 +215,7 @@ export default function DiallerPage() {
     setIndex(0);
     setWrap(null);
     setChoice(null);
-    setNotesLocal('');
+    clearNotes();
     dialingRef.current = null;
     setMode('running');
   };
@@ -481,9 +496,13 @@ export default function DiallerPage() {
 
             {/* notes: always in the same place */}
             <div className="border-t border-white-800 pt-5">
-              <label className="t-label mb-1.5 block" htmlFor="dialler-notes">
-                Notes
-              </label>
+              {/* fixed-height row, so the pill appearing never moves the box */}
+              <div className="mb-1.5 flex h-5 items-center justify-between">
+                <label className="t-label" htmlFor="dialler-notes">
+                  Notes
+                </label>
+                <NoteSavePill status={notes.trim() ? noteStatus : null} />
+              </div>
               <Textarea
                 id="dialler-notes"
                 value={notes}
@@ -497,5 +516,24 @@ export default function DiallerPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+const NOTE_PILL: Record<NoteSaveStatus | 'local', { label: string; tone: string }> = {
+  saving: { label: 'Saving…', tone: 'tag-7' },
+  saved: { label: 'Saved', tone: 'tag-0' },
+  deferred: { label: 'Saves with the outcome', tone: 'tag-7' },
+  local: { label: 'Practice call, kept for this session', tone: 'tag-7' },
+};
+
+/** Shows whether the call notes have been saved. Renders nothing until there is something to save. */
+function NoteSavePill({ status }: { status: NoteSaveStatus | 'local' | null }) {
+  if (!status) return null;
+  const { label, tone } = NOTE_PILL[status];
+  return (
+    <span key={status} className={cn('tag t-fade gap-1', tone)} role="status" aria-live="polite">
+      {status === 'saved' ? <Check size={12} strokeWidth={2} /> : null}
+      {label}
+    </span>
   );
 }

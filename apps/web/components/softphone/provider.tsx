@@ -36,7 +36,13 @@ interface Actions {
   toggleHold: () => void;
   toggleKeypad: () => void;
   sendDigit: (d: string) => void;
-  setNotes: (notes: string) => void;
+  /**
+   * Updates the call notes and autosaves them after a short pause. `onStatus` reports
+   * progress: 'saving' while waiting or writing, 'saved' once the call row has them,
+   * 'deferred' when there is no row yet (or the write failed) and the notes will be
+   * saved with the outcome instead.
+   */
+  setNotes: (notes: string, onStatus?: (status: NoteSaveStatus) => void) => void;
   setOutcome: (o: CallOutcome | null) => void;
   /** Saves the outcome in the background and closes the panel immediately. */
   finish: (opts: { followUpAt?: string | null; outcome?: CallOutcome }) => void;
@@ -49,6 +55,8 @@ interface Actions {
   /** A full-screen caller (the power dialler) draws its own call UI and hides the overlay panel. */
   setPanelSuppressed: (on: boolean) => void;
 }
+
+export type NoteSaveStatus = 'saving' | 'saved' | 'deferred';
 
 interface Status {
   open: boolean;
@@ -455,24 +463,32 @@ export function SoftphoneProvider({
       },
       toggleKeypad: () => dispatch({ type: 'KEYPAD' }),
       sendDigit: (d) => callRef.current?.sendDigits(d),
-      setNotes: (notes) => {
+      setNotes: (notes, onStatus) => {
         dispatch({ type: 'NOTES', notes });
+        onStatus?.('saving');
         if (notesTimer.current) clearTimeout(notesTimer.current);
         notesTimer.current = setTimeout(() => {
           const id = stateRef.current.callId;
-          // no-op until twilio-voice has created the row; the final save carries the notes anyway
-          if (id && stateRef.current.reachedTwilio) {
-            void supabase()
-              .from('calls')
-              .update({ notes })
-              .eq('id', id)
-              .then(({ error }) => {
-                if (error && !notesWarned.current) {
+          // until twilio-voice has created the row there is nothing to update; the final save carries the notes
+          if (!id || !stateRef.current.reachedTwilio) {
+            onStatus?.('deferred');
+            return;
+          }
+          void supabase()
+            .from('calls')
+            .update({ notes })
+            .eq('id', id)
+            .then(({ error }) => {
+              // ignore a stale reply if the user has typed again since
+              if (stateRef.current.notes !== notes) return;
+              if (error) {
+                onStatus?.('deferred');
+                if (!notesWarned.current) {
                   notesWarned.current = true;
                   toast("Notes didn't autosave. They'll be saved with the outcome.");
                 }
-              });
-          }
+              } else onStatus?.('saved');
+            });
         }, 800);
       },
       setOutcome: (o) => dispatch({ type: 'OUTCOME', outcome: o }),
