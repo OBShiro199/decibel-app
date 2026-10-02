@@ -50,18 +50,18 @@ const preset = {
       // No monospace face in the product. Numbers use Geist with tabular figures instead.
       mono: ['var(--font-sans)', 'Geist', 'system-ui', 'sans-serif'],
     },
-    // The only font sizes in the product. Arbitrary text-[Npx] values are not used.
+    // The only font sizes in the product (Linear's scale and tracking). No arbitrary text-[Npx].
     fontSize: {
-      xs: ['12px', '16px'], // captions, labels, badges, meta
-      sm: ['13px', '18px'], // secondary text, sidebar, attribute rail
-      base: ['14px', '20px'], // body, tables, controls
-      md: ['16px', '24px'], // large body, section titles
-      lg: ['18px', '24px'], // card titles, record names, dial numbers
-      xl: ['24px', '30px'], // page titles, timer
-      '2xl': ['34px', '38px'], // stat values
-      '3xl': ['56px', '60px'], // pricing figure
+      xs: ['12px', { lineHeight: '16px', letterSpacing: '0' }], // label, badge
+      sm: ['13px', { lineHeight: '18px', letterSpacing: '-0.01em' }], // caption, sidebar, meta
+      base: ['14px', { lineHeight: '20px', letterSpacing: '-0.01em' }], // UI body, tables, controls
+      md: ['16px', { lineHeight: '24px', letterSpacing: '-0.01em' }], // body
+      lg: ['20px', { lineHeight: '26px', letterSpacing: '-0.012em' }], // body large, record names
+      xl: ['24px', { lineHeight: '32px', letterSpacing: '-0.012em' }], // page headings
+      '2xl': ['32px', { lineHeight: '36px', letterSpacing: '-0.022em' }], // stat values
+      '3xl': ['48px', { lineHeight: '48px', letterSpacing: '-0.022em' }], // large figures
     },
-    borderRadius: { none: '0', sm: '0', md: '0', lg: '0', card: '9px', full: '999px' },
+    borderRadius: { none: '0', xs: 'var(--radius-xs, 2px)', sm: 'var(--radius-sm, 0px)', md: 'var(--radius-md, 0px)', lg: 'var(--radius-lg, 0px)', card: '9px', full: '9999px' },
     zIndex: {
       0: '0',
       10: '10',

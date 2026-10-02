@@ -1,6 +1,6 @@
 'use client';
 import { X } from 'lucide-react';
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +21,8 @@ function useEscape(open: boolean, onClose: () => void) {
 function Portal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  return mounted ? createPortal(children, document.body) : null;
+  // Inside the app, overlays render into the themed wrapper so they share its tokens and font.
+  return mounted ? createPortal(children, document.getElementById('app-portal') ?? document.body) : null;
 }
 
 /** Dialog: overlay z 100, content z 101, max-width 520, radius 12, padding 24, 1px border. */
@@ -117,7 +118,12 @@ export function Drawer({
   );
 }
 
-/** Popover / menu anchored below its trigger. Floats, so it may carry the single popover shadow. */
+/**
+ * Popover / menu anchored to its trigger. The panel renders in a portal with fixed
+ * positioning, so scroll containers and tables can never clip or cover it. It follows
+ * the trigger on scroll and resize, flips above when there is no room below, and
+ * closes on outside click or Escape.
+ */
 export function Popover({
   trigger,
   children,
@@ -132,31 +138,69 @@ export function Popover({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const anchor = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
   const close = useCallback(() => setOpen(false), []);
   useEscape(open, close);
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+
+  const place = useCallback(() => {
+    const a = anchor.current?.getBoundingClientRect();
+    if (!a) return;
+    const p = panel.current;
+    const w = p?.offsetWidth ?? 220;
+    const h = p?.offsetHeight ?? 0;
+    const gap = 4;
+    const roomBelow = window.innerHeight - a.bottom;
+    const placement: 'top' | 'bottom' = side === 'top' ? (a.top > h + gap ? 'top' : 'bottom') : roomBelow < h + gap && a.top > roomBelow ? 'top' : 'bottom';
+    const top = placement === 'bottom' ? a.bottom + gap : a.top - h - gap;
+    let left = align === 'right' ? a.right - w : a.left;
+    left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+    setPos({ top: Math.max(8, top), left, placement });
+  }, [align, side]);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    place();
+    // second pass once the panel has its real size
+    const raf = requestAnimationFrame(place);
+    const onMove = () => place();
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(onMove) : null;
+    if (panel.current && ro) ro.observe(panel.current);
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (anchor.current?.contains(t) || panel.current?.contains(t)) return;
+      setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+    document.addEventListener('mousedown', onDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onMove, true);
+      window.removeEventListener('resize', onMove);
+      ro?.disconnect();
+      document.removeEventListener('mousedown', onDown);
+    };
+  }, [open, place]);
+
   return (
-    <div ref={ref} className="relative inline-block">
+    <div ref={anchor} className="relative inline-block">
       {trigger({ open, toggle: () => setOpen((o) => !o) })}
       {open ? (
-        <div
-          className={cn(
-            'popover-in absolute z-menu min-w-[200px] rounded-md border border-white-800 bg-white-100 p-1 shadow-popover',
-            side === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
-            align === 'right' ? 'right-0' : 'left-0',
-            className,
-          )}
-        >
-          {children(close)}
-        </div>
+        <Portal>
+          <div
+            ref={panel}
+            role="menu"
+            style={{ position: 'fixed', top: pos?.top ?? -9999, left: pos?.left ?? -9999, visibility: pos ? 'visible' : 'hidden' }}
+            className={cn('popover-in z-[105] min-w-[200px] rounded-md border border-white-800 bg-white-100 p-1 shadow-popover', className)}
+          >
+            {children(close)}
+          </div>
+        </Portal>
       ) : null}
     </div>
   );
@@ -210,7 +254,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div className="pointer-events-none fixed bottom-4 left-4 z-toast flex flex-col gap-2" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className="toast-in pointer-events-auto flex max-w-sm items-center gap-3 rounded-md bg-black-0 px-3 py-2.5 text-sm text-white-100">
+          <div key={t.id} className="toast-in pointer-events-auto flex max-w-sm items-center gap-3 rounded-md border border-white-800 bg-white-100 px-3 py-2.5 text-sm text-black-400 shadow-popover">
             <span>{t.message}</span>
             {t.action ? (
               t.action.href ? (

@@ -118,7 +118,7 @@ export default function CallingPage() {
             {error ? <Notice tone="danger">{error}</Notice> : null}
           </div>
 
-          <div className="self-start rounded-lg bg-black-0 p-6 text-white-100">
+          <div className="self-start rounded-lg border border-white-800 bg-white-100 p-6 text-black-400">
             <p className="t-small text-white-900">What the person you call hears</p>
             {policy === 'never' ? (
               <p className="t-body-lg mt-3">Nothing: calls are not recorded.</p>
@@ -129,7 +129,7 @@ export default function CallingPage() {
                   type="button"
                   onClick={play}
                   disabled={!notice.trim()}
-                  className="t-small mt-4 inline-flex h-8 items-center gap-2 rounded-full border border-black-500 px-3 transition-colors hover:border-white-900 disabled:opacity-50"
+                  className="t-small mt-4 inline-flex h-8 items-center gap-2 rounded-sm border border-btnborder px-3 transition-colors hover:border-black-700 disabled:opacity-50"
                 >
                   {speaking ? <Square size={14} strokeWidth={1.5} /> : <Play size={14} strokeWidth={1.5} />}
                   {speaking ? 'Stop' : 'Play preview'}

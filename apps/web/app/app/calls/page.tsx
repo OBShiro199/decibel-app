@@ -10,6 +10,7 @@ import { useLists, useMemberNames, useMembers } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import type { Call, CallOutcome, Recording } from '@/lib/types';
 import { formatDate, formatDuration, formatPhone } from '@/lib/utils';
+import { FilterMenu } from '@/components/app/filter-menu';
 import { RecordingPlayer } from '@/components/app/recording-player';
 import { OutcomeBadge } from '@/components/app/records';
 import { RevealOnce } from '@/components/ui/reveal';
@@ -32,6 +33,7 @@ export default function CallsPage() {
   const [listId, setListId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [range, setRange] = useState<'' | 'today' | '7d' | '30d'>('');
   const [page, setPage] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -67,46 +69,41 @@ export default function CallsPage() {
     setListId('');
     setFrom('');
     setTo('');
+    setRange('');
     setPage(0);
   };
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-white-800 bg-white-100 px-4 py-2">
-        <Select value={rep} onChange={(e) => { setRep(e.target.value); setPage(0); }} className="w-40 [&_select]:h-8" aria-label="Filter by rep">
-          <option value="">All reps</option>
-          {(members ?? []).map((m) => (
-            <option key={m.user_id} value={m.user_id}>
-              {m.profile?.full_name || m.profile?.email}
-            </option>
-          ))}
-        </Select>
-        <Select value={outcome} onChange={(e) => { setOutcome(e.target.value); setPage(0); }} className="w-44 [&_select]:h-8" aria-label="Filter by outcome">
-          <option value="">All outcomes</option>
-          <option value="none">No outcome logged</option>
-          {OUTCOMES.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </Select>
-        <Select value={listId} onChange={(e) => { setListId(e.target.value); setPage(0); }} className="w-40 [&_select]:h-8" aria-label="Filter by list">
-          <option value="">All lists</option>
-          {(lists ?? []).map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </Select>
-        <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(0); }} className="h-8 w-40" aria-label="From date" />
-        <span className="text-black-700">to</span>
-        <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(0); }} className="h-8 w-40" aria-label="To date" />
+      <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-white-800 bg-white-100 px-4 [scrollbar-width:none]">
+        <FilterMenu label="Rep" allLabel="Anyone" value={rep} onChange={(v) => { setRep(v); setPage(0); }} options={(members ?? []).map((m) => ({ value: m.user_id, label: m.profile?.full_name || m.profile?.email || 'Teammate' }))} />
+        <FilterMenu label="Outcome" allLabel="Any" value={outcome} onChange={(v) => { setOutcome(v); setPage(0); }} options={[{ value: 'none', label: 'No outcome logged' }, ...OUTCOMES.map((o) => ({ value: o.value as string, label: o.label }))]} />
+        <FilterMenu label="List" allLabel="Any" value={listId} onChange={(v) => { setListId(v); setPage(0); }} options={(lists ?? []).map((l) => ({ value: l.id, label: l.name }))} />
+        <FilterMenu
+          label="Date"
+          allLabel="All time"
+          value={range}
+          onChange={(v) => {
+            setRange(v);
+            const days = v === 'today' ? 0 : v === '7d' ? 6 : v === '30d' ? 29 : null;
+            setFrom(days === null ? '' : new Date(Date.now() - days * 86400000).toISOString().slice(0, 10));
+            setTo('');
+            setPage(0);
+          }}
+          options={[
+            { value: 'today', label: 'Today' },
+            { value: '7d', label: 'Last 7 days' },
+            { value: '30d', label: 'Last 30 days' },
+          ]}
+        />
         {filtered ? (
-          <Button size="compact" variant="ghost" onClick={reset}>
+          <button onClick={reset} className="h-8 shrink-0 px-2 text-sm text-black-700 hover:text-black-400">
             Clear
-          </Button>
+          </button>
         ) : null}
-        <span className="t-small tabular ml-auto text-black-700">{(calls.data?.count ?? 0).toLocaleString('en-GB')} calls</span>
+        <span className="ml-auto shrink-0 text-sm tabular-nums text-black-700">
+          {(calls.data?.count ?? 0).toLocaleString('en-GB')} {calls.data?.count === 1 ? 'call' : 'calls'}
+        </span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-white-100">
@@ -124,18 +121,16 @@ export default function CallsPage() {
           )
         ) : (
           <RevealOnce id="calls">
-          <div className="tbl-wrap"><table className="tbl tbl-fixed"><colgroup><col style={{ width: 160 }} /><col style={{ width: 150 }} /><col style={{ width: 200 }} /><col style={{ width: 180 }} /><col style={{ width: 120 }} /><col style={{ width: 150 }} /><col style={{ width: 100 }} /><col style={{ width: 250 }} /><col style={{ width: 280 }} /></colgroup>
+          <div className="tbl-wrap"><table className="tbl tbl-fixed"><colgroup><col style={{ width: 150 }} /><col /><col /><col style={{ width: 150 }} /><col style={{ width: 160 }} /><col style={{ width: 84 }} /><col style={{ width: 236 }} /></colgroup>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Rep</th>
+                <th>When</th>
                 <th>Person</th>
                 <th>Company</th>
-                <th>Direction</th>
+                <th>Rep</th>
                 <th>Outcome</th>
                 <th>Duration</th>
                 <th>Recording</th>
-                <th>Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -143,27 +138,29 @@ export default function CallsPage() {
                 const r = rec(c);
                 return (
                   <tr key={c.id} onClick={() => setOpenId(c.id)} className="cursor-pointer">
-                    <td className="t-caption whitespace-nowrap text-black-700">{formatDate(c.started_at, true)}</td>
-                    <td className="max-w-[140px] truncate">{names[c.user_id ?? ''] ?? '–'}</td>
-                    <td className="max-w-[180px] truncate">
-                      {c.person?.full_name ?? <span className="tabular-nums text-black-700">{formatPhone(c.direction === 'inbound' ? c.from_e164 : c.to_e164)}</span>}
-                      {c.kind === 'test' ? <Badge className="ml-2">Test</Badge> : null}
-                      {c.kind === 'voicemail' ? <Badge className="ml-2">Voicemail</Badge> : null}
+                    <td className="text-sm tabular-nums text-black-700">{formatDate(c.started_at, true)}</td>
+                    <td>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        {c.direction === 'inbound' ? (
+                          <ArrowDownLeft size={14} strokeWidth={1.5} className="shrink-0 text-white-900" aria-label="Inbound" />
+                        ) : (
+                          <ArrowUpRight size={14} strokeWidth={1.5} className="shrink-0 text-white-900" aria-label="Outbound" />
+                        )}
+                        <span className="truncate font-medium text-black-400">{c.person?.full_name ?? formatPhone(c.direction === 'inbound' ? c.from_e164 : c.to_e164)}</span>
+                        {c.kind === 'test' ? <Badge>Test</Badge> : null}
+                        {c.kind === 'voicemail' ? <Badge>Voicemail</Badge> : null}
+                      </span>
                     </td>
-                    <td className="max-w-[160px] truncate text-black-700">{c.person?.company?.name ?? '–'}</td>
-                    <td className="whitespace-nowrap text-black-700">
-                      {c.direction === 'inbound' ? <ArrowDownLeft size={14} strokeWidth={1.5} className="mr-1 inline" /> : <ArrowUpRight size={14} strokeWidth={1.5} className="mr-1 inline" />}
-                      {c.direction === 'inbound' ? 'Inbound' : 'Outbound'}
-                    </td>
+                    <td className="text-black-700">{c.person?.company?.name ?? '–'}</td>
+                    <td className="text-black-700">{names[c.user_id ?? ''] ?? '–'}</td>
                     <td>
                       {c.outcome ? <OutcomeBadge outcome={c.outcome} /> : c.status === 'blocked' ? <Badge tone="danger">Blocked</Badge> : <Badge>{CALL_STATUS_LABEL[c.status]}</Badge>}
                     </td>
-                    <td className="t-mono">{formatDuration(c.duration_seconds)}</td>
+                    <td className="tabular-nums text-black-700">{formatDuration(c.duration_seconds)}</td>
                     <td onClick={(e) => e.stopPropagation()} className="py-0">
                       {/* always rendered at a fixed size: playing never changes the row or the column */}
                       {r ? <RecordingPlayer path={r.storage_path} duration={r.duration_seconds} compact /> : <span className="text-faint">No recording</span>}
                     </td>
-                    <td className="text-black-700">{c.notes ?? ''}</td>
                   </tr>
                 );
               })}

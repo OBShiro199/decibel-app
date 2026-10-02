@@ -44,7 +44,7 @@ function RoundButton({ label, active, onClick, disabled, children }: { label: st
         onClick={onClick}
         className={cn(
           'flex h-12 w-12 items-center justify-center rounded-full border transition-colors active:scale-[0.98] disabled:border-white-500 disabled:text-white-900',
-          active ? 'border-black-0 bg-black-0 text-white-100' : 'border-btnborder bg-white-100 hover:border-white-900',
+          active ? 'border-black-400 bg-white-300 text-black-400' : 'border-btnborder bg-white-100 hover:border-white-900',
         )}
       >
         {children}
@@ -79,7 +79,7 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
           <span className="min-w-0 flex-1 truncate">{state.callee.name}</span>
           <span className="t-mono w-14 text-right">{state.phase === 'in_call' ? formatDuration(seconds) : PHASE_LABEL[state.phase]}</span>
         </button>
-        <button onClick={sp.hangUp} aria-label="Hang up" className="flex h-9 w-9 items-center justify-center rounded-full bg-danger-500 text-white-100 hover:bg-danger-600">
+        <button onClick={sp.hangUp} aria-label="Hang up" className="flex h-9 w-9 items-center justify-center rounded-full border border-danger-500/50 bg-white-100 text-danger-700 hover:bg-danger-100">
           <PhoneOff size={16} strokeWidth={1.5} />
         </button>
       </div>
@@ -207,7 +207,7 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
                   onClick={() => sp.setOutcome(o.value)}
                   className={cn(
                     't-small relative h-10 border px-1 text-center transition-colors',
-                    state.outcome === o.value ? 'border-black-0 bg-black-0 text-white-100' : 'border-btnborder hover:border-white-900',
+                    state.outcome === o.value ? 'border-black-400 bg-white-300 text-black-400' : 'border-btnborder hover:border-white-900',
                   )}
                 >
                   {o.label}

@@ -222,7 +222,7 @@ export function ImportCsvDialog({
             {steps.map((s, i) => (
               <li key={s.id} className="flex items-center gap-2">
                 <span className={cn('flex items-center gap-1.5', i === stepIndex && 'text-black-400')} aria-current={i === stepIndex ? 'step' : undefined}>
-                  <span className={cn('tabular flex h-5 w-5 items-center justify-center rounded-full border t-caption', i <= stepIndex ? 'border-black-0 bg-black-0 text-white-100' : 'border-white-800')}>{i + 1}</span>
+                  <span className={cn('tabular flex h-5 w-5 items-center justify-center rounded-full border t-caption', i <= stepIndex ? 'border-black-400 bg-white-300 text-black-400' : 'border-white-800')}>{i + 1}</span>
                   {s.label}
                 </span>
                 {i < steps.length - 1 ? <span className="h-px w-4 bg-white-800" aria-hidden /> : null}

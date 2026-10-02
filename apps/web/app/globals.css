@@ -154,9 +154,14 @@
   /* Record table: hairline grid, single-line cells, mono headers */
   .tbl-wrap {
     overflow-x: auto;
-    overflow-y: hidden;
     overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #d6d7db transparent;
   }
+  .tbl-wrap::-webkit-scrollbar { height: 8px; }
+  .tbl-wrap::-webkit-scrollbar-track { background: transparent; }
+  .tbl-wrap::-webkit-scrollbar-thumb { background: #d6d7db; border-radius: 8px; border: 2px solid #ffffff; }
+  .tbl-wrap::-webkit-scrollbar-thumb:hover { background: #b9bbc0; }
   .tbl {
     @apply w-full text-left;
     border-collapse: separate;
@@ -346,25 +351,6 @@ html:has([data-page-scroll]) {
   .skeleton::after, .reveal-once { animation: none; }
 }
 
-/* Inside the app the hairlines are quieter than on the marketing site */
-.app-shell {
-  /* all white: no grey canvas, sidebar or table headers; dividers do the separating */
-  --color-white-200: #ffffff;
-  --color-canvas: #ffffff;
-  --color-page-background: #ffffff;
-  --color-panel-2: #ffffff;
-  --color-white-800: #e8e8e5;
-  --color-rule-soft: #f0f0ed;
-  --color-white-300: #f7f7f5; /* hover and skeletons only */
-  background: #ffffff;
-}
-.app-shell .tbl td {
-  border-right: 0;
-}
-.app-shell .tbl th {
-  border-right: 0;
-  background: var(--color-white-100);
-}
 
 /* Softphone slides over the app; transform only, nothing underneath moves */
 .softphone-in {
@@ -424,3 +410,134 @@ html:has([data-page-scroll]) {
   .page-in, .popover-in, .dialog-in, .overlay-in, .toast-in,
   .reveal-once .tbl tbody tr, .stagger > * { animation: none !important; }
 }
+
+
+/* =============================================================================
+   App theme: Linear's system in light mode. Scoped to .app-shell (app, settings,
+   onboarding, and their overlays via #app-portal); marketing is unaffected.
+   ============================================================================= */
+.app-shell {
+  /* surfaces: white everywhere, separation by hairlines */
+  --color-white-100: #ffffff;
+  --color-white-200: #ffffff;
+  --color-canvas: #ffffff;
+  --color-page-background: #ffffff;
+  --color-panel-2: #ffffff;
+  --color-white-300: #f5f5f6; /* hover, skeletons */
+  --color-white-400: #ededef; /* pressed */
+  --color-white-500: #e4e4e7; /* disabled edges */
+  --color-white-800: #e6e6e9; /* hairline borders and dividers */
+  --color-rule-soft: #efeff1; /* row dividers */
+  --color-white-900: #8a8f98; /* tertiary text, placeholders (Fog) */
+  --color-faint: #b4b8bf;
+  --color-btn-border: #dcdde0;
+
+  /* ink: Linear's text scale, inverted for light */
+  --color-black-0: #08090a;
+  --color-black-200: #08090a;
+  --color-black-300: #08090a;
+  --color-black-400: #08090a; /* primary text */
+  --color-black-500: #3c4149; /* body */
+  --color-black-700: #62666d; /* muted (Ash) */
+
+  /* chromatic accents */
+  --color-accent-500: #6366f1; /* Iris violet: info, links, live indicators */
+  --color-accent-600: #5457e0;
+  --color-accent-700: #4447c9;
+  --color-accent-100: #eef0fe;
+  --color-accent-050: #f6f7ff;
+  --color-success-500: #27a644; /* Pulse green */
+  --color-success-100: #edf8f0;
+  --color-success-700: #1f8537;
+  --color-danger-500: #eb5757; /* Coral red */
+  --color-danger-600: #d94848;
+  --color-danger-100: #fdf0f0;
+  --color-danger-700: #c43c3c;
+  --color-warning-500: #d18b0f;
+  --color-warning-100: #fdf6e7;
+  --color-warning-700: #946208;
+
+  /* buttons: white with a light border; the primary action is set apart by weight and a firmer edge */
+  --btn-primary-bg: #ffffff;
+  --btn-primary-hover: #fafafb;
+  --btn-primary-text: #08090a;
+  --btn-primary-border: #cfd1d5;
+  --btn-primary-shadow: 0 1px 2px rgba(8, 9, 10, 0.05);
+
+  /* Linear's radius vocabulary */
+  --radius-xs: 2px;
+  --radius-sm: 6px; /* buttons, inputs, nav items */
+  --radius-md: 6px; /* menus, option cards */
+  --radius-lg: 12px; /* cards, dialogs */
+
+  /* Inter with Linear's alternates */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv01' on, 'ss03' on, 'zero' on;
+  letter-spacing: -0.01em;
+  color: var(--color-black-500);
+  background: #ffffff;
+}
+
+/* weights stay in Linear's 400 / 510 / 590 band; never bold */
+.app-shell .font-medium { font-weight: 510; }
+.app-shell .font-semibold,
+.app-shell .font-bold,
+.app-shell strong,
+.app-shell b { font-weight: 590; }
+.app-shell .t-h1, .app-shell .t-h2, .app-shell .t-h3, .app-shell .t-h4 { font-weight: 510; color: var(--color-black-400); }
+.app-shell .t-h2 { font-size: 24px; line-height: 32px; letter-spacing: -0.012em; }
+.app-shell .t-h3 { font-size: 20px; line-height: 26px; letter-spacing: -0.012em; }
+.app-shell .t-h4 { font-size: 15px; line-height: 22px; letter-spacing: -0.011em; }
+.app-shell .t-label { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0; color: var(--color-white-900); }
+.app-shell .t-small { font-size: 13px; line-height: 18px; }
+.app-shell .t-caption { font-size: 12px; line-height: 16px; }
+
+/* cards: 12px, hairline edge, no shadow */
+.app-shell .card { border-radius: 12px; border-color: var(--color-white-800); }
+
+/* inputs: 6px, focus darkens the edge with a soft halo instead of an outline */
+.app-shell .control { border-radius: 6px; border-color: var(--color-white-800); }
+.app-shell .control:hover { border-color: #c9cbd0; }
+.app-shell .control:focus,
+.app-shell .control:focus-visible {
+  outline: none;
+  border-color: #8a8f98;
+  box-shadow: 0 0 0 3px rgba(8, 9, 10, 0.06);
+}
+.app-shell :focus-visible { outline-color: var(--color-accent-500); }
+
+/* tables: compact rows, hairline dividers, quiet headers */
+.app-shell .tbl th {
+  height: 34px;
+  border-right: 0;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-white-900);
+}
+.app-shell .tbl td { height: 38px; border-right: 0; color: var(--color-black-500); }
+.app-shell .tbl tbody tr:hover { background: #fafafb; }
+.app-shell .tbl tbody tr[data-selected='true'] { background: var(--color-accent-050); }
+.app-shell .tbl tbody tr[data-active='true'] { box-shadow: inset 2px 0 0 #cfd1d5; }
+
+/* badges: 4px, colour-coded in Linear's accents, soft fill with a darker edge */
+.app-shell .tag { border-radius: 4px; font-size: 12px; padding: 0 6px; height: 20px; }
+.app-shell .tag-0 { background: rgba(39, 166, 68, 0.08); border-color: rgba(39, 166, 68, 0.35); color: #1f7a35; } /* pulse green */
+.app-shell .tag-1 { background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.35); color: #4447c9; } /* iris violet */
+.app-shell .tag-2 { background: rgba(209, 139, 15, 0.09); border-color: rgba(209, 139, 15, 0.38); color: #8a5c07; } /* amber */
+.app-shell .tag-3 { background: rgba(235, 87, 87, 0.08); border-color: rgba(235, 87, 87, 0.38); color: #b83636; } /* coral red */
+.app-shell .tag-4 { background: rgba(139, 92, 246, 0.08); border-color: rgba(139, 92, 246, 0.35); color: #6d43c9; } /* lavender */
+.app-shell .tag-5 { background: rgba(2, 184, 204, 0.08); border-color: rgba(2, 184, 204, 0.38); color: #057d8b; } /* signal teal */
+.app-shell .tag-6 { background: rgba(219, 83, 160, 0.07); border-color: rgba(219, 83, 160, 0.32); color: #a63a78; } /* rose */
+.app-shell .tag-7 { background: rgba(98, 102, 109, 0.06); border-color: rgba(98, 102, 109, 0.24); color: #4d5157; } /* neutral */
+
+/* floating layers: hairline plus a soft lift */
+.app-shell .shadow-popover { box-shadow: rgba(8, 9, 10, 0.08) 0px 4px 16px 0px, rgba(8, 9, 10, 0.04) 0px 0px 0px 1px; }
+
+/* sidebar: the active item is outlined with a hairline, no fill */
+.app-shell .nav-item { border-radius: 6px; border: 1px solid transparent; }
+.app-shell .nav-item[aria-current='page'] { color: var(--color-black-400); font-weight: 510; border-color: var(--color-white-800); box-shadow: 0 1px 2px rgba(8, 9, 10, 0.04); }
+
+.app-shell .skeleton { background: #f3f3f5; border-radius: 4px; }
+.app-shell .kbd { border-radius: 4px; }

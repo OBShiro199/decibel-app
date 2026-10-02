@@ -430,7 +430,7 @@ export function PricingCard() {
   const [annual, setAnnual] = useState(false);
   const base = PLANS[plan].monthly;
   const price = annual ? base * (1 - ANNUAL_DISCOUNT) : base;
-  const seg = (on: boolean) => cn('h-8 px-3 tabular-nums text-xs tracking-[0.06em] transition-colors', on ? 'bg-black-0 text-white-100' : 'text-black-700 hover:bg-white-300');
+  const seg = (on: boolean) => cn('h-8 px-3 tabular-nums text-xs tracking-[0.06em] transition-colors', on ? 'bg-white-300 text-black-400' : 'text-black-700 hover:bg-white-300');
   return (
     <div className="overflow-hidden rounded-card border border-white-800 bg-white-100">
       <div className="grid md:grid-cols-2">

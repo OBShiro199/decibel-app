@@ -9,6 +9,7 @@ import { STEPS, stepBySlug, type StepSlug } from '@/lib/onboarding';
 import { saveInBackground } from '@/lib/background-save';
 import { supabase } from '@/lib/supabase/client';
 import type { OnboardingState, Profile, Workspace } from '@/lib/types';
+import { inter } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/marketing/logo';
 import { SoftphoneProvider } from '@/components/softphone/provider';
@@ -166,7 +167,7 @@ export function Wizard({
   ) : null;
 
   const page = (
-    <div className="app-shell flex h-dvh flex-col overflow-hidden md:flex-row">
+    <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
       <aside className="shrink-0 border-b border-white-800 bg-white-200 p-4 md:w-[var(--settings-rail-width)] md:border-b-0 md:border-r md:p-6">
         <Link href="/" aria-label="Decibels home" className="inline-block">
           <Logo />
@@ -184,7 +185,7 @@ export function Wizard({
                   <span
                     className={cn(
                       'flex h-5 w-6 shrink-0 items-center justify-center border tabular-nums text-xs transition-colors',
-                      isDone ? 'border-success-500 bg-success-500 text-white-100' : isCurrent ? 'border-black-0 bg-black-0 text-white-100' : 'border-white-800 text-white-900',
+                      isDone ? 'border-success-500 bg-success-500 text-white-100' : isCurrent ? 'border-black-400 bg-white-300 text-black-400' : 'border-white-800 text-white-900',
                     )}
                   >
                     {isDone ? <Check size={12} strokeWidth={2.5} /> : String(s.n).padStart(2, '0')}
@@ -235,6 +236,7 @@ export function Wizard({
   );
 
   return (
+    <div className={`${inter.variable} app-shell`}>
     <NavCtx.Provider
       value={{
         footer,
@@ -254,5 +256,7 @@ export function Wizard({
         page
       )}
     </NavCtx.Provider>
+    <div id="app-portal" />
+    </div>
   );
 }

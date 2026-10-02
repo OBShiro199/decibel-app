@@ -68,7 +68,7 @@ export function RecordingPlayer({ path, duration, compact }: { path: string; dur
         onClick={toggle}
         disabled={loading || !!error}
         aria-label={playing ? 'Pause recording' : 'Play recording'}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black-400 text-white-100 hover:bg-black-300 disabled:bg-white-500"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-btnborder bg-white-100 text-black-400 hover:border-black-700 disabled:text-white-900"
       >
         {playing ? <Pause size={12} fill="currentColor" strokeWidth={0} /> : <Play size={12} fill="currentColor" strokeWidth={0} />}
       </button>

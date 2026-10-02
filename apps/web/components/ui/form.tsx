@@ -98,11 +98,11 @@ export function Checkbox({
         }}
         className={cn(
           'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border transition-colors',
-          checked || indeterminate ? 'border-black-0 bg-black-0 text-white-100' : 'border-white-800 bg-white-100 hover:border-black-700',
+          checked || indeterminate ? 'border-black-700 bg-white-100 text-black-400' : 'border-btnborder bg-white-100 hover:border-black-700',
           disabled && 'cursor-not-allowed opacity-50',
         )}
       >
-        {indeterminate ? <span className="h-0.5 w-2 bg-white-100" /> : checked ? <Check size={12} strokeWidth={2.5} /> : null}
+        {indeterminate ? <span className="h-0.5 w-2 bg-black-400" /> : checked ? <Check size={12} strokeWidth={2.5} /> : null}
       </button>
       {label ? (
         <label htmlFor={id} className="cursor-pointer select-none">
@@ -134,7 +134,7 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cn(
         'relative h-5 w-9 shrink-0 rounded-full border transition-colors',
-        checked ? 'border-black-0 bg-black-0' : 'border-white-800 bg-white-400',
+        checked ? 'border-accent-500 bg-accent-500' : 'border-btnborder bg-white-300',
         disabled && 'cursor-not-allowed opacity-50',
       )}
     >
@@ -258,7 +258,7 @@ export function PillSelect<T extends string>({
             onClick={() => onChange(single ? [o.value] : on ? value.filter((v) => v !== o.value) : [...value, o.value])}
             className={cn(
               'h-8 rounded-sm border px-3 transition-colors',
-              on ? 'border-black-0 bg-black-0 text-white-100' : 'border-btnborder bg-white-100 hover:border-white-900',
+              on ? 'border-black-400 bg-white-300 text-black-400' : 'border-btnborder bg-white-100 hover:border-white-900',
             )}
           >
             {o.label}

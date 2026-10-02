@@ -12,6 +12,7 @@ import { AppProvider, useApp, type AppContextValue } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
 import { destroyDevice } from '@/lib/twilio/device';
 import type { Person } from '@/lib/types';
+import { inter } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
 import { SidebarCallWidget, SoftphoneToggle } from '@/components/app/quick-dial';
 import { SoftphoneProvider } from '@/components/softphone/provider';
@@ -44,13 +45,16 @@ export function AppShell({
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { workspace, user } = useApp();
   return (
-    <SoftphoneProvider workspaceId={workspace.id} userId={user.id} recordingPolicy={workspace.recording_policy}>
-      <div className="app-shell flex h-dvh">
-        <Sidebar />
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-canvas [scrollbar-gutter:stable]">{children}</main>
-      </div>
-      <ShortcutsDialog />
-    </SoftphoneProvider>
+    <div className={`${inter.variable} app-shell`}>
+      <SoftphoneProvider workspaceId={workspace.id} userId={user.id} recordingPolicy={workspace.recording_policy}>
+        <div className="flex h-dvh">
+          <Sidebar />
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-canvas [scrollbar-gutter:stable]">{children}</main>
+        </div>
+        <ShortcutsDialog />
+      </SoftphoneProvider>
+      <div id="app-portal" />
+    </div>
   );
 }
 
@@ -160,10 +164,7 @@ function Sidebar() {
                 onMouseEnter={() => prefetch(href)}
                 onFocus={() => prefetch(href)}
                 aria-current={active ? 'page' : undefined}
-                className={cn(
-                  't-small flex h-8 items-center gap-2 rounded-sm px-2 transition-colors',
-                  active ? 'bg-white-100 text-black-400 shadow-[inset_0_0_0_1px_var(--color-white-800)]' : 'text-black-700 hover:bg-white-300',
-                )}
+                className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors', active ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
               >
                 <Icon size={16} strokeWidth={1.5} className="shrink-0" />
                 <span className="truncate max-[1100px]:hidden">{label}</span>

@@ -209,7 +209,7 @@ export function OptionCard({
       )}
     >
       {Icon ? (
-        <span className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-md ', selected ? 'bg-black-0 text-white-100' : 'bg-white-200')}>
+        <span className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-md ', selected ? 'bg-accent-50 text-accent-700' : 'bg-white-200')}>
           <Icon size={20} strokeWidth={1.5} />
         </span>
       ) : null}
@@ -221,8 +221,8 @@ export function OptionCard({
         {description ? <span className="mt-0.5 block text-black-700">{description}</span> : null}
       </span>
       {radio ? (
-        <span className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded-full border', selected ? 'border-black-0 bg-black-0' : 'border-white-800 bg-white-100')}>
-          {selected ? <span className="h-1.5 w-1.5 rounded-full bg-white-100" /> : null}
+        <span className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded-full border', selected ? 'border-accent-500 bg-white-100' : 'border-btnborder bg-white-100')}>
+          {selected ? <span className="h-2 w-2 rounded-full bg-accent-500" /> : null}
         </span>
       ) : null}
     </button>

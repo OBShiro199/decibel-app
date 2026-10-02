@@ -75,7 +75,7 @@ export default function DashboardPage() {
               ['custom', 'Custom'],
             ] as [Period, string][]
           ).map(([id, text]) => (
-            <button key={id} role="radio" aria-checked={period === id} onClick={() => setPeriod(id)} className={cn('h-7 px-2.5', period === id ? 'bg-black-0 text-white-100' : 'text-black-700 hover:bg-white-300')}>
+            <button key={id} role="radio" aria-checked={period === id} onClick={() => setPeriod(id)} className={cn('h-7 px-2.5', period === id ? 'bg-white-300 text-black-400' : 'text-black-700 hover:bg-white-300')}>
               {text}
             </button>
           ))}
@@ -116,7 +116,7 @@ export default function DashboardPage() {
                   {perDay.map((d) => (
                     <div key={d.day} className="group relative flex h-full min-w-0 flex-1 flex-col justify-end" title={`${label(d.day)}: ${d.dials} dials`}>
                       {perDay.length <= 14 || d.dials === max ? <span className="t-caption tabular mb-1 text-center text-black-700">{d.dials || ''}</span> : null}
-                      <div className="bg-black-0 transition-colors group-hover:bg-accent-500" style={{ height: `${(d.dials / max) * 100}%`, minHeight: d.dials ? 2 : 0 }} />
+                      <div className="rounded-t-[3px] bg-accent-500/70 transition-colors group-hover:bg-accent-500" style={{ height: `${(d.dials / max) * 100}%`, minHeight: d.dials ? 2 : 0 }} />
                     </div>
                   ))}
                 </div>

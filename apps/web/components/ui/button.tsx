@@ -8,15 +8,15 @@ type Variant = 'primary' | 'outline' | 'ghost' | 'danger';
 type Size = 'default' | 'compact' | 'lg' | 'icon' | 'icon-compact';
 
 const base =
-  'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap t-body font-medium transition-[color,background-color,border-color,transform] duration-100 disabled:pointer-events-none aria-disabled:pointer-events-none';
+  'inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-sm t-body font-medium transition-[color,background-color,border-color,transform] duration-100 disabled:pointer-events-none aria-disabled:pointer-events-none';
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-black-0 text-white-100 hover:bg-black-200 active:bg-black-200 disabled:bg-white-400 disabled:text-white-900',
+    'border border-[color:var(--btn-primary-border)] bg-[var(--btn-primary-bg)] text-[color:var(--btn-primary-text)] shadow-[var(--btn-primary-shadow)] hover:bg-[var(--btn-primary-hover)] disabled:border-white-800 disabled:bg-white-100 disabled:text-white-900 disabled:shadow-none',
   outline:
     'border border-btnborder bg-white-100 text-black-400 hover:border-white-900 active:bg-white-300 disabled:border-white-500 disabled:text-white-900',
   ghost: 'bg-transparent text-black-400 hover:bg-white-300 active:bg-white-400 disabled:text-white-900',
-  danger: 'bg-danger-500 text-white-100 hover:bg-danger-600 active:bg-danger-700 disabled:bg-white-500 disabled:text-white-900',
+  danger: 'border border-danger-500/50 bg-white-100 text-danger-700 hover:border-danger-500 hover:bg-danger-100 disabled:border-white-800 disabled:text-white-900',
 };
 
 const sizes: Record<Size, string> = {
