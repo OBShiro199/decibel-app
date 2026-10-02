@@ -4,8 +4,19 @@
     {
       "name": "decibels-web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@decibels/web", "dev"],
-      "port": 3000
+      "runtimeArgs": [
+        "--filter",
+        "@decibels/web",
+        "exec",
+        "next",
+        "dev",
+        "--port",
+        "3000"
+      ],
+      "port": 3000,
+      "env": {
+        "NEXT_DIST_DIR": ".next-preview"
+      }
     }
   ]
 }
