@@ -31,7 +31,7 @@ export function OptOutForm() {
   const label = 't-small block text-black-400';
 
   return (
-    <form onSubmit={onSubmit} className="mt-8 rounded-lg border border-white-800 p-4 text-[14px] leading-5 tracking-[-0.14px] sm:p-6">
+    <form onSubmit={onSubmit} className="mt-8 rounded-lg border border-white-800 p-4 text-base leading-5 tracking-[-0.14px] sm:p-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="oo-name" className={label}>

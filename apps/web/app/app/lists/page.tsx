@@ -77,7 +77,7 @@ export default function ListsPage() {
           <EmptyState title="Create your first list" description="Group the people you want to call, then work the list top to bottom." action={<Button variant="primary" onClick={() => setCreating(true)}>New list</Button>} />
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {lists.data.map((l) => (
             <article key={l.id} className="card flex flex-col p-4 transition-colors hover:border-black-700">
               <Link href={`/app/lists/${l.id}`} className="block">

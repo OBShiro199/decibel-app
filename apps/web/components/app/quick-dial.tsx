@@ -91,7 +91,7 @@ function Matches({ items, onPick }: { items: Match[]; onPick: (m: Match) => void
             <button disabled={blocked} onClick={() => onPick(m)} className="flex h-10 w-full items-center gap-2 px-2 text-left hover:bg-panel disabled:opacity-50">
               <Avatar name={m.full_name} size={20} />
               <span className="min-w-0 flex-1 truncate">{m.full_name}</span>
-              <span className="shrink-0 tabular-nums text-[11px] text-white-900">{blocked ? 'BLOCKED' : formatPhone(m.mobile_e164)}</span>
+              <span className="shrink-0 tabular-nums text-xs text-white-900">{blocked ? 'Blocked' : formatPhone(m.mobile_e164)}</span>
             </button>
           </li>
         );
@@ -102,7 +102,20 @@ function Matches({ items, onPick }: { items: Match[]; onPick: (m: Match) => void
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '0'];
 
-/** Top bar: a Call button that opens a dial pad. */
+/** Top bar: opens or closes the softphone panel over the app. Shows the live phase during a call. */
+export function SoftphoneToggle() {
+  const sp = useSoftphoneActions();
+  const phone = useSoftphoneStatus();
+  const on = phone.open && !phone.minimised;
+  return (
+    <Button size="compact" variant={phone.live || on ? 'primary' : 'outline'} onClick={sp.togglePanel} aria-pressed={on} aria-label="Toggle softphone" className="w-full">
+      <Phone size={14} strokeWidth={1.5} />
+      <span className="max-[1100px]:hidden">{phone.live ? PHASE_LABEL[phone.phase] : on ? 'Close phone' : 'Open phone'}</span>
+    </Button>
+  );
+}
+
+/** Popover dial pad (kept for compact layouts). */
 export function QuickCallButton() {
   return (
     <Popover
@@ -130,19 +143,19 @@ export function DialPad({ onDone }: { onDone?: () => void }) {
       }}
       className="flex flex-col gap-2"
     >
-      <p className="t-label">[ quick call ]</p>
+      <p className="t-label">Quick call</p>
       <input
         autoFocus
         value={d.value}
         onChange={(e) => d.setValue(e.target.value)}
         placeholder="Name or number"
         aria-label="Name or number"
-        className="control h-11 tabular-nums text-[16px]"
+        className="control h-11 tabular-nums text-md"
       />
       <Matches items={d.matches} onPick={(m) => void d.call(m)} />
       <div className="grid grid-cols-3 gap-px border border-white-800 bg-white-800">
         {KEYS.map((k) => (
-          <button key={k} type="button" onClick={() => d.setValue((looksLikeNumber(d.value) || !d.value ? d.value : '') + k)} className="h-10 bg-white-100 tabular-nums text-[15px] hover:bg-panel active:bg-white-300">
+          <button key={k} type="button" onClick={() => d.setValue((looksLikeNumber(d.value) || !d.value ? d.value : '') + k)} className="h-10 bg-white-100 tabular-nums text-base hover:bg-panel active:bg-white-300">
             {k}
           </button>
         ))}
@@ -164,9 +177,9 @@ export function SidebarCallWidget() {
   return (
     <div className="mx-2 mb-2 border border-white-800 bg-white-100 p-2.5 max-[1100px]:hidden">
       <div className="flex items-center justify-between">
-        <p className="t-label">[ quick call ]</p>
+        <p className="t-label">Quick call</p>
         {d.live ? (
-          <span className="flex w-[104px] items-center gap-1.5 tabular-nums text-[10px] uppercase tracking-[0.06em] text-white-900">
+          <span className="flex w-[104px] items-center gap-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">
             <span className="pulse-dot bg-accent-500" style={{ width: 6, height: 6 }} />
             {PHASE_LABEL[d.phone.phase]}
           </span>
@@ -177,7 +190,7 @@ export function SidebarCallWidget() {
       {d.live && d.phone.calleeName ? (
         <div className="mt-2">
           <p className="truncate font-medium">{d.phone.calleeName}</p>
-          <p className="truncate tabular-nums text-[11px] text-white-900">{formatPhone(d.phone.calleeNumber)}</p>
+          <p className="truncate tabular-nums text-xs text-white-900">{formatPhone(d.phone.calleeNumber)}</p>
           <Button variant="danger" size="compact" className="mt-2 w-full" onClick={d.softphone.hangUp}>
             Hang up
           </Button>
@@ -195,7 +208,7 @@ export function SidebarCallWidget() {
               <Matches items={d.matches} onPick={(m) => void d.call(m)} />
             </div>
           ) : null}
-          <input value={d.value} onChange={(e) => d.setValue(e.target.value)} placeholder="Name or number" aria-label="Name or number to call" className="control h-8 tabular-nums text-[12.5px]" />
+          <input value={d.value} onChange={(e) => d.setValue(e.target.value)} placeholder="Name or number" aria-label="Name or number to call" className="control h-8 tabular-nums text-xs" />
           {d.error ? <p className="t-caption text-danger-700" role="alert">{d.error}</p> : null}
           <Button type="submit" variant="primary" size="compact" className="w-full" loading={d.busy} disabled={!d.value.trim()}>
             <Phone size={14} strokeWidth={1.5} /> Call

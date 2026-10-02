@@ -31,7 +31,7 @@ export function SiteHeader() {
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
           {NAV.map((item) => (
-            <Link key={item.href} href={item.href} className="flex h-8 items-center px-2.5 tabular-nums text-[11.5px] uppercase tracking-[0.06em] text-black-700 transition-colors hover:text-black-400">
+            <Link key={item.href} href={item.href} className="flex h-8 items-center px-2.5 tabular-nums text-xs tracking-[0.06em] text-black-700 transition-colors hover:text-black-400">
               {item.label}
             </Link>
           ))}

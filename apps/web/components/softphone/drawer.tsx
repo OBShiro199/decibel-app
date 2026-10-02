@@ -88,7 +88,9 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
 
   const shell = cn(
     'flex flex-col bg-white-100',
-    mode === 'overlay' ? 'fixed bottom-0 right-0 top-0 z-menu w-[min(var(--softphone-width),100vw)] border-l border-white-800' : 'h-full w-full',
+    mode === 'overlay'
+      ? 'softphone-in fixed bottom-0 right-0 top-0 z-menu w-[min(var(--softphone-width),100vw)] border-l border-white-800 shadow-[-12px_0_32px_rgba(18,18,18,0.06)]'
+      : 'h-full w-full',
   );
 
   // ---- docked and idle: ready state with a dial pad --------------------------
@@ -97,13 +99,20 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
       <aside aria-label="Softphone" className={shell}>
         <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-white-800 px-4">
           <div>
-            <p className="t-label">[ softphone ]</p>
-            <p className="t-h4 mt-1">Ready to call</p>
+            <p className="t-h4">Phone</p>
+            <p className="text-sm text-black-700">Ready to call</p>
           </div>
-          <ConnectionDot />
+          <div className="flex items-center gap-2">
+            <ConnectionDot />
+            {mode === 'overlay' ? (
+              <button onClick={sp.dismiss} aria-label="Close softphone" className="flex h-8 w-8 items-center justify-center hover:bg-white-300">
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            ) : null}
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          <DialPad />
+          <DialPad onDone={() => undefined} />
         </div>
         <div className="flex h-[68px] shrink-0 items-center border-t border-white-800 px-4">
           <p className="t-caption text-black-700">
@@ -146,8 +155,8 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
 
       {/* dial block */}
       <div className="flex h-[112px] shrink-0 flex-col items-center justify-center gap-1.5">
-        <p className="tabular-nums text-[18px] leading-6">{formatPhone(callee!.number) || ' '}</p>
-        <p className="tabular tabular-nums text-[28px] leading-8">{formatDuration(seconds)}</p>
+        <p className="tabular-nums text-lg leading-6">{formatPhone(callee!.number) || ' '}</p>
+        <p className="tabular tabular-nums text-xl leading-8">{formatDuration(seconds)}</p>
         <div className="flex h-5 items-center gap-2">
           <Badge tone={tone(state)}>{PHASE_LABEL[state.phase]}</Badge>
           <span className="flex w-5 justify-center">{live ? <SignalBars level={state.quality} /> : null}</span>
@@ -165,11 +174,11 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
           state.keypad ? (
             <div className="mx-auto grid h-full w-[216px] grid-cols-3 content-center gap-1.5">
               {KEYS.map((k) => (
-                <button key={k} onClick={() => sp.sendDigit(k)} className="h-10 border border-white-800 tabular-nums text-[16px] hover:border-white-900 active:bg-white-300">
+                <button key={k} onClick={() => sp.sendDigit(k)} className="h-10 border border-white-800 tabular-nums text-md hover:border-white-900 active:bg-white-300">
                   {k}
                 </button>
               ))}
-              <button onClick={sp.toggleKeypad} className="col-span-3 h-8 tabular-nums text-[11px] uppercase tracking-[0.06em] text-black-700 hover:text-black-400">
+              <button onClick={sp.toggleKeypad} className="col-span-3 h-8 tabular-nums text-xs tracking-[0.06em] text-black-700 hover:text-black-400">
                 Hide keypad
               </button>
             </div>
@@ -202,7 +211,7 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
                   )}
                 >
                   {o.label}
-                  <span className={cn('absolute right-1 top-0.5 tabular-nums text-[9px]', state.outcome === o.value ? 'text-white-900' : 'text-faint')}>{i + 1}</span>
+                  <span className={cn('absolute right-1 top-0.5 tabular-nums text-xs', state.outcome === o.value ? 'text-white-900' : 'text-faint')}>{i + 1}</span>
                 </button>
               ))}
             </div>

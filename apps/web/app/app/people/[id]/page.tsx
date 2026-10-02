@@ -112,7 +112,7 @@ export default function PersonPage() {
   if (person.isLoading) return <RecordSkeleton />;
   const p = person.data;
   if (!p) {
-    return <EmptyState title="Person not found" description="This record may have been deleted." action={<ButtonLink href="/app/people">Back to People</ButtonLink>} />;
+    return <EmptyState title="Person not found" description="This record may have been deleted." action={<ButtonLink href="/app/calls">Back to calls</ButtonLink>} />;
   }
 
   const blocked = blockedLabel(p);

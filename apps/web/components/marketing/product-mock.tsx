@@ -153,7 +153,7 @@ export function ProductMock({ className }: { className?: string }) {
             <p className="t-h3 mt-4 text-black-0">Oliver Hartley</p>
             <p className="mt-1 text-black-700">Brightmoor Software Ltd</p>
             <p className="t-mono mt-3 text-black-400">+44 7700 900101</p>
-            <p className="tabular mt-4 tabular-nums text-[40px] font-medium leading-[44px] text-black-0">02:14</p>
+            <p className="tabular mt-4 tabular-nums text-2xl font-medium leading-[44px] text-black-0">02:14</p>
             <p className="t-caption mt-3 flex items-center gap-1.5 text-black-700">
               <span className="h-1.5 w-1.5 rounded-full bg-danger-500" />
               Recording · TPS clear
@@ -241,7 +241,7 @@ export function DiallerMiniMock() {
           </Badge>
         </div>
         <p className="t-mono mt-3 text-black-700">+44 7700 900104</p>
-        <p className="tabular mt-1 tabular-nums text-[28px] font-medium leading-8 text-black-0">02:14</p>
+        <p className="tabular mt-1 tabular-nums text-xl font-medium leading-8 text-black-0">02:14</p>
         <div className="mt-4 flex items-center gap-3">
           {[Mic, Pause, Grid3x3].map((Icon, i) => (
             <span key={i} className="flex h-10 w-10 items-center justify-center rounded-full border border-white-800 text-black-400">

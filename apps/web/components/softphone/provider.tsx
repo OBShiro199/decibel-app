@@ -15,7 +15,6 @@ import { supabase } from '@/lib/supabase/client';
 import { initialState, isLive, needsOutcome, reducer, type Callee, type Phase, type SoftphoneState } from '@/lib/twilio/call-machine';
 import { getDevice, isVoiceSupported, onIncoming, qualityFromWarnings, warmDevice, type Call } from '@/lib/twilio/device';
 import type { Call as CallRow, CallOutcome, Person, RecordingPolicy } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/overlay';
 import { SoftphonePanel } from './drawer';
 
@@ -45,6 +44,8 @@ interface Actions {
   dismiss: () => void;
   setMinimised: (m: boolean) => void;
   setRecordPref: (on: boolean) => void;
+  /** Opens the panel over the app (dial pad when idle) or closes it when idle. */
+  togglePanel: () => void;
 }
 
 interface Status {
@@ -119,7 +120,6 @@ export function SoftphoneProvider({
   userId,
   recordingPolicy,
   listen = true,
-  docked = false,
   children,
 }: {
   workspaceId: string;
@@ -127,8 +127,6 @@ export function SoftphoneProvider({
   recordingPolicy: RecordingPolicy;
   /** Register for inbound calls on load. Off during onboarding, where no number exists yet. */
   listen?: boolean;
-  /** The app shell renders a docked panel at ≥1280px, so the overlay only shows below that. */
-  docked?: boolean;
   children: React.ReactNode;
 }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -477,6 +475,11 @@ export function SoftphoneProvider({
         else dispatch({ type: 'RESET' });
       },
       setMinimised: (m) => dispatch({ type: 'MINIMISE', minimised: m }),
+      togglePanel: () => {
+        const s = stateRef.current;
+        if (s.phase === 'idle') dispatch(s.open ? { type: 'RESET' } : { type: 'OPEN' });
+        else dispatch({ type: 'MINIMISE', minimised: !s.minimised && isLive(s.phase) });
+      },
       setRecordPref: (on) => {
         recordRef.current = on;
         localStorage.setItem(RECORD_KEY, on ? '1' : '0');
@@ -520,11 +523,7 @@ export function SoftphoneProvider({
       <StatusCtx.Provider value={status}>
         <StateCtx.Provider value={state}>
           {children}
-          {state.open ? (
-            <div className={cn(docked && 'xl:hidden')}>
-              <SoftphonePanel mode="overlay" />
-            </div>
-          ) : null}
+          {state.open ? <SoftphonePanel mode="overlay" /> : null}
         </StateCtx.Provider>
       </StatusCtx.Provider>
     </ActionsCtx.Provider>

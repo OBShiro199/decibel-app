@@ -40,13 +40,13 @@ function Head({ eyebrow, title, children, center }: { eyebrow: string; title: st
     <Reveal className={center ? 'mx-auto max-w-[640px] text-center' : 'max-w-[640px]'}>
       <p className="eyebrow">[ {eyebrow} ]</p>
       <h2 className="t-h1 mt-4 text-black-400">{title}</h2>
-      {children ? <p className="mt-4 text-[16px] leading-[26px] text-black-700">{children}</p> : null}
+      {children ? <p className="mt-4 text-md leading-[26px] text-black-700">{children}</p> : null}
     </Reveal>
   );
 }
 
 const Corner = ({ className, children }: { className: string; children: string }) => (
-  <span className={`pointer-events-none absolute tabular-nums text-[10.5px] tracking-[0.06em] text-faint max-md:hidden ${className}`}>{children}</span>
+  <span className={`pointer-events-none absolute tabular-nums text-xs tracking-[0.06em] text-faint max-md:hidden ${className}`}>{children}</span>
 );
 
 const PILLARS = [
@@ -65,7 +65,7 @@ const CHECKS = [
   ['GDPR', 'Legitimate interest', 'Business contacts only, with a documented assessment you can download.'],
   ['PECR', 'TPS and CTPS screening', 'Listed numbers are blocked in code, in the browser and again on the server.'],
   ['ICO', 'Recording notice', 'The person you call hears the notice when they answer. Always, by rep, or never.'],
-  ['OFCOM', 'One call at a time', 'A rep is on every call and a callable number is always presented.'],
+  ['Ofcom', 'One call at a time', 'A rep is on every call and a callable number is always presented.'],
 ];
 
 export default function LandingPage() {
@@ -76,16 +76,16 @@ export default function LandingPage() {
       {/* hero */}
       <section className="rail dotgrid relative overflow-hidden">
         <Corner className="left-5 top-5">[ UK + EU ]</Corner>
-        <Corner className="right-5 top-5">[ 14M+ CONTACTS* ]</Corner>
+        <Corner className="right-5 top-5">[ 14M+ contacts* ]</Corner>
         <div className="mx-auto max-w-[760px] px-5 pb-12 pt-16 text-center md:pt-24">
           <Reveal eager>
-            <LivePill>CALLING NOW · LONDON EU-WEST-2</LivePill>
+            <LivePill>Calling now · London eu-west-2</LivePill>
           </Reveal>
           <Reveal eager delay={90}>
             <h1 className="t-display mt-7 text-black-400">Turn up your outbound.</h1>
           </Reveal>
           <Reveal eager delay={180}>
-            <p className="mx-auto mt-5 max-w-[520px] text-[17px] leading-[27px] text-black-700">Verified UK &amp; EU mobiles, a browser dialler and a pipeline, in one place.</p>
+            <p className="mx-auto mt-5 max-w-[520px] text-md leading-[27px] text-black-700">Verified UK &amp; EU mobiles, a browser dialler and a pipeline, in one place.</p>
           </Reveal>
           <Reveal eager delay={270}>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -94,31 +94,31 @@ export default function LandingPage() {
               </CtaLink>
               <DemoButton />
             </div>
-            <p className="mt-5 tabular-nums text-[11px] tracking-[0.06em] text-white-900">14 DAYS · 50 CREDITS · NO CARD</p>
+            <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 50 credits · no card</p>
           </Reveal>
         </div>
         <Reveal eager delay={200} className="relative mx-auto max-w-[980px] px-5 pb-16 md:pb-20">
           <HeroConsole />
         </Reveal>
-        <Corner className="bottom-5 left-5">[ TPS SCREENED ]</Corner>
-        <Corner className="bottom-5 right-5">[ .CSV IN ]</Corner>
+        <Corner className="bottom-5 left-5">[ TPS screened ]</Corner>
+        <Corner className="bottom-5 right-5">[ CSV in ]</Corner>
       </section>
 
       {/* logo strip */}
       <section className="rail px-5 py-8 md:px-10">
-        <p className="eyebrow text-center">[ built for outbound teams across the uk and eu ]</p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 tabular-nums text-[12.5px] uppercase tracking-[0.06em] text-faint">
+        <p className="eyebrow text-center">[ Built for outbound teams across the UK and EU ]</p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 tabular-nums text-xs tracking-[0.06em] text-faint">
           {['Halden', 'Northwick', 'Calder & Rowe', 'Fenwright', 'Tessel', 'Orbiq', 'Kestrel'].map((n) => (
             <span key={n}>{n}</span>
           ))}
         </div>
-        <p className="mt-4 text-center tabular-nums text-[10px] tracking-[0.06em] text-faint">PLACEHOLDER NAMES UNTIL LAUNCH CUSTOMERS ARE LISTED</p>
+        <p className="mt-4 text-center tabular-nums text-xs tracking-[0.06em] text-faint">Placeholder names until launch customers are listed</p>
       </section>
 
       {/* three pillars */}
       <section id="product" className="rail">
         <div className="px-5 py-14 md:px-10 md:py-20">
-          <Head eyebrow="the system" title="Everything between a name and a booked meeting.">
+          <Head eyebrow="The system" title="Everything between a name and a booked meeting.">
             Three tools that usually live in three tabs, built to work as one.
           </Head>
         </div>
@@ -126,9 +126,9 @@ export default function LandingPage() {
           {PILLARS.map(([id, label, pitch, body], i) => (
             <Reveal key={id} delay={i * 110} className={i < 2 ? 'border-b border-white-800 md:border-b-0 md:border-r' : ''}>
               <div id={id === 'data' ? 'data' : undefined} className="px-5 pb-6 pt-8 md:px-8">
-                <p className="eyebrow">[ {label.toLowerCase()} ]</p>
-                <h3 className="mt-3 text-[19px] font-medium leading-[25px] tracking-[-0.03em] text-black-400">{pitch}</h3>
-                <p className="mt-2 text-[15px] leading-[23px] text-black-700">{body}</p>
+                <p className="eyebrow">[ {label} ]</p>
+                <h3 className="mt-3 text-lg font-medium leading-[25px] tracking-[-0.03em] text-black-400">{pitch}</h3>
+                <p className="mt-2 text-base leading-[23px] text-black-700">{body}</p>
               </div>
               <div className="border-t border-white-800">
                 {id === 'data' ? (
@@ -139,7 +139,7 @@ export default function LandingPage() {
                     <span className="absolute left-4 top-4">
                       <Status color="#c0462e">Recording</Status>
                     </span>
-                    <span className="absolute bottom-4 right-4 tabular-nums text-[22px] tracking-[-0.02em] text-black-400">02:14</span>
+                    <span className="absolute bottom-4 right-4 tabular-nums text-lg tracking-[-0.02em] text-black-400">02:14</span>
                   </div>
                 ) : (
                   <PipelinePanel />
@@ -161,14 +161,14 @@ export default function LandingPage() {
       {/* how it works */}
       <section className="rail">
         <div className="px-5 py-14 md:px-10 md:py-20">
-          <Head eyebrow="how it works" title="Three steps, then repeat forty times a day." />
+          <Head eyebrow="How it works" title="Three steps, then repeat forty times a day." />
         </div>
         {STEPS.map(([n, title, body], i) => (
           <Reveal key={n} delay={i * 100}>
             <div className="flex flex-col gap-2 border-t border-white-800 px-5 py-7 md:flex-row md:items-baseline md:gap-10 md:px-10">
-              <span className="w-12 tabular-nums text-[13px] tracking-[0.06em] text-white-900">{n}</span>
-              <h3 className="text-[18px] font-medium tracking-[-0.03em] text-black-400 md:w-[340px]">{title}</h3>
-              <p className="flex-1 text-[15.5px] leading-[24px] text-black-700">{body}</p>
+              <span className="w-12 tabular-nums text-sm tracking-[0.06em] text-white-900">{n}</span>
+              <h3 className="text-lg font-medium tracking-[-0.03em] text-black-400 md:w-[340px]">{title}</h3>
+              <p className="flex-1 text-base leading-[24px] text-black-700">{body}</p>
             </div>
           </Reveal>
         ))}
@@ -178,10 +178,10 @@ export default function LandingPage() {
       <section className="rail">
         <div className="grid md:grid-cols-2">
           <div className="border-b border-white-800 px-5 py-14 md:border-b-0 md:border-r md:px-10 md:py-20">
-            <Head eyebrow="compliance" title="The rules are in the code, not in a PDF.">
+            <Head eyebrow="Compliance" title="The rules are in the code, not in a PDF.">
               Decibels is built for UK and EU calling rules from the first dial. Data is hosted in the UK (Supabase eu-west-2, London).
             </Head>
-            <Link href="/compliance" className="link mt-6 inline-block text-[15px]">
+            <Link href="/compliance" className="link mt-6 inline-block text-base">
               Read how compliance works
             </Link>
           </div>
@@ -190,15 +190,15 @@ export default function LandingPage() {
             <span className="absolute left-4 top-4">
               <Status color="#2f6bff">Checking TPS</Status>
             </span>
-            <span className="absolute bottom-4 right-4 tabular-nums text-[10.5px] tracking-[0.06em] text-faint">[ 1 BLOCKED / 20 ]</span>
+            <span className="absolute bottom-4 right-4 tabular-nums text-xs tracking-[0.06em] text-faint">[ 1 blocked / 20 ]</span>
           </div>
         </div>
         <div className="grid border-t border-white-800 sm:grid-cols-2 lg:grid-cols-4">
           {CHECKS.map(([tag, title, body], i) => (
             <Reveal key={tag} delay={i * 90} className="border-b border-white-800 px-5 py-7 last:border-b-0 sm:border-r md:px-8 lg:border-b-0 lg:last:border-r-0">
-              <p className="tabular-nums text-[11px] tracking-[0.06em] text-success-500">✓ {tag}</p>
-              <h3 className="mt-3 text-[16px] font-medium tracking-[-0.02em] text-black-400">{title}</h3>
-              <p className="mt-1.5 text-[14.5px] leading-[22px] text-black-700">{body}</p>
+              <p className="tabular-nums text-xs tracking-[0.06em] text-success-500">✓ {tag}</p>
+              <h3 className="mt-3 text-md font-medium tracking-[-0.02em] text-black-400">{title}</h3>
+              <p className="mt-1.5 text-base leading-[22px] text-black-700">{body}</p>
             </Reveal>
           ))}
         </div>
@@ -206,7 +206,7 @@ export default function LandingPage() {
 
       {/* pricing */}
       <section id="pricing" className="rail px-5 py-14 md:px-10 md:py-20">
-        <Head eyebrow="pricing" title="Per seat. Credits included.">
+        <Head eyebrow="Pricing" title="Per seat. Credits included.">
           A credit is one mobile reveal. A contact you have revealed stays free for your workspace.
         </Head>
         <Reveal delay={120} className="mt-10">
@@ -217,17 +217,17 @@ export default function LandingPage() {
       {/* faq */}
       <section className="rail px-5 py-14 md:px-10 md:py-20">
         <div className="grid gap-10 md:grid-cols-[320px_1fr]">
-          <Head eyebrow="faq" title="Questions before you dial." />
+          <Head eyebrow="FAQ" title="Questions before you dial." />
           <Faq items={FAQS} />
         </div>
       </section>
 
       {/* final cta */}
       <section className="rail dotgrid relative px-5 py-20 text-center md:py-28">
-        <Corner className="left-5 top-5">[ 50 CREDITS ]</Corner>
-        <Corner className="right-5 top-5">[ 60 MINUTES ]</Corner>
+        <Corner className="left-5 top-5">[ 50 credits ]</Corner>
+        <Corner className="right-5 top-5">[ 60 minutes ]</Corner>
         <Reveal>
-          <p className="eyebrow">[ start ]</p>
+          <p className="eyebrow">[ Start ]</p>
           <h2 className="t-display mx-auto mt-4 max-w-[640px] text-black-400">Your first 50 calls are on us.</h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <CtaLink location="final" href="/signup" variant="primary" size="lg">
@@ -238,7 +238,7 @@ export default function LandingPage() {
             </CtaLink>
           </div>
         </Reveal>
-        <p className="mx-auto mt-12 max-w-[560px] tabular-nums text-[10.5px] leading-[17px] tracking-[0.06em] text-faint">
+        <p className="mx-auto mt-12 max-w-[560px] tabular-nums text-xs leading-[17px] tracking-[0.06em] text-faint">
           * 14M+ is our launch target, not a current count. The product ships with labelled sample data while licensed sources are onboarded.
         </p>
       </section>

@@ -36,13 +36,14 @@ export function TodaySkeleton() {
 export function LeadsSkeleton() {
   return (
     <div className="flex h-full" aria-busy>
-      <aside className="w-[280px] shrink-0 border-r border-white-800 bg-white-100 max-lg:hidden">
-        <RailSkeleton />
-      </aside>
       <div className="flex min-w-0 flex-1 flex-col bg-white-100">
         <div className="flex h-[49px] items-center gap-3 border-b border-white-800 px-4">
           <Skeleton className="h-8 w-72" />
           <Skeleton className="w-24" />
+        </div>
+        <div className="flex h-11 items-center gap-2 border-b border-white-800 px-4">
+          <Skeleton className="h-[22px] w-24" />
+          <Skeleton className="h-[22px] w-20" />
         </div>
         <TableSkeleton rows={12} cols={7} />
       </div>

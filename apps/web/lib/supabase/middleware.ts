@@ -18,9 +18,11 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Runs on every navigation. getClaims() verifies the JWT locally against the project's
+  // published ES256 keys (cached), refreshing the session if needed, instead of a round trip
+  // to the auth server like getUser(). Pages still enforce access through RLS.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? { id: data.claims.sub } : null;
   const path = request.nextUrl.pathname;
 
   if (!user && PROTECTED.some((p) => path === p || path.startsWith(p + '/'))) {

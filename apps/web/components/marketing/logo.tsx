@@ -22,7 +22,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-2 text-black-0', className)}>
       <LogoMark />
-      <span className="font-display text-[18px] font-semibold leading-6 tracking-[-0.36px]">Decibels</span>
+      <span className="font-display text-lg font-semibold leading-6 tracking-[-0.36px]">Decibels</span>
     </span>
   );
 }

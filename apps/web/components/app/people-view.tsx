@@ -221,7 +221,7 @@ export function PeopleView({
                         <span className="text-faint">–</span>
                       )}
                     </td>
-                    <td className="tabular-nums text-[12.5px]">
+                    <td className="tabular-nums text-xs">
                       {p.mobile_e164 ? formatPhone(p.mobile_e164) : <span className="text-white-900">–</span>}{' '}
                       {p.do_not_call || p.tps_status === 'tps_listed' || p.tps_status === 'ctps_listed' ? <TpsBadge status={p.tps_status} doNotCall={p.do_not_call} /> : null}
                     </td>
@@ -244,7 +244,7 @@ export function PeopleView({
                     <td>
                       <OutcomeBadge outcome={p.last_outcome} />
                     </td>
-                    <td className="tabular-nums text-[12px] text-white-900">{p.last_called_at ? timeAgo(p.last_called_at) : 'Never'}</td>
+                    <td className="tabular-nums text-xs text-white-900">{p.last_called_at ? timeAgo(p.last_called_at) : 'Never'}</td>
                     <td className="max-w-[140px] truncate text-black-700">{p.owner_id ? (names[p.owner_id] ?? 'Teammate') : '–'}</td>
                     <td className="text-right">
                       <Button size="compact" variant="primary" disabled={isBlocked(p)} title={blocked ?? `Call ${p.full_name}`} onClick={(e) => { e.stopPropagation(); call(p); }}>

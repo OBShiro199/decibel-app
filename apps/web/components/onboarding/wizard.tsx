@@ -183,7 +183,7 @@ export function Wizard({
                 <>
                   <span
                     className={cn(
-                      'flex h-5 w-6 shrink-0 items-center justify-center border tabular-nums text-[10.5px] transition-colors',
+                      'flex h-5 w-6 shrink-0 items-center justify-center border tabular-nums text-xs transition-colors',
                       isDone ? 'border-success-500 bg-success-500 text-white-100' : isCurrent ? 'border-black-0 bg-black-0 text-white-100' : 'border-white-800 text-white-900',
                     )}
                   >
@@ -194,7 +194,7 @@ export function Wizard({
               );
               // one weight for every state, so labels never change width
               const cls = cn(
-                'flex h-9 w-full items-center gap-2.5 border px-2 text-left text-[13.5px] transition-colors',
+                'flex h-9 w-full items-center gap-2.5 border px-2 text-left text-sm transition-colors',
                 isCurrent ? 'border-white-800 bg-white-100 text-black-400' : 'border-transparent text-black-700',
               );
               return (
@@ -219,7 +219,7 @@ export function Wizard({
         <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <div className="mx-auto w-full max-w-[680px] px-4 py-8 md:px-6 md:py-12">
             <p className="eyebrow h-4">
-              {invited ? '[ quick check ]' : `[ step ${String(current.n).padStart(2, '0')} / ${String(STEPS.length).padStart(2, '0')} ]`}
+              {invited ? 'Quick check' : `Step ${current.n} of ${STEPS.length}`}
             </p>
             <div key={step} className="step-in">
               {body}

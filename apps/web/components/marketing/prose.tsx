@@ -3,16 +3,16 @@ import { cn } from '@/lib/utils';
 
 /** Long-form body styles: plain h2 / h3 / p / ul / ol / a / strong / code children are styled here. */
 const body = [
-  'mt-10 text-[16px] leading-6 tracking-[-0.16px] text-black-700',
-  '[&_h2]:mt-12 [&_h2]:scroll-mt-24 [&_h2]:font-display [&_h2]:text-[20px] [&_h2]:font-semibold [&_h2]:leading-6 [&_h2]:tracking-[-0.4px] [&_h2]:text-black-0',
-  '[&_h3]:mt-8 [&_h3]:text-[16px] [&_h3]:font-semibold [&_h3]:leading-5 [&_h3]:text-black-0',
+  'mt-10 text-md leading-6 tracking-[-0.16px] text-black-700',
+  '[&_h2]:mt-12 [&_h2]:scroll-mt-24 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:leading-6 [&_h2]:tracking-[-0.4px] [&_h2]:text-black-0',
+  '[&_h3]:mt-8 [&_h3]:text-md [&_h3]:font-semibold [&_h3]:leading-5 [&_h3]:text-black-0',
   '[&_p]:mt-4',
   '[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5',
   '[&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:space-y-2 [&_ol]:pl-5',
   '[&_li]:pl-1',
   '[&_strong]:font-semibold [&_strong]:text-black-400',
   '[&_a]:text-accent-500 [&_a]:underline [&_a]:underline-offset-2',
-  '[&_code]:tabular-nums [&_code]:text-[13px]',
+  '[&_code]:tabular-nums [&_code]:text-sm',
 ].join(' ');
 
 export function Prose({

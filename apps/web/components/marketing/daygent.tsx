@@ -187,7 +187,7 @@ export function LivePill({ children }: { children: React.ReactNode }) {
   return (
     <span className="relative inline-flex overflow-hidden rounded-full p-px">
       <span className="spin-ring absolute inset-[-150%]" style={{ background: 'conic-gradient(from 0deg, #e7e7e3 0deg, #e7e7e3 250deg, #1d9d5b 320deg, #e7e7e3 360deg)' }} aria-hidden />
-      <span className="relative inline-flex h-7 items-center gap-2 rounded-full bg-white-100 px-3 tabular-nums text-[11px] tracking-[0.06em] text-black-700">
+      <span className="relative inline-flex h-7 items-center gap-2 rounded-full bg-white-100 px-3 tabular-nums text-xs tracking-[0.06em] text-black-700">
         <span className="pulse-dot bg-[#1d9d5b]" />
         {children}
       </span>
@@ -197,7 +197,7 @@ export function LivePill({ children }: { children: React.ReactNode }) {
 
 export function Status({ color = '#1d9d5b', children }: { color?: string; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 tabular-nums text-[10.5px] uppercase tracking-[0.06em] text-black-700">
+    <span className="inline-flex items-center gap-1.5 tabular-nums text-xs tracking-[0.06em] text-black-700">
       <span className="pulse-dot" style={{ background: color, width: 6, height: 6 }} />
       {children}
     </span>
@@ -211,7 +211,7 @@ export function Console({ file, right, children, className }: { file: string; ri
         {[0, 1, 2].map((i) => (
           <span key={i} className="h-[11px] w-[11px] rounded-full bg-[#e2e2dd]" />
         ))}
-        <span className="ml-2 tabular-nums text-[11.5px] text-white-900">{file}</span>
+        <span className="ml-2 tabular-nums text-xs text-white-900">{file}</span>
         <span className="ml-auto">{right}</span>
       </div>
       {children}
@@ -231,7 +231,7 @@ export function Marquee({ rows }: { rows: string[][] }) {
                   <span className={cn('whitespace-nowrap px-6 font-medium leading-[1.05] tracking-[-0.045em]', (i + r) % 2 ? 'text-[#d9d9d4]' : 'text-black-400')} style={{ fontSize: 'clamp(44px,6vw,84px)' }}>
                     {w}
                   </span>
-                  <span className="tabular-nums text-[13px] tracking-[0.06em] text-faint">{'///'}</span>
+                  <span className="tabular-nums text-sm tracking-[0.06em] text-faint">{'///'}</span>
                 </span>
               ))}
             </div>
@@ -251,7 +251,7 @@ const QUEUE = [
   ['Tom Bradshaw', 'Cobalt Digital', '+44 7700 900105'],
   ['Fiona MacLeod', 'Thistle Financial', '+44 7700 900106'],
 ];
-const STATES = ['QUEUED', 'DIALLING', 'RINGING', 'IN CALL', 'MEETING BOOKED'];
+const STATES = ['Queued', 'Dialling', 'Ringing', 'In call', 'Meeting booked'];
 
 export function HeroConsole() {
   const [tick, setTick] = useState(0);
@@ -267,24 +267,24 @@ export function HeroConsole() {
       <div className="grid md:grid-cols-[1.1fr_1fr]">
         <div className="relative h-[250px] border-b border-rule md:h-[330px] md:border-b-0 md:border-r">
           <AsciiCanvas scene="signal" />
-          <span className="absolute left-3 top-3 tabular-nums text-[10px] tracking-[0.06em] text-faint">[ OUTBOUND ]</span>
-          <span className="absolute bottom-3 right-3 tabular-nums text-[10px] tracking-[0.06em] text-faint">[ 48 KHZ OPUS ]</span>
+          <span className="absolute left-3 top-3 tabular-nums text-xs tracking-[0.06em] text-faint">[ Outbound ]</span>
+          <span className="absolute bottom-3 right-3 tabular-nums text-xs tracking-[0.06em] text-faint">[ 48 kHz Opus ]</span>
         </div>
-        <ul className="tabular-nums text-[12px]">
+        <ul className="tabular-nums text-xs">
           {QUEUE.map(([name, company, number], i) => {
             const blocked = i === 5;
             const done = !blocked && i < active;
             const live = i === active;
-            const label = blocked ? 'TPS BLOCKED' : done ? 'LOGGED' : live ? STATES[phase] : 'QUEUED';
+            const label = blocked ? 'TPS blocked' : done ? 'Logged' : live ? STATES[phase] : 'Queued';
             return (
               <li key={name} className={cn('flex h-[55px] items-center gap-3 border-b border-rule px-4 last:border-b-0', live && 'bg-panel')}>
                 <span className="w-5 text-faint">{String(i + 1).padStart(2, '0')}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-sans text-[13.5px] font-medium text-black-400">{name}</span>
-                  <span className="block truncate text-[11px] text-white-900">{company} · {number}</span>
+                  <span className="block truncate font-sans text-sm font-medium text-black-400">{name}</span>
+                  <span className="block truncate text-xs text-white-900">{company} · {number}</span>
                 </span>
                 <span
-                  className={cn('w-[124px] shrink-0 text-right text-[10.5px] tracking-[0.06em]', blocked ? 'text-danger-500' : live ? 'text-accent-500' : done ? 'text-success-500' : 'text-faint')}
+                  className={cn('w-[124px] shrink-0 text-right text-xs tracking-[0.06em]', blocked ? 'text-danger-500' : live ? 'text-accent-500' : done ? 'text-success-500' : 'text-faint')}
                 >
                   {live ? <span className="pulse-dot mr-1.5 bg-accent-500 align-middle" style={{ width: 6, height: 6 }} /> : null}
                   {label}
@@ -300,12 +300,12 @@ export function HeroConsole() {
 
 // ------------------------------------------------------------ demo panels ---
 const REVEAL_ROWS = [
-  ['aisling doherty', 'ceo', '+447700900117'],
-  ['rahul mehta', 'cto', '+447700900109'],
-  ['charlotte nkemelu', 'commercial dir', '+447700900108'],
-  ['andrew patel', 'vp operations', '+447700900114'],
-  ['emily chen', 'head of partnerships', '+447700900111'],
-  ['michael fenwick', 'managing partner', '+447700900112'],
+  ['Aisling Doherty', 'CEO', '+447700900117'],
+  ['Rahul Mehta', 'CTO', '+447700900109'],
+  ['Charlotte Nkemelu', 'Commercial Director', '+447700900108'],
+  ['Andrew Patel', 'VP Operations', '+447700900114'],
+  ['Emily Chen', 'Head of Partnerships', '+447700900111'],
+  ['Michael Fenwick', 'Managing Partner', '+447700900112'],
 ];
 
 export function RevealPanel() {
@@ -316,34 +316,34 @@ export function RevealPanel() {
     return () => clearInterval(t);
   }, []);
   return (
-    <div className="h-[258px] overflow-hidden bg-white-100 p-5 tabular-nums text-[12px] leading-[26px] text-black-700">
-      <p className="text-faint">$ search --seniority c_level,director --has-mobile --tps-clear</p>
+    <div className="h-[258px] overflow-hidden bg-white-100 p-5 tabular-nums text-xs leading-[26px] text-black-700">
+      <p className="text-faint">Search: C-level and directors · has mobile · TPS clear</p>
       {REVEAL_ROWS.map(([name, title, mobile], i) => (
         <p key={name} className="flex gap-3 whitespace-nowrap">
           <span className="w-[150px] truncate text-black-500">{name}</span>
           <span className="w-[150px] truncate max-sm:hidden">{title}</span>
           <span className={i < n ? 'text-black-400' : 'text-faint'}>{i < n ? mobile : `${mobile.slice(0, 4)} ••••••${mobile.slice(-3)}`}</span>
-          {i < n ? <span className="text-success-500">✓ −1 credit</span> : null}
+          {i < n ? <span className="text-success-500">✓ 1 credit</span> : null}
         </p>
       ))}
       <p className="text-faint">
-        credits left: <span className="text-black-400">{50 - n}</span>
+        Credits left: <span className="text-black-400">{50 - n}</span>
       </p>
     </div>
   );
 }
 
 const STAGES: [string, number][] = [
-  ['new', 42],
-  ['attempted', 31],
-  ['connected', 17],
-  ['meeting booked', 9],
-  ['qualified', 5],
-  ['won', 2],
+  ['New', 42],
+  ['Attempted', 31],
+  ['Connected', 17],
+  ['Meeting booked', 9],
+  ['Qualified', 5],
+  ['Won', 2],
 ];
 export function PipelinePanel() {
   return (
-    <div className="h-[258px] overflow-hidden bg-white-100 p-5 tabular-nums text-[12px] leading-[30px] text-black-700">
+    <div className="h-[258px] overflow-hidden bg-white-100 p-5 tabular-nums text-xs leading-[30px] text-black-700">
       {STAGES.map(([name, count]) => (
         <p key={name} className="flex items-center gap-3 whitespace-nowrap">
           <span className="w-[120px] text-black-500">{name}</span>
@@ -354,7 +354,7 @@ export function PipelinePanel() {
           <span className="w-6 text-right text-black-400">{count}</span>
         </p>
       ))}
-      <p className="text-faint">outcome → stage, automatically</p>
+      <p className="text-faint">Outcomes move the stage automatically</p>
     </div>
   );
 }
@@ -393,7 +393,7 @@ export function Engine() {
           <AsciiCanvas scene="engine" color="#9a9a94" progress={progress} cell={14} />
         </div>
         <div className="relative mx-auto w-full max-w-[1180px] px-6 md:px-10">
-          <p className="tabular-nums text-[11.5px] tracking-[0.06em] text-[#6b6b66]">[ the engine ]</p>
+          <p className="tabular-nums text-xs tracking-[0.06em] text-[#6b6b66]">[ The engine ]</p>
           <div className="relative mt-5 h-[220px]">
             {PHASES.map(([n, title, body], i) => (
               <div
@@ -402,11 +402,11 @@ export function Engine() {
                 style={{ opacity: phase === i ? 1 : 0, transform: `translateY(${phase === i ? 0 : phase > i ? -18 : 18}px)`, transitionTimingFunction: 'var(--ease-settle)' }}
                 aria-hidden={phase !== i}
               >
-                <p className="tabular-nums text-[12px] tracking-[0.06em] text-[#6b6b66]">{n} / 03</p>
+                <p className="tabular-nums text-xs tracking-[0.06em] text-[#6b6b66]">{n} / 03</p>
                 <h2 className="mt-3 font-medium tracking-[-0.04em]" style={{ fontSize: 'clamp(28px,4vw,50px)', lineHeight: 1.05 }}>
                   {title}
                 </h2>
-                <p className="mt-4 max-w-[440px] text-[16px] leading-[25px] text-[#9a9a94]">{body}</p>
+                <p className="mt-4 max-w-[440px] text-md leading-[25px] text-[#9a9a94]">{body}</p>
               </div>
             ))}
           </div>
@@ -430,7 +430,7 @@ export function PricingCard() {
   const [annual, setAnnual] = useState(false);
   const base = PLANS[plan].monthly;
   const price = annual ? base * (1 - ANNUAL_DISCOUNT) : base;
-  const seg = (on: boolean) => cn('h-8 px-3 tabular-nums text-[11px] uppercase tracking-[0.06em] transition-colors', on ? 'bg-black-0 text-white-100' : 'text-black-700 hover:bg-white-300');
+  const seg = (on: boolean) => cn('h-8 px-3 tabular-nums text-xs tracking-[0.06em] transition-colors', on ? 'bg-black-0 text-white-100' : 'text-black-700 hover:bg-white-300');
   return (
     <div className="overflow-hidden rounded-card border border-white-800 bg-white-100">
       <div className="grid md:grid-cols-2">
@@ -461,10 +461,10 @@ export function PricingCard() {
             </div>
           </div>
           <p className="mt-8 flex items-end gap-2">
-            <span className="tabular text-[64px] font-medium leading-[0.95] tracking-[-0.05em] text-black-300">£{Number.isInteger(price) ? price : price.toFixed(2)}</span>
-            <span className="pb-1.5 tabular-nums text-[11.5px] tracking-[0.06em] text-white-900">/ SEAT / MONTH</span>
+            <span className="tabular text-3xl font-medium leading-[0.95] tracking-[-0.05em] text-black-300">£{Number.isInteger(price) ? price : price.toFixed(2)}</span>
+            <span className="pb-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">Per seat per month</span>
           </p>
-          <p className="mt-3 text-[15px] leading-[23px] text-black-700">
+          <p className="mt-3 text-base leading-[23px] text-black-700">
             {annual ? `Billed £${(price * 12).toFixed(0)} per seat each year.` : 'Billed monthly.'} Call minutes at cost plus 20%. Prices exclude VAT.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -475,16 +475,16 @@ export function PricingCard() {
               Talk to us
             </CtaLink>
           </div>
-          <p className="mt-5 tabular-nums text-[11px] tracking-[0.06em] text-white-900">14 DAYS · 1 SEAT · 50 CREDITS · 60 MINUTES · NO CARD</p>
+          <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 1 seat · 50 credits · 60 minutes · no card</p>
         </div>
         <ul className="p-7 md:p-9">
           {INCLUDED[plan].map((item) => (
-            <li key={item} className="flex gap-3 border-b border-rule py-3.5 text-[15px] text-black-500 last:border-b-0">
+            <li key={item} className="flex gap-3 border-b border-rule py-3.5 text-base text-black-500 last:border-b-0">
               <span className="tabular-nums text-success-500">✓</span>
               {item}
             </li>
           ))}
-          <li className="pt-4 tabular-nums text-[11px] tracking-[0.06em] text-white-900">30+ SEATS: SCALE PLAN, PRICED WITH OUR TEAM</li>
+          <li className="pt-4 tabular-nums text-xs tracking-[0.06em] text-white-900">30+ seats: Scale plan, priced with our team</li>
         </ul>
       </div>
     </div>

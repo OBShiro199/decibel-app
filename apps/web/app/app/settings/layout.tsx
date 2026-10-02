@@ -67,7 +67,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       {/* Rail (md and up) */}
       <aside className="hidden h-full w-[248px] shrink-0 flex-col overflow-y-auto border-r border-white-800 bg-white-100 md:flex">
         <div className="px-3 pt-3">
-          <p className="t-label flex h-8 items-center px-1.5">[ settings ]</p>
+          <p className="flex h-8 items-center px-1.5 text-md font-medium">Settings</p>
           <div className="relative mt-3">
             <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-2.5 top-2 text-black-700" />
             <input

@@ -50,6 +50,17 @@ const preset = {
       // No monospace face in the product. Numbers use Geist with tabular figures instead.
       mono: ['var(--font-sans)', 'Geist', 'system-ui', 'sans-serif'],
     },
+    // The only font sizes in the product. Arbitrary text-[Npx] values are not used.
+    fontSize: {
+      xs: ['12px', '16px'], // captions, labels, badges, meta
+      sm: ['13px', '18px'], // secondary text, sidebar, attribute rail
+      base: ['14px', '20px'], // body, tables, controls
+      md: ['16px', '24px'], // large body, section titles
+      lg: ['18px', '24px'], // card titles, record names, dial numbers
+      xl: ['24px', '30px'], // page titles, timer
+      '2xl': ['34px', '38px'], // stat values
+      '3xl': ['56px', '60px'], // pricing figure
+    },
     borderRadius: { none: '0', sm: '0', md: '0', lg: '0', card: '9px', full: '999px' },
     zIndex: {
       0: '0',

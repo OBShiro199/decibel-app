@@ -26,10 +26,10 @@ export function Faq({ items }: { items: FaqItem[] }) {
                   setOpen((o) => ({ ...o, [i]: !on }));
                   if (!on) trackMarketing('faq_open', { question: item.question });
                 }}
-                className="flex w-full items-center justify-between gap-4 py-5 text-left text-[16.5px] font-medium tracking-[-0.02em] text-black-400"
+                className="flex w-full items-center justify-between gap-4 py-5 text-left text-md font-medium tracking-[-0.02em] text-black-400"
               >
                 {item.question}
-                <span aria-hidden className="shrink-0 tabular-nums text-[16px] text-white-900">{on ? '–' : '+'}</span>
+                <span aria-hidden className="shrink-0 tabular-nums text-md text-white-900">{on ? '–' : '+'}</span>
               </button>
             </h3>
             <div
@@ -40,7 +40,7 @@ export function Faq({ items }: { items: FaqItem[] }) {
               className={cn('overflow-hidden pr-8 transition-[max-height,opacity] duration-500', on ? 'max-h-[320px] opacity-100' : 'max-h-0 opacity-0')}
               style={{ transitionTimingFunction: 'var(--ease-settle)' }}
             >
-              <p className="pb-6 text-[15.5px] leading-[25px] text-black-700">{item.answer}</p>
+              <p className="pb-6 text-base leading-[25px] text-black-700">{item.answer}</p>
             </div>
           </div>
         );

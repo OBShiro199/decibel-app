@@ -380,7 +380,7 @@ export function VerifyCallerIdPanel({ workspaceId, onDone, initialNumber = '' }:
       {code ? (
         <div className="card p-4" aria-live="polite">
           <p className="text-black-700">Answer the call and enter this code on your phone&apos;s keypad:</p>
-          <p className="mt-2 tabular-nums text-[28px] leading-8 tracking-[0.06em]">{code}</p>
+          <p className="mt-2 tabular-nums text-xl leading-8 tracking-[0.06em]">{code}</p>
           <p className="t-caption mt-2 text-black-700">{timedOut ? 'We did not see the verification complete. Try again.' : 'Waiting for confirmation…'}</p>
         </div>
       ) : null}

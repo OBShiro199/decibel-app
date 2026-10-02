@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useApp } from '@/lib/app-context';
-import { todayQueueQuery } from '@/lib/queries';
+import { todayQueueQuery, todayStatsQuery } from '@/lib/queries';
 import { useNumbers, useTableKeys } from '@/lib/hooks';
 import { applyLeadFilters, EMPTY_FILTERS, type LeadFilters } from '@/lib/leads';
 import { revealContacts } from '@/lib/reveal';
@@ -15,6 +15,7 @@ import { firstName, formatPhone, formatTalkTime, greeting } from '@/lib/utils';
 import { blockedLabel, isBlocked, OutcomeBadge, PersonCell, setRecordNav } from '@/components/app/records';
 import { useSoftphoneActions, useSoftphoneStatus } from '@/components/softphone/provider';
 import { Button, ButtonLink } from '@/components/ui/button';
+import { RevealOnce } from '@/components/ui/reveal';
 import { TodaySkeleton } from '@/components/app/skeletons';
 import { Badge, EmptyState, ErrorCard, Skeleton, StatTile, TableSkeleton } from '@/components/ui/display';
 import { useToast } from '@/components/ui/overlay';
@@ -47,15 +48,7 @@ function Today() {
 
   const queue = useQuery(todayQueueQuery(workspace.id, user.id));
 
-  const stats = useQuery({
-    queryKey: ['stats', 'today', workspace.id, user.id],
-    queryFn: async () => {
-      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
-      const { data, error } = await supabase().from('call_stats_daily').select('dials,connects,meetings,talk_seconds').eq('workspace_id', workspace.id).eq('user_id', user.id).eq('day', day);
-      if (error) throw error;
-      return (data ?? []).reduce((a, r) => ({ dials: a.dials + (r.dials ?? 0), connects: a.connects + (r.connects ?? 0), meetings: a.meetings + (r.meetings ?? 0), talk: a.talk + (r.talk_seconds ?? 0) }), { dials: 0, connects: 0, meetings: 0, talk: 0 });
-    },
-  });
+  const stats = useQuery(todayStatsQuery(workspace.id, user.id));
 
   // Suggested leads from the saved ICP search, minus anyone already revealed.
   const suggestions = useQuery({
@@ -109,7 +102,6 @@ function Today() {
     <div className="mx-auto flex max-w-[1200px] flex-col gap-4 p-4 md:p-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="eyebrow mb-2">[ today ]</p>
           <h1 className="t-h2">
             {greeting()}, {firstName(profile.full_name || profile.email.split('@')[0])}
           </h1>
@@ -125,9 +117,9 @@ function Today() {
           {!numbers ? (
             <Skeleton className="h-6 w-44" />
           ) : active ? (
-            <span className="flex items-center gap-2 tabular-nums text-[12px] text-black-700">
+            <span className="flex items-center gap-2 tabular-nums text-xs text-black-700">
               <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
-              CALLING FROM {formatPhone(active.e164)}
+              Calling from {formatPhone(active.e164)}
               {pending ? <Badge tone="warning">1 in review</Badge> : null}
             </span>
           ) : (
@@ -142,7 +134,7 @@ function Today() {
       </header>
 
 
-      <div className="grid grid-cols-2 gap-px border border-white-800 bg-white-800 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-px border border-white-800 bg-white-800 lg:grid-cols-4">
         <StatTile label="Dials today" value={stats.data?.dials ?? 0} loading={stats.isLoading} />
         <StatTile label="Connects" value={stats.data?.connects ?? 0} loading={stats.isLoading} />
         <StatTile label="Meetings booked" value={stats.data?.meetings ?? 0} loading={stats.isLoading} />
@@ -163,7 +155,7 @@ function Today() {
         ) : queue.isLoading ? (
           <TableSkeleton rows={6} cols={5} />
         ) : rows.length ? (
-          <div className="tbl-wrap">
+          <RevealOnce id="today:queue"><div className="tbl-wrap">
             <table className="tbl tbl-fixed"><colgroup><col style={{ width: 220 }} /><col style={{ width: 200 }} /><col style={{ width: 200 }} /><col style={{ width: 170 }} /><col style={{ width: 160 }} /><col style={{ width: 110 }} /></colgroup>
               <thead>
                 <tr>
@@ -185,7 +177,7 @@ function Today() {
                     </td>
                     <td className="max-w-[200px] truncate">{p.company?.name ?? '–'}</td>
                     <td className="max-w-[200px] truncate text-black-700">{p.job_title ?? '–'}</td>
-                    <td className="tabular-nums text-[12.5px]">{formatPhone(p.mobile_e164)}</td>
+                    <td className="tabular-nums text-xs">{formatPhone(p.mobile_e164)}</td>
                     <td>
                       <OutcomeBadge outcome={p.last_outcome} />
                     </td>
@@ -198,7 +190,7 @@ function Today() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </div></RevealOnce>
         ) : (
           <EmptyState
             title="Nothing to call"
@@ -231,7 +223,7 @@ function Today() {
               Reveal all ({Math.min(suggested.length, workspace.credit_balance)} credits)
             </Button>
           </div>
-          <div className="tbl-wrap">
+          <RevealOnce id="today:suggested"><div className="tbl-wrap">
             <table className="tbl tbl-fixed"><colgroup><col style={{ width: 220 }} /><col style={{ width: 200 }} /><col style={{ width: 200 }} /><col style={{ width: 170 }} /><col style={{ width: 210 }} /></colgroup>
               <tbody>
                 {suggested.map((c) => (
@@ -241,7 +233,7 @@ function Today() {
                     </td>
                     <td className="max-w-[200px] truncate">{c.company_name ?? '–'}</td>
                     <td className="max-w-[200px] truncate text-black-700">{c.job_title ?? '–'}</td>
-                    <td className="tabular-nums text-[12.5px] text-black-700">{c.mobile_masked}</td>
+                    <td className="tabular-nums text-xs text-black-700">{c.mobile_masked}</td>
                     <td className="text-right">
                       <Button size="compact" loading={revealing === c.id} disabled={!!revealing} onClick={() => reveal([c.id], true)}>
                         Reveal and call · 1 credit
@@ -251,7 +243,7 @@ function Today() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </div></RevealOnce>
         </section>
       ) : null}
     </div>

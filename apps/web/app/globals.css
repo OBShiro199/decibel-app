@@ -64,8 +64,8 @@
     letter-spacing: -0.03em;
   }
   .t-h4 {
-    font-size: 15px;
-    line-height: 20px;
+    font-size: 16px;
+    line-height: 24px;
     font-weight: 500;
     letter-spacing: -0.02em;
   }
@@ -76,12 +76,12 @@
   }
   .t-body-lg {
     font-size: 16px;
-    line-height: 25px;
+    line-height: 24px;
     font-weight: 400;
   }
   .t-small {
     font-size: 13px;
-    line-height: 16px;
+    line-height: 18px;
     font-weight: 400;
   }
   .t-caption {
@@ -92,7 +92,7 @@
   .t-mono {
     font-variant-numeric: tabular-nums;
     font-size: 13px;
-    line-height: 20px;
+    line-height: 18px;
     font-weight: 500;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
@@ -103,11 +103,10 @@
   /* Mono label: eyebrows, table headers, meta */
   .t-label {
     font-variant-numeric: tabular-nums;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 16px;
     font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--color-white-900);
   }
   .eyebrow {
@@ -193,18 +192,20 @@
   /* Square pastel pills */
   .tag {
     @apply inline-flex h-[22px] items-center gap-1 whitespace-nowrap px-1.5;
-    font-size: 12.5px;
+    font-size: 12px;
     line-height: 16px;
-    border-radius: 3px;
+    border-radius: 4px;
+    border: 1px solid transparent;
   }
-  .tag-0 { background: #e4f1ea; color: #1a6a40; }
-  .tag-1 { background: #e9efff; color: #2a4fb5; }
-  .tag-2 { background: #f6eedb; color: #7d5911; }
-  .tag-3 { background: #f7e5e0; color: #99392a; }
-  .tag-4 { background: #ece8f6; color: #58459a; }
-  .tag-5 { background: #dff0ee; color: #1f6862; }
-  .tag-6 { background: #f3e6ef; color: #8a3f73; }
-  .tag-7 { background: #ededea; color: #5f5f5a; }
+  /* soft pastel fill, a darker border of the same hue, and readable text */
+  .tag-0 { background: #f1f8f3; border-color: #bfdcc9; color: #2f6b47; } /* green */
+  .tag-1 { background: #f2f5fe; border-color: #c4d1f2; color: #3653a3; } /* blue */
+  .tag-2 { background: #fbf6ea; border-color: #e6d3a6; color: #7a5a1c; } /* amber */
+  .tag-3 { background: #fcf1ee; border-color: #ecc5bb; color: #94402f; } /* red */
+  .tag-4 { background: #f5f2fb; border-color: #d3c9ec; color: #5a4a94; } /* violet */
+  .tag-5 { background: #eff8f7; border-color: #bcdcd8; color: #2c6862; } /* teal */
+  .tag-6 { background: #faf1f6; border-color: #e7c6d9; color: #874672; } /* rose */
+  .tag-7 { background: #f6f6f4; border-color: #dcdcd7; color: #5f5f5a; } /* grey */
 
   .skeleton {
     @apply animate-pulse rounded-sm bg-white-300;
@@ -347,8 +348,15 @@ html:has([data-page-scroll]) {
 
 /* Inside the app the hairlines are quieter than on the marketing site */
 .app-shell {
-  --color-white-800: #ededea;
-  --color-rule-soft: #f3f3f0;
+  /* all white: no grey canvas, sidebar or table headers; dividers do the separating */
+  --color-white-200: #ffffff;
+  --color-canvas: #ffffff;
+  --color-page-background: #ffffff;
+  --color-panel-2: #ffffff;
+  --color-white-800: #e8e8e5;
+  --color-rule-soft: #f0f0ed;
+  --color-white-300: #f7f7f5; /* hover and skeletons only */
+  background: #ffffff;
 }
 .app-shell .tbl td {
   border-right: 0;
@@ -356,4 +364,63 @@ html:has([data-page-scroll]) {
 .app-shell .tbl th {
   border-right: 0;
   background: var(--color-white-100);
+}
+
+/* Softphone slides over the app; transform only, nothing underneath moves */
+.softphone-in {
+  animation: softphone-in var(--dur-base) var(--ease-out) both;
+}
+@keyframes softphone-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .softphone-in { animation: none; }
+}
+
+/* ---- Soft entrances. Opacity and small transforms only; nothing animates size. ---- */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* every page change: a short, quiet fade */
+.page-in { animation: fade-in 220ms var(--ease-out) both; }
+.popover-in { animation: pop-in 160ms var(--ease-out) both; transform-origin: top left; }
+.dialog-in { animation: dialog-in 220ms var(--ease-out) both; }
+.overlay-in { animation: fade-in 200ms var(--ease-out) both; }
+.toast-in { animation: toast-in 240ms var(--ease-out) both; }
+
+/* first time a table appears this session, its rows rise in one after another */
+.reveal-once .tbl tbody tr { animation: rise-in 360ms var(--ease-out) both; }
+.reveal-once .tbl tbody tr:nth-child(1) { animation-delay: 20ms; }
+.reveal-once .tbl tbody tr:nth-child(2) { animation-delay: 45ms; }
+.reveal-once .tbl tbody tr:nth-child(3) { animation-delay: 70ms; }
+.reveal-once .tbl tbody tr:nth-child(4) { animation-delay: 95ms; }
+.reveal-once .tbl tbody tr:nth-child(5) { animation-delay: 120ms; }
+.reveal-once .tbl tbody tr:nth-child(6) { animation-delay: 145ms; }
+.reveal-once .tbl tbody tr:nth-child(7) { animation-delay: 170ms; }
+.reveal-once .tbl tbody tr:nth-child(8) { animation-delay: 195ms; }
+.reveal-once .tbl tbody tr:nth-child(9) { animation-delay: 220ms; }
+.reveal-once .tbl tbody tr:nth-child(10) { animation-delay: 245ms; }
+.reveal-once .tbl tbody tr:nth-child(n + 11) { animation-delay: 270ms; }
+/* the table itself should not also fade; its rows carry the motion */
+.reveal-once:has(.tbl) { animation: none; }
+
+/* grids of cards and stat tiles stagger the same way */
+.stagger > * { animation: rise-in 380ms var(--ease-out) both; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(n + 6) { animation-delay: 240ms; }
+
+/* rows and controls respond softly */
+.tbl tbody tr { transition: background-color 160ms ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in, .popover-in, .dialog-in, .overlay-in, .toast-in,
+  .reveal-once .tbl tbody tr, .stagger > * { animation: none !important; }
 }

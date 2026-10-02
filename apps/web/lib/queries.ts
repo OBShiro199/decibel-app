@@ -3,7 +3,8 @@
 // keys and fetchers, so a prefetched tab opens with its data already in cache.
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
-import type { Call, List, Person, Recording, TenantCompany } from '@/lib/types';
+import { COUNTRIES, MARKETS } from '@/lib/constants';
+import type { Call, List, Person, PhoneNumber, Recording, TenantCompany } from '@/lib/types';
 
 export const PERSON_SELECT = '*, company:tenant_companies(id,name,domain)';
 
@@ -94,11 +95,98 @@ export const callsQuery = (workspaceId: string, f: CallFilters) =>
     },
   });
 
-/** Primary data per sidebar destination, for prefetch on hover/focus and on idle. */
+const londonDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(d);
+
+export const todayStatsQuery = (workspaceId: string, userId: string) =>
+  queryOptions({
+    queryKey: ['stats', 'today', workspaceId, userId],
+    queryFn: async () => {
+      const { data, error } = await supabase().from('call_stats_daily').select('dials,connects,meetings,talk_seconds').eq('workspace_id', workspaceId).eq('user_id', userId).eq('day', londonDay(new Date()));
+      if (error) throw error;
+      return (data ?? []).reduce((a, r) => ({ dials: a.dials + (r.dials ?? 0), connects: a.connects + (r.connects ?? 0), meetings: a.meetings + (r.meetings ?? 0), talk: a.talk + (r.talk_seconds ?? 0) }), { dials: 0, connects: 0, meetings: 0, talk: 0 });
+    },
+  });
+
+export const numbersQuery = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ['numbers', workspaceId],
+    queryFn: async () => {
+      const { data, error } = await supabase().from('phone_numbers').select('*').eq('workspace_id', workspaceId).neq('status', 'released').order('created_at');
+      if (error) throw error;
+      return (data ?? []) as PhoneNumber[];
+    },
+  });
+
+/** Countries the workspace sells into (onboarding step 2), which scope lead search. */
+export const marketsQuery = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ['business-profile', workspaceId],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase().from('business_profiles').select('markets').eq('workspace_id', workspaceId).maybeSingle();
+      const codes = [...new Set(((data?.markets as string[]) ?? []).flatMap((m) => MARKETS[m] ?? []))];
+      return codes.length ? codes : COUNTRIES.map((c) => c.code);
+    },
+  });
+
+export const industriesQuery = () =>
+  queryOptions({
+    queryKey: ['industries'],
+    staleTime: Infinity,
+    queryFn: async () => ((await supabase().from('industries').select('name').order('name')).data ?? []).map((i) => i.name as string),
+  });
+
+export const savedSearchesQuery = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ['saved-searches', workspaceId],
+    queryFn: async () => (await supabase().from('saved_searches').select('id,name,filters').eq('workspace_id', workspaceId).order('created_at')).data ?? [],
+  });
+
+export interface StatRow {
+  user_id: string | null;
+  day: string;
+  dials: number;
+  connects: number;
+  meetings: number;
+  talk_seconds: number | null;
+}
+/** Monday of this week to today, Europe/London: the dashboard's default period. */
+export function thisWeek(): { start: string; end: string } {
+  const now = new Date();
+  const d = new Date(now);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return { start: londonDay(d), end: londonDay(now) };
+}
+export const dashboardQuery = (workspaceId: string, start: string, end: string) =>
+  queryOptions({
+    queryKey: ['dashboard', workspaceId, start, end],
+    queryFn: async () => {
+      const db = supabase();
+      const [{ data, error }, { data: tx }] = await Promise.all([
+        db.from('call_stats_daily').select('user_id,day,dials,connects,meetings,talk_seconds').eq('workspace_id', workspaceId).gte('day', start).lte('day', end),
+        db.from('credit_transactions').select('delta').eq('workspace_id', workspaceId).eq('reason', 'reveal').gte('created_at', new Date(`${start}T00:00:00`).toISOString()).lte('created_at', new Date(`${end}T23:59:59`).toISOString()),
+      ]);
+      if (error) throw error;
+      return { rows: (data ?? []) as StatRow[], credits: (tx ?? []).reduce((s, t) => s - t.delta, 0) };
+    },
+  });
+
 export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string, userId: string) {
-  if (href === '/app') void qc.prefetchQuery(todayQueueQuery(workspaceId, userId));
-  else if (href === '/app/people' || href === '/app/pipeline') void qc.prefetchQuery(peopleQuery(workspaceId));
-  else if (href === '/app/companies') void qc.prefetchQuery(companiesQuery(workspaceId));
+  const go = (o: Parameters<QueryClient['prefetchQuery']>[0]) => void qc.prefetchQuery(o);
+  if (href === '/app') {
+    void qc.prefetchQuery(todayQueueQuery(workspaceId, userId));
+    void qc.prefetchQuery(todayStatsQuery(workspaceId, userId));
+    void qc.prefetchQuery(numbersQuery(workspaceId));
+  } else if (href === '/app/leads') {
+    void qc.prefetchQuery(marketsQuery(workspaceId));
+    void qc.prefetchQuery(industriesQuery());
+    void qc.prefetchQuery(savedSearchesQuery(workspaceId));
+  } else if (href === '/app/companies') void qc.prefetchQuery(companiesQuery(workspaceId));
   else if (href === '/app/lists') void qc.prefetchQuery(listsQuery(workspaceId, userId));
   else if (href === '/app/calls') void qc.prefetchQuery(callsQuery(workspaceId, DEFAULT_CALL_FILTERS));
+  else if (href === '/app/dashboard') {
+    const { start, end } = thisWeek();
+    void qc.prefetchQuery(dashboardQuery(workspaceId, start, end));
+  }
+  void go;
 }

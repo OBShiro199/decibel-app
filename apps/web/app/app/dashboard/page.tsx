@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useApp } from '@/lib/app-context';
+import { dashboardQuery, thisWeek, type StatRow } from '@/lib/queries';
 import { useMemberNames } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import { cn, formatTalkTime } from '@/lib/utils';
@@ -10,14 +11,6 @@ import { Avatar, EmptyState, ErrorCard, Skeleton, StatTile } from '@/components/
 import { Input } from '@/components/ui/form';
 
 type Period = 'today' | 'week' | 'month' | 'custom';
-interface StatRow {
-  user_id: string | null;
-  day: string;
-  dials: number;
-  connects: number;
-  meetings: number;
-  talk_seconds: number | null;
-}
 
 const london = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(d);
 
@@ -25,11 +18,7 @@ function range(period: Period, from: string, to: string): { start: string; end: 
   const now = new Date();
   const end = london(now);
   if (period === 'today') return { start: end, end };
-  if (period === 'week') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
-    return { start: london(d), end };
-  }
+  if (period === 'week') return thisWeek();
   if (period === 'month') return { start: `${end.slice(0, 8)}01`, end };
   return { start: from || end, end: to || end };
 }
@@ -53,18 +42,7 @@ export default function DashboardPage() {
   const [to, setTo] = useState('');
   const { start, end } = range(period, from, to);
 
-  const stats = useQuery({
-    queryKey: ['dashboard', workspace.id, start, end],
-    queryFn: async () => {
-      const db = supabase();
-      const [{ data, error }, { data: tx }] = await Promise.all([
-        db.from('call_stats_daily').select('user_id,day,dials,connects,meetings,talk_seconds').eq('workspace_id', workspace.id).gte('day', start).lte('day', end),
-        db.from('credit_transactions').select('delta').eq('workspace_id', workspace.id).eq('reason', 'reveal').gte('created_at', new Date(`${start}T00:00:00`).toISOString()).lte('created_at', new Date(`${end}T23:59:59`).toISOString()),
-      ]);
-      if (error) throw error;
-      return { rows: (data ?? []) as StatRow[], credits: (tx ?? []).reduce((s, t) => s - t.delta, 0) };
-    },
-  });
+  const stats = useQuery(dashboardQuery(workspace.id, start, end));
 
   const { totals, perDay, perRep } = useMemo(() => {
     const rows = stats.data?.rows ?? [];
@@ -87,7 +65,7 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-4 p-4 md:p-6">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="mr-auto"><p className="eyebrow mb-2">[ team stats ]</p><h1 className="t-h2">Dashboard</h1></div>
+        <div className="mr-auto"><h1 className="t-h2">Team stats</h1></div>
         <div className="flex rounded-sm border border-white-800 bg-white-100 p-0.5" role="radiogroup" aria-label="Period">
           {(
             [
@@ -113,7 +91,7 @@ export default function DashboardPage() {
 
       {stats.error ? <ErrorCard message={(stats.error as Error).message} onRetry={() => stats.refetch()} /> : null}
 
-      <div className="grid grid-cols-2 gap-px border border-white-800 bg-white-800 md:grid-cols-3 xl:grid-cols-6">
+      <div className="stagger grid grid-cols-2 gap-px border border-white-800 bg-white-800 md:grid-cols-3 xl:grid-cols-6">
         <StatTile label="Dials" value={totals.dials.toLocaleString('en-GB')} loading={stats.isLoading} />
         <StatTile label="Connects" value={totals.connects.toLocaleString('en-GB')} loading={stats.isLoading} />
         <StatTile label="Connect rate" value={`${rate}%`} loading={stats.isLoading} />

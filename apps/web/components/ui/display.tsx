@@ -18,9 +18,9 @@ export function Tag({ children, color, className }: { children: string; color?: 
   return <span className={cn('tag', `tag-${color ?? h % 7}`, className)}>{children}</span>;
 }
 
-/** Mono eyebrow: [ label ] */
+/** Small label above a heading. */
 export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn('eyebrow', className)}>[ {children} ]</p>;
+  return <p className={cn('eyebrow', className)}>{children}</p>;
 }
 
 export function Badge({ tone = 'neutral', className, children }: { tone?: Tone; className?: string; children: React.ReactNode }) {
@@ -109,7 +109,7 @@ export function StatTile({ label, value, sub, loading }: { label: string; value:
   return (
     <div className="bg-white-100 p-5">
       <p className="t-label">{label}</p>
-      {loading ? <Skeleton className="mt-3 h-9 w-20" /> : <p className="tabular mt-2 text-[34px] font-medium leading-9 tracking-[-0.04em] text-black-300">{value}</p>}
+      {loading ? <Skeleton className="mt-3 h-9 w-20" /> : <p className="tabular mt-2 text-2xl font-medium leading-9 tracking-[-0.04em] text-black-300">{value}</p>}
       {sub ? <p className="t-caption mt-1 text-black-700">{sub}</p> : null}
     </div>
   );
@@ -254,7 +254,7 @@ export function Tabs({ tabs, active, onChange, className }: { tabs: TabItem[]; a
           >
             {Icon ? <Icon size={16} strokeWidth={1.5} /> : null}
             {label}
-            {count !== undefined ? <span className="tabular min-w-[20px] rounded-[3px] bg-white-300 px-1.5 text-center tabular-nums text-[11px] text-black-700">{count}</span> : null}
+            {count !== undefined ? <span className="tabular min-w-[20px] rounded-[3px] bg-white-300 px-1.5 text-center tabular-nums text-xs text-black-700">{count}</span> : null}
           </button>
         );
       })}

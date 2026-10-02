@@ -50,7 +50,7 @@ export function Dialog({
   if (!open) return null;
   return (
     <Portal>
-      <div className="fixed inset-0 z-dialogOverlay bg-overlay" onClick={onClose} aria-hidden />
+      <div className="overlay-in fixed inset-0 z-dialogOverlay bg-overlay" onClick={onClose} aria-hidden />
       <div className="pointer-events-none fixed inset-0 z-dialog flex items-start justify-center overflow-y-auto p-4 pt-[10vh]">
         <div
           ref={ref}
@@ -59,7 +59,7 @@ export function Dialog({
           aria-label={title}
           tabIndex={-1}
           style={{ maxWidth: width }}
-          className="pointer-events-auto w-full rounded-lg border border-white-800 bg-white-100 p-6 outline-none"
+          className="dialog-in pointer-events-auto w-full rounded-lg border border-white-800 bg-white-100 p-6 outline-none"
         >
           {title ? (
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -103,7 +103,7 @@ export function Drawer({
         role="dialog"
         aria-label={typeof title === 'string' ? title : 'Details'}
         style={{ width: `min(${width}px, 100vw)` }}
-        className="fixed bottom-0 right-0 top-0 z-menu flex flex-col border-l border-white-800 bg-white-100"
+        className="softphone-in fixed bottom-0 right-0 top-0 z-menu flex flex-col border-l border-white-800 bg-white-100"
       >
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-white-800 px-4">
           <div className="t-h4 min-w-0 truncate">{title}</div>
@@ -122,11 +122,13 @@ export function Popover({
   trigger,
   children,
   align = 'left',
+  side = 'bottom',
   className,
 }: {
   trigger: (props: { open: boolean; toggle: () => void }) => React.ReactNode;
   children: (close: () => void) => React.ReactNode;
   align?: 'left' | 'right';
+  side?: 'top' | 'bottom';
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -147,7 +149,8 @@ export function Popover({
       {open ? (
         <div
           className={cn(
-            'absolute top-full z-menu mt-1 min-w-[200px] rounded-md border border-white-800 bg-white-100 p-1 shadow-popover',
+            'popover-in absolute z-menu min-w-[200px] rounded-md border border-white-800 bg-white-100 p-1 shadow-popover',
+            side === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
             align === 'right' ? 'right-0' : 'left-0',
             className,
           )}
@@ -207,7 +210,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div className="pointer-events-none fixed bottom-4 left-4 z-toast flex flex-col gap-2" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className="pointer-events-auto flex max-w-sm items-center gap-3 rounded-md bg-black-0 px-3 py-2.5 text-white-100">
+          <div key={t.id} className="toast-in pointer-events-auto flex max-w-sm items-center gap-3 rounded-md bg-black-0 px-3 py-2.5 text-sm text-white-100">
             <span>{t.message}</span>
             {t.action ? (
               t.action.href ? (

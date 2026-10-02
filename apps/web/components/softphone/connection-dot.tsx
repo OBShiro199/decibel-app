@@ -20,7 +20,7 @@ export function ConnectionDot({ withLabel = true, className }: { withLabel?: boo
   const status = useConnectionStatus();
   const m = META[status];
   return (
-    <span className={cn('inline-flex w-[104px] items-center gap-1.5 tabular-nums text-[10px] uppercase tracking-[0.06em] text-white-900', !withLabel && 'w-auto', className)} title={`Softphone ${m.label.toLowerCase()}`} role="status" aria-label={`Softphone ${m.label}`}>
+    <span className={cn('inline-flex w-[104px] items-center gap-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900', !withLabel && 'w-auto', className)} title={`Softphone ${m.label.toLowerCase()}`} role="status" aria-label={`Softphone ${m.label}`}>
       <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', m.dot, m.pulse && 'pulse-dot')} style={m.pulse ? { width: 6, height: 6 } : undefined} />
       {withLabel ? m.label : null}
     </span>

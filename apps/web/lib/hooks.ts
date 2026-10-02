@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/lib/app-context';
-import { listsQuery } from '@/lib/queries';
+import { listsQuery, numbersQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
 import type { List, Member, PhoneNumber, PipelineStage } from '@/lib/types';
 
@@ -49,19 +49,7 @@ export function useStages() {
 
 export function useNumbers() {
   const { workspace } = useApp();
-  return useQuery({
-    queryKey: ['numbers', workspace.id],
-    queryFn: async () => {
-      const { data, error } = await supabase()
-        .from('phone_numbers')
-        .select('*')
-        .eq('workspace_id', workspace.id)
-        .neq('status', 'released')
-        .order('created_at');
-      if (error) throw error;
-      return (data ?? []) as PhoneNumber[];
-    },
-  });
+  return useQuery(numbersQuery(workspace.id));
 }
 
 export function useLists() {

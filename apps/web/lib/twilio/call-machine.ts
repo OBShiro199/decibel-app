@@ -77,6 +77,7 @@ export type Action =
   | { type: 'OUTCOME'; outcome: CallOutcome | null }
   | { type: 'QUALITY'; quality: 0 | 1 | 2 | 3 }
   | { type: 'MINIMISE'; minimised: boolean }
+  | { type: 'OPEN' }
   | { type: 'RESET' };
 
 const LIVE: Phase[] = ['checking', 'incoming', 'connecting', 'ringing', 'in_call'];
@@ -133,6 +134,8 @@ export function reducer(state: SoftphoneState, action: Action): SoftphoneState {
       return state.quality === action.quality ? state : { ...state, quality: action.quality };
     case 'MINIMISE':
       return { ...state, minimised: action.minimised };
+    case 'OPEN':
+      return state.phase === 'idle' ? { ...state, open: true, minimised: false } : { ...state, minimised: false };
     case 'RESET':
       return initialState;
     default:
