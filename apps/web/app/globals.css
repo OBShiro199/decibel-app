@@ -570,3 +570,7 @@ html:has([data-page-scroll]) {
 }
 .dialler-bar { transform-origin: left center; transition: transform 120ms linear; }
 @media (prefers-reduced-motion: reduce) { .dialler-bar { transition: none; } }
+
+.logo-marquee:hover .marquee-track { animation-play-state: paused; }
+.t-fade { animation: fade-in 420ms var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .t-fade { animation: none; } }

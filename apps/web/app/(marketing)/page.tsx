@@ -4,6 +4,9 @@ import { CtaLink, TrackView } from '@/components/marketing/analytics';
 import { AsciiCanvas, Engine, HeroConsole, LivePill, Marquee, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
 import { DemoButton } from '@/components/marketing/demo-dialog';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
+import { LogoMarquee } from '@/components/marketing/logo-marquee';
+import { showSocialProof } from '@/components/marketing/social-proof';
+import { Testimonials } from '@/components/marketing/testimonials';
 
 export const metadata: Metadata = {
   title: { absolute: 'Decibel · Turn up your outbound' },
@@ -104,16 +107,15 @@ export default function LandingPage() {
         <Corner className="bottom-5 right-5">[ CSV in ]</Corner>
       </section>
 
-      {/* logo strip */}
-      <section className="rail px-5 py-8 md:px-10">
-        <p className="eyebrow text-center">[ Built for outbound teams across the UK and EU ]</p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 tabular-nums text-xs tracking-[0.06em] text-faint">
-          {['Halden', 'Northwick', 'Calder & Rowe', 'Fenwright', 'Tessel', 'Orbiq', 'Kestrel'].map((n) => (
-            <span key={n}>{n}</span>
-          ))}
-        </div>
-        <p className="mt-4 text-center tabular-nums text-xs tracking-[0.06em] text-faint">Placeholder names until launch customers are listed</p>
-      </section>
+      {/* customer logos (hidden on the live site until SOCIAL_PROOF_APPROVED) */}
+      {showSocialProof ? (
+        <section className="rail py-8">
+          <p className="eyebrow text-center">[ Outbound teams calling with Decibel ]</p>
+          <div className="mt-6">
+            <LogoMarquee />
+          </div>
+        </section>
+      ) : null}
 
       {/* three pillars */}
       <section id="product" className="rail">
@@ -173,6 +175,15 @@ export default function LandingPage() {
           </Reveal>
         ))}
       </section>
+
+      {/* customer stories (hidden on the live site until SOCIAL_PROOF_APPROVED) */}
+      {showSocialProof ? (
+        <section className="rail px-5 py-16 md:px-10 md:py-24">
+          <Reveal>
+            <Testimonials />
+          </Reveal>
+        </section>
+      ) : null}
 
       {/* compliance */}
       <section className="rail">

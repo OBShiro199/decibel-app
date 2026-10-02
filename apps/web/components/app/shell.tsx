@@ -21,11 +21,11 @@ import { Dialog, MenuItem, Popover } from '@/components/ui/overlay';
 
 const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
   { href: '/app', label: 'Today', icon: Sun, exact: true },
-  { href: '/app/dialler', label: 'Power dialler', icon: Zap },
   { href: '/app/leads', label: 'Leads', icon: Database },
   { href: '/app/companies', label: 'Companies', icon: Building2 },
   { href: '/app/lists', label: 'Lists', icon: ListIcon },
   { href: '/app/calls', label: 'Calls', icon: Phone },
+  { href: '/app/dialler', label: 'Power dialler', icon: Zap },
 ];
 
 
@@ -172,10 +172,8 @@ function Sidebar() {
                     <Icon size={16} strokeWidth={1.7} className="shrink-0" style={{ color: 'var(--dialler)' }} />
                     <span className="relative max-[1100px]:hidden">
                       {label}
-                      {/* hand-drawn underline marks the dialler as the place to get calls done */}
-                      <svg aria-hidden viewBox="0 0 120 8" preserveAspectRatio="none" className="pointer-events-none absolute -bottom-1.5 left-0 h-[6px] w-full">
-                        <path d="M1 5.2C14 2.6 26 6.4 39 4.1S64 1.9 78 4.4s26 1.6 41-0.9" fill="none" stroke="var(--dialler)" strokeWidth="1.6" strokeLinecap="round" opacity="0.75" />
-                      </svg>
+                      {/* a light-orange underline marks the dialler */}
+<span aria-hidden className="pointer-events-none absolute -bottom-[3px] left-0 h-[2px] w-full rounded-full" style={{ background: 'var(--dialler)', opacity: 0.7 }} />
                     </span>
                   </>
                 ) : (
