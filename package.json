@@ -1,0 +1,14 @@
+{
+  "name": "decibels",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "dev": "pnpm --filter @decibels/web dev",
+    "build": "pnpm --filter @decibels/web build",
+    "start": "pnpm --filter @decibels/web start",
+    "lint": "pnpm --filter @decibels/web lint",
+    "typecheck": "pnpm --filter @decibels/web typecheck",
+    "deploy:functions": "bash scripts/deploy-supabase.sh",
+    "test:isolation": "pnpm --filter @decibels/web test:isolation"
+  }
+}

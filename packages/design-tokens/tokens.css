@@ -1,0 +1,79 @@
+/* Decibels design tokens (PRD section 12). Components never hardcode hex. */
+:root {
+  --color-white-100: #ffffff;
+  --color-white-200: #f6f6f4;
+  --color-white-300: #f0f0ec;
+  --color-white-400: #e7e7e3;
+  --color-white-500: #e7e7e3;
+  --color-white-800: #e7e7e3;
+  --color-white-900: #9b9b96;
+
+  --color-black-700: #5f5f5a;
+  --color-black-500: #2c2c2a;
+  --color-black-400: #141414;
+  --color-black-300: #101010;
+  --color-black-200: #000000;
+  --color-black-0: #121212;
+
+  --color-accent-500: #2f6bff;
+  --color-accent-600: #2457d6;
+  --color-accent-700: #1c46b0;
+  --color-accent-100: #e9efff;
+  --color-accent-050: #f4f7ff;
+
+  --color-success-500: #1a7f4b;
+  --color-success-100: #e4f1ea;
+  --color-success-700: #1a7f4b;
+  --color-warning-500: #b5801f;
+  --color-warning-100: #f6eedb;
+  --color-warning-700: #8a6113;
+  --color-danger-500: #c0462e;
+  --color-danger-600: #a83b26;
+  --color-danger-100: #f7e5e0;
+  --color-danger-700: #a03a26;
+
+  /* semantic aliases: dark mode is a token swap */
+  --color-page-background: var(--color-white-200);
+  --color-canvas: var(--color-white-200);
+  --color-border: var(--color-white-800);
+  --color-text: var(--color-black-400);
+  --color-text-secondary: var(--color-black-700);
+  --color-overlay: rgba(18, 18, 18, 0.4);
+
+  /* Daygent extras */
+  --color-panel-2: #fbfbfa;
+  --color-rule-soft: #f0f0ec;
+  --color-grid: #efefec;
+  --color-faint: #bdbdb8;
+  --color-btn-border: #d8d8d3;
+  --ease-settle: cubic-bezier(0.22, 0.61, 0.21, 1);
+
+  /* layout variables, reassigned at breakpoints by the shell */
+  --sidebar-width: 240px;
+  --rail-width: 320px;
+  --settings-rail-width: 300px;
+  --softphone-width: 360px;
+  --site-header-height: 64px;
+  --site-header-subheader-height: 0px;
+  --topbar-height: 48px;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --sidebar-width: 56px;
+  }
+}
+@media (max-width: 1024px) {
+  :root {
+    --rail-width: 280px;
+    --settings-rail-width: 240px;
+  }
+}
+@media (max-width: 768px) {
+  :root {
+    --site-header-subheader-height: 63px;
+    --rail-width: 100%;
+    --settings-rail-width: 100%;
+    --softphone-width: 100%;
+  }
+}

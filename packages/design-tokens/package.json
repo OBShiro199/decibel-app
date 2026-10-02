@@ -1,0 +1,10 @@
+{
+  "name": "@decibels/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "main": "tailwind.preset.ts",
+  "exports": {
+    ".": "./tailwind.preset.ts",
+    "./tokens.css": "./tokens.css"
+  }
+}
