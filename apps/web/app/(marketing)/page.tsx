@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { CtaLink, TrackView } from '@/components/marketing/analytics';
 import { AsciiCanvas, Engine, HeroConsole, LivePill, Marquee, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
 import { DemoButton } from '@/components/marketing/demo-dialog';
+import { EuFlag, UkFlag } from '@/components/marketing/flags';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
 import { LogoMarquee } from '@/components/marketing/logo-marquee';
 import { showSocialProof } from '@/components/marketing/social-proof';
@@ -49,7 +50,7 @@ function Head({ eyebrow, title, children, center }: { eyebrow: string; title: st
   );
 }
 
-const Corner = ({ className, children }: { className: string; children: string }) => (
+const Corner = ({ className, children }: { className: string; children: React.ReactNode }) => (
   <span className={`pointer-events-none absolute tabular-nums text-xs tracking-[0.06em] text-faint max-md:hidden ${className}`}>{children}</span>
 );
 
@@ -86,12 +87,19 @@ export default function LandingPage() {
             <LivePill>Unlimited calls &amp; mobile exports</LivePill>
           </Reveal>
           <Reveal eager delay={90}>
-            <h1 className="t-display mx-auto mt-7 max-w-[720px] text-black-400">1 million verified mobiles &amp; the dialler to reach them all.</h1>
+            <h1 className="t-display mx-auto mt-7 max-w-[720px] text-black-400">
+              1 million verified{' '}
+              <span className="inline-flex translate-y-[-0.08em] items-center gap-[0.12em] align-middle">
+                <UkFlag className="h-[0.6em] w-[0.9em] rounded-[0.08em]" />
+                <EuFlag className="h-[0.6em] w-[0.9em] rounded-[0.08em]" />
+              </span>{' '}
+              mobiles &amp; the dialler to reach them all.
+            </h1>
           </Reveal>
           <Reveal eager delay={180}>
             <p className="mx-auto mt-5 max-w-[600px] text-md leading-[27px] text-black-700">
-              Search UK and EU decision makers by title, seniority, company size and country. Reveal a direct mobile for one credit, call it from
-              your browser, and every outcome lands in your pipeline. TPS screening and call recording are built in.
+              Decibel lets you search UK and EU decision makers by title, seniority, company size and country, reveal a direct mobile for one
+              credit and call it from your browser. Every outcome lands in your pipeline, with TPS screening and call recording built in.
             </p>
           </Reveal>
           <Reveal eager delay={270}>
