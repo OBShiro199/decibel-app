@@ -1,0 +1,42 @@
+# Decibels Supabase config. Link with: supabase link --project-ref fkjwglvztyyerewldnty
+project_id = "decibels"
+
+[api]
+schemas = ["public"]
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "http://localhost:3000/**"]
+
+# Every function authenticates itself: app-facing ones verify the user's JWT with
+# auth.getUser(), Twilio webhooks verify X-Twilio-Signature, Stripe verifies its
+# signature header, cron functions check CRON_SECRET. Gateway JWT checks are off
+# so webhooks can reach them and so the new asymmetric signing keys work.
+[functions.twilio-token]
+verify_jwt = false
+[functions.twilio-voice]
+verify_jwt = false
+[functions.twilio-status]
+verify_jwt = false
+[functions.twilio-recording]
+verify_jwt = false
+[functions.twilio-inbound]
+verify_jwt = false
+[functions.twilio-numbers]
+verify_jwt = false
+[functions.twilio-bundle-status]
+verify_jwt = false
+[functions.create-twilio-subaccount]
+verify_jwt = false
+[functions.billing]
+verify_jwt = false
+[functions.stripe-webhook]
+verify_jwt = false
+[functions.stripe-usage]
+verify_jwt = false
+[functions.import-csv]
+verify_jwt = false
+[functions.send-email]
+verify_jwt = false
+[functions.nightly]
+verify_jwt = false
