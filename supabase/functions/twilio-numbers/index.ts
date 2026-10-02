@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
         '/IncomingPhoneNumbers.json',
         {
           PhoneNumber: e164,
-          FriendlyName: `Decibels ${ws.name}`.slice(0, 64),
+          FriendlyName: `Decibel ${ws.name}`.slice(0, 64),
           VoiceUrl: inboundUrl,
           VoiceMethod: 'POST',
           BundleSid: bundle,
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       if (!source) return null;
       const clone = await twilio<{ bundle_sid: string; status: string }>(parent, 'POST', `${REG}/Bundles/${source}/Clones`, {
         TargetAccountSid: creds.account_sid,
-        FriendlyName: `Decibels shared ${country} ${type}`,
+        FriendlyName: `Decibel shared ${country} ${type}`,
       });
       return clone.status === 'twilio-approved' ? clone.bundle_sid : null;
     };
@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
         if (!e164) return fail('invalid number');
         const res = await twilio<{ validation_code: string }>(creds, 'POST', '/OutgoingCallerIds.json', {
           PhoneNumber: e164,
-          FriendlyName: `Decibels ${user.email}`.slice(0, 64),
+          FriendlyName: `Decibel ${user.email}`.slice(0, 64),
         });
         return json({ validation_code: res.validation_code });
       }

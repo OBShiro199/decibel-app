@@ -91,7 +91,7 @@ export default function DashboardPage() {
 
       {stats.error ? <ErrorCard message={(stats.error as Error).message} onRetry={() => stats.refetch()} /> : null}
 
-      <div className="stagger grid grid-cols-2 gap-px border border-white-800 bg-white-800 md:grid-cols-3 xl:grid-cols-6">
+      <div className="stagger grid grid-cols-2 stat-grid md:grid-cols-3 xl:grid-cols-6">
         <StatTile label="Dials" value={totals.dials.toLocaleString('en-GB')} loading={stats.isLoading} />
         <StatTile label="Connects" value={totals.connects.toLocaleString('en-GB')} loading={stats.isLoading} />
         <StatTile label="Connect rate" value={`${rate}%`} loading={stats.isLoading} />
@@ -116,7 +116,7 @@ export default function DashboardPage() {
                   {perDay.map((d) => (
                     <div key={d.day} className="group relative flex h-full min-w-0 flex-1 flex-col justify-end" title={`${label(d.day)}: ${d.dials} dials`}>
                       {perDay.length <= 14 || d.dials === max ? <span className="t-caption tabular mb-1 text-center text-black-700">{d.dials || ''}</span> : null}
-                      <div className="rounded-t-[3px] bg-accent-500/70 transition-colors group-hover:bg-accent-500" style={{ height: `${(d.dials / max) * 100}%`, minHeight: d.dials ? 2 : 0 }} />
+                      <div className="rounded-t-[3px] bg-accent-500 opacity-70 transition-opacity group-hover:opacity-100" style={{ height: `${(d.dials / max) * 100}%`, minHeight: d.dials ? 2 : 0 }} />
                     </div>
                   ))}
                 </div>

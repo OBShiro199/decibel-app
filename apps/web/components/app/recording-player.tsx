@@ -82,7 +82,7 @@ export function RecordingPlayer({ path, duration, compact }: { path: string; dur
         }}
       >
         {shape.map((h, i) => (
-          <span key={i} className={cn('flex-1 rounded-full', i / shape.length < progress ? 'bg-accent-500' : 'bg-white-900')} style={{ height: `${Math.round(h * 100)}%` }} />
+          <span key={i} className={cn('flex-1 rounded-full', i / shape.length < progress ? 'bg-accent-500' : 'bg-[#d9dade]')} style={{ height: `${Math.round(h * 100)}%` }} />
         ))}
       </button>
       <span className={cn('t-caption tabular shrink-0 truncate text-right text-black-700', compact ? 'w-[72px]' : 'w-[96px]')}>{error ? 'Unavailable' : `${formatDuration(position)} / ${formatDuration(total)}`}</span>

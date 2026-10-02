@@ -387,7 +387,7 @@ export function Engine() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   return (
-    <section ref={wrap} className="relative h-[320vh] bg-black-0 text-white-200" aria-label="How a call moves through Decibels">
+    <section ref={wrap} className="relative h-[320vh] bg-black-0 text-white-200" aria-label="How a call moves through Decibel">
       <div className="sticky top-0 flex h-screen items-center overflow-hidden">
         <div className="absolute inset-0 opacity-70">
           <AsciiCanvas scene="engine" color="#9a9a94" progress={progress} cell={14} />
@@ -471,7 +471,7 @@ export function PricingCard() {
             <CtaLink location={`pricing_${plan}`} href="/signup" variant="primary" size="lg">
               Start free trial
             </CtaLink>
-            <CtaLink location="pricing_scale" href="mailto:sales@decibels.io" size="lg">
+            <CtaLink location="pricing_scale" href="mailto:sales@decibel.io" size="lg">
               Talk to us
             </CtaLink>
           </div>

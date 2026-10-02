@@ -1,4 +1,4 @@
-/* Decibels design tokens (PRD section 12). Components never hardcode hex. */
+/* Decibel design tokens (PRD section 12). Components never hardcode hex. */
 :root {
   --color-white-100: #ffffff;
   --color-white-200: #f6f6f4;

@@ -148,7 +148,7 @@ export default function PlansPage() {
                 </li>
               ))}
             </ul>
-            <ButtonLink href="mailto:sales@decibels.io" className="mt-6 w-full">
+            <ButtonLink href="mailto:sales@decibel.io" className="mt-6 w-full">
               Talk to us
             </ButtonLink>
           </div>

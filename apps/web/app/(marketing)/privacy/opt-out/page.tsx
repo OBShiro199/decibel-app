@@ -5,7 +5,7 @@ import { Prose } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Opt out',
-  description: 'Ask Decibels to remove your details from the database or object to your data being used for direct marketing.',
+  description: 'Ask Decibel to remove your details from the database or object to your data being used for direct marketing.',
 };
 
 export default function OptOutPage() {
@@ -13,7 +13,7 @@ export default function OptOutPage() {
     <Prose
       draft
       title="Opt out"
-      lead="If your details are in the Decibels database, or you have been called by a Decibels customer, you can ask us to remove you. You do not need to give a reason."
+      lead="If your details are in the Decibel database, or you have been called by a Decibel customer, you can ask us to remove you. You do not need to give a reason."
     >
       <p>
         Fill in the details below so we can find your record. Your right to object to direct marketing is absolute, and we act on requests within one month.
@@ -21,7 +21,7 @@ export default function OptOutPage() {
       </p>
       <OptOutForm />
       <p>
-        Prefer to write it yourself? Email <a href="mailto:privacy@decibels.io">privacy@decibels.io</a> with your name and the phone number concerned.
+        Prefer to write it yourself? Email <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> with your name and the phone number concerned.
       </p>
     </Prose>
   );

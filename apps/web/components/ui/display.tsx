@@ -1,4 +1,4 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Inbox, SearchX } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Tone } from '@/lib/constants';
 import { cn, initials } from '@/lib/utils';
@@ -152,25 +152,35 @@ export function EmptyIllustration({ shape = 'hexagon' }: { shape?: 'hexagon' | '
   );
 }
 
+/**
+ * Empty state: a small icon tile, one line of title, one line of help, one optional
+ * action. Standard sizes (title 14px medium, help 13px) so it sits quietly inside tables
+ * and cards. `shape` is kept for compatibility and picks the icon: diamond = no results.
+ */
 export function EmptyState({
   title,
   description,
   action,
   shape,
+  icon: Icon,
   className,
 }: {
   title: string;
   description?: React.ReactNode;
   action?: React.ReactNode;
   shape?: 'hexagon' | 'diamond';
+  icon?: LucideIcon;
   className?: string;
 }) {
+  const Glyph = Icon ?? (shape === 'diamond' ? SearchX : Inbox);
   return (
     <div className={cn('flex flex-col items-center px-4 py-12 text-center', className)}>
-      <EmptyIllustration shape={shape} />
-      <h3 className="t-h3 mt-6">{title}</h3>
-      {description ? <p className="t-body-lg mt-2 max-w-md text-black-700">{description}</p> : null}
-      {action ? <div className="mt-6 flex items-center gap-2">{action}</div> : null}
+      <span className="flex h-9 w-9 items-center justify-center rounded-md border border-white-800 bg-white-100 text-white-900">
+        <Glyph size={16} strokeWidth={1.6} />
+      </span>
+      <p className="mt-3 text-base font-medium text-black-400">{title}</p>
+      {description ? <p className="mt-1 max-w-sm text-sm text-black-700">{description}</p> : null}
+      {action ? <div className="mt-4 flex items-center gap-2 [&_a]:h-8 [&_button]:h-8">{action}</div> : null}
     </div>
   );
 }

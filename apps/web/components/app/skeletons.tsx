@@ -22,7 +22,7 @@ export function TodaySkeleton() {
         <Skeleton className="mt-2 h-[30px] w-72" />
         <Skeleton className="mt-2 h-4 w-56" />
       </div>
-      <TilesSkeleton className="grid grid-cols-2 gap-px border border-white-800 bg-white-800 lg:grid-cols-4" />
+      <TilesSkeleton className="grid grid-cols-2 stat-grid lg:grid-cols-4" />
       <div className="card overflow-hidden">
         <div className="flex h-12 items-center border-b border-white-800 px-4">
           <Skeleton className="w-16" />

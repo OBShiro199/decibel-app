@@ -1,5 +1,5 @@
 -- =============================================================================
--- Decibels — 0007_audit_log_workspace_delete.sql
+-- Decibel — 0007_audit_log_workspace_delete.sql
 -- Fix: deleting a workspace cascades to its members, numbers, invitations and
 -- DNC entries. Their audit triggers then tried to log against the workspace
 -- being deleted, which violated audit_log's foreign key and blocked the delete.

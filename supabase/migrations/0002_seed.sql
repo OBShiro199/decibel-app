@@ -1,4 +1,4 @@
--- Decibels seed: 12 industries, 20 companies, 20 contacts. All fictional.
+-- Decibel seed: 12 industries, 20 companies, 20 contacts. All fictional.
 -- Mobiles use Ofcom's reserved drama range 07700 900xxx, so a test call can never reach a real person.
 insert into public.industries (name, sic_codes) values
   ('Software & SaaS',          '{62012,62020}'),

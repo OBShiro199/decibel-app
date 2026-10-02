@@ -76,7 +76,7 @@ export default function InvitePage() {
           {invite ? `Ask ${invite.inviter_name} to send a new invite to ${invite.workspace_name}.` : 'Ask your teammate to send a new invite.'}
         </p>
         <ButtonLink href={invite?.status === 'accepted' ? '/app' : '/login'} className="mt-6">
-          {invite?.status === 'accepted' ? 'Open Decibels' : 'Log in'}
+          {invite?.status === 'accepted' ? 'Open Decibel' : 'Log in'}
         </ButtonLink>
       </div>
     );
@@ -89,7 +89,7 @@ export default function InvitePage() {
   return (
     <div className="card p-6">
       <h1 className="t-h3">
-        {invite.inviter_name} invited you to {invite.workspace_name} on Decibels
+        {invite.inviter_name} invited you to {invite.workspace_name} on Decibel
       </h1>
       <p className="mt-2 text-black-700">
         You will join as {invite.role === 'admin' ? 'an admin' : 'a member'}. This invite is for <b className="text-black-400">{invite.email}</b>.
@@ -123,7 +123,7 @@ export default function InvitePage() {
         </div>
       )}
       <p className="t-caption mt-4 text-center text-black-700">
-        <Link href="/" className="hover:underline">What is Decibels?</Link>
+        <Link href="/" className="hover:underline">What is Decibel?</Link>
       </p>
     </div>
   );

@@ -100,18 +100,37 @@ export function useTableKeys<T>(rows: T[], handlers: { onOpen?: (row: T) => void
   return { index, setIndex };
 }
 
-/** Rows that fit the element's height, so a table can stay static (no vertical scroll) and paginate instead. */
-export function useFitRows(rowHeight = 40, chrome = 36, min = 6) {
+/**
+ * Rows that fit the element's height, so a table can stay static (no vertical scroll)
+ * and paginate instead. Measures the real header, row and scrollbar heights from the
+ * rendered table rather than assuming them, and re-measures when the size changes.
+ */
+export function useFitRows(fallbackRow = 39, fallbackHeader = 35, min = 5) {
   const ref = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState(0);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const measure = () => setRows(Math.max(min, Math.floor((el.clientHeight - chrome - 14) / rowHeight)));
+    const measure = () => {
+      const tr = el.querySelector('tbody tr') as HTMLElement | null;
+      const head = el.querySelector('thead') as HTMLElement | null;
+      const wrap = el.querySelector('.tbl-wrap') as HTMLElement | null;
+      const rowH = tr && tr.offsetHeight >= 28 ? tr.offsetHeight : fallbackRow;
+      const headH = head?.offsetHeight || fallbackHeader;
+      const scrollbar = wrap ? wrap.offsetHeight - wrap.clientHeight : 0;
+      const next = Math.max(min, Math.floor((el.clientHeight - headH - scrollbar) / rowH));
+      setRows((prev) => (prev === next ? prev : next));
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
-  }, [rowHeight, chrome, min]);
+    // the first real rows can differ slightly from the fallback height: measure again once they render
+    const mo = new MutationObserver(() => requestAnimationFrame(measure));
+    mo.observe(el, { childList: true, subtree: true });
+    return () => {
+      ro.disconnect();
+      mo.disconnect();
+    };
+  }, [fallbackRow, fallbackHeader, min]);
   return { ref, rows };
 }

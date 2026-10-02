@@ -18,8 +18,8 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: 'Company',
     links: [
       { href: '/compliance', label: 'Compliance' },
-      { href: 'mailto:sales@decibels.io', label: 'Talk to sales', external: true },
-      { href: 'mailto:privacy@decibels.io', label: 'Privacy team', external: true },
+      { href: 'mailto:sales@decibel.io', label: 'Talk to sales', external: true },
+      { href: 'mailto:privacy@decibel.io', label: 'Privacy team', external: true },
     ],
   },
   {
@@ -77,7 +77,7 @@ export function SiteFooter() {
           ))}
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-white-800 pt-6 text-black-700 sm:flex-row sm:items-center sm:justify-between">
-          <p className="t-small">© {new Date().getFullYear()} Decibels. All rights reserved.</p>
+          <p className="t-small">© {new Date().getFullYear()} Decibel. All rights reserved.</p>
           <p className="t-small">Data hosted in the UK (London).</p>
         </div>
       </div>

@@ -414,7 +414,7 @@ export function NumberStep({ workspace, user, done }: StepProps) {
         />
         <OptionCard
           icon={Building2}
-          title="Buy a Decibels number"
+          title="Buy a Decibel number"
           description="A UK local, national or mobile number for your workspace. Some need a business address check first."
           selected={option === 'buy'}
           onSelect={() => setOption('buy')}
@@ -467,7 +467,7 @@ export function TestStep({ workspace, profile, invited, done }: StepProps) {
 
   return (
     <div>
-      <Header title="Test your setup" description="Check your microphone, then call your own mobile. You should hear: “This is Decibels. Your setup works.”" />
+      <Header title="Test your setup" description="Check your microphone, then call your own mobile. You should hear: “This is Decibel. Your setup works.”" />
       <div className="flex flex-col gap-4">
         <MicTest onReady={setMic} />
         <div className="card p-4">
@@ -509,7 +509,7 @@ export function TestStep({ workspace, profile, invited, done }: StepProps) {
       </div>
       <Footer back={invited ? undefined : 'number'}>
         <Button variant="primary" disabled={status !== 'passed'} onClick={() => done()}>
-          {invited ? 'Open Decibels' : 'Continue'}
+          {invited ? 'Open Decibel' : 'Continue'}
         </Button>
       </Footer>
     </div>
@@ -543,7 +543,7 @@ export function ComplianceStep({ workspace, done }: StepProps) {
 
   return (
     <div>
-      <Header title="Compliance" description="Three things we need you to confirm before your team starts calling. Decibels enforces the first two in code." />
+      <Header title="Compliance" description="Three things we need you to confirm before your team starts calling. Decibel enforces the first two in code." />
       <div className="card flex flex-col gap-4 p-6">
         <Checkbox checked={acks[0]} onChange={toggle(0)} label="We will only call business contacts under legitimate interest, and we keep a record of that assessment." />
         <Checkbox checked={acks[1]} onChange={toggle(1)} label="We understand numbers are screened against TPS and CTPS before dialling, and listed numbers are blocked." />

@@ -129,7 +129,7 @@ export default function CompliancePage() {
   function exportCsv() {
     if (!dnc.data?.length) return toast('Nothing to export');
     auditedCsv(workspace.id, 'dnc',
-      `decibels-dnc-${new Date().toISOString().slice(0, 10)}.csv`,
+      `decibel-dnc-${new Date().toISOString().slice(0, 10)}.csv`,
       dnc.data.map((r) => ({ number: r.e164, reason: r.reason ?? '', added_by: r.added_by ? names[r.added_by] ?? '' : '', added_at: r.created_at })),
     );
   }
@@ -269,7 +269,7 @@ export default function CompliancePage() {
           <div className="flex flex-wrap items-center gap-4 p-6">
             <div className="min-w-0 flex-1">
               <p>Data processing agreement</p>
-              <p className="t-small mt-0.5 text-black-700">The DPA between your company and Decibels.</p>
+              <p className="t-small mt-0.5 text-black-700">The DPA between your company and Decibel.</p>
             </div>
             <ButtonLink href="/dpa">View DPA</ButtonLink>
           </div>
@@ -299,7 +299,7 @@ export default function CompliancePage() {
 
       <Section title="Germany and Austria">
         <Notice tone="warning">
-          B2B cold calling in Germany and Austria generally needs prior consent, or at least presumed consent that is hard to rely on. Decibels does not block these calls, so take legal advice before dialling numbers there. See the{' '}
+          B2B cold calling in Germany and Austria generally needs prior consent, or at least presumed consent that is hard to rely on. Decibel does not block these calls, so take legal advice before dialling numbers there. See the{' '}
           <Link href="/compliance" className="underline">
             compliance guide
           </Link>

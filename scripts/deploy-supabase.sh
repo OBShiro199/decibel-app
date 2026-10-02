@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploys the Decibels backend to your Supabase project:
+# Deploys the Decibel backend to your Supabase project:
 #   1. links the project
 #   2. pushes Edge Function secrets from supabase/functions/.env (empty values skipped)
 #   3. deploys every Edge Function

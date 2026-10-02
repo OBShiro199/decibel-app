@@ -1,5 +1,5 @@
 -- =============================================================================
--- Decibels — 0006_cron_jobs.sql
+-- Decibel — 0006_cron_jobs.sql
 -- Schedules the nightly Edge Functions with pg_cron + pg_net.
 --   nightly       02:15 UTC  recording retention, onboarding reminders, invite expiry, stale calls
 --   stripe-usage  02:45 UTC  report yesterday's call minutes to Stripe
@@ -39,6 +39,6 @@ begin
 end $$;
 revoke execute on function public.invoke_scheduled_function(text) from public, anon, authenticated;
 
-select cron.unschedule(jobname) from cron.job where jobname in ('decibels-nightly', 'decibels-stripe-usage');
-select cron.schedule('decibels-nightly', '15 2 * * *', $$select public.invoke_scheduled_function('nightly')$$);
-select cron.schedule('decibels-stripe-usage', '45 2 * * *', $$select public.invoke_scheduled_function('stripe-usage')$$);
+select cron.unschedule(jobname) from cron.job where jobname in ('decibel-nightly', 'decibel-stripe-usage');
+select cron.schedule('decibel-nightly', '15 2 * * *', $$select public.invoke_scheduled_function('nightly')$$);
+select cron.schedule('decibel-stripe-usage', '45 2 * * *', $$select public.invoke_scheduled_function('stripe-usage')$$);

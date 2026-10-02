@@ -140,7 +140,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
 
   return (
     <div className="card p-6">
-      <h1 className="t-h3">{mode === 'signup' ? 'Start your free trial' : 'Log in to Decibels'}</h1>
+      <h1 className="t-h3">{mode === 'signup' ? 'Start your free trial' : 'Log in to Decibel'}</h1>
       <p className="mt-1 text-black-700">{mode === 'signup' ? '14 days, 50 credits, 60 minutes. No card needed.' : 'Welcome back.'}</p>
 
       <Button className="mt-6 w-full" onClick={google} loading={busy === 'google'}>
@@ -163,7 +163,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
         </Field>
         {freeMail ? (
           <div className="rounded-md border border-white-800 bg-warning-100 p-3 text-warning-700">
-            <p>Decibels works best with a work email: it helps us set up your workspace and verify your business for a phone number.</p>
+            <p>Decibel works best with a work email: it helps us set up your workspace and verify your business for a phone number.</p>
             <Checkbox className="mt-2" checked={freeMailOk} onChange={setFreeMailOk} label="Continue with this email anyway" />
           </div>
         ) : null}
@@ -220,7 +220,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
           </>
         ) : (
           <>
-            New to Decibels? <Link href={`/signup${suffix}`} className="link">Start free trial</Link>
+            New to Decibel? <Link href={`/signup${suffix}`} className="link">Start free trial</Link>
           </>
         )}
       </p>

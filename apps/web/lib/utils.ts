@@ -57,14 +57,27 @@ export function timeAgo(iso: string | null | undefined): string {
   return formatDate(iso);
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+/** "2 Oct 2026", or "2 Oct 2026, 14:05" with time. Three-letter months always (no "Sept"). */
 export function formatDate(iso: string | null | undefined, withTime = false): string {
   if (!iso) return '';
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
-  }).format(new Date(iso));
+  const d = new Date(iso);
+  const date = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return withTime ? `${date}, ${hhmm(d)}` : date;
+}
+
+/** Compact timestamp for tables: "Today 14:05", "Yesterday 09:12", "30 Sep 21:40", "3 Jan 2025". */
+export function formatWhen(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 86400000);
+  if (d.toDateString() === now.toDateString()) return `Today ${hhmm(d)}`;
+  if (d.toDateString() === yesterday.toDateString()) return `Yesterday ${hhmm(d)}`;
+  if (d.getFullYear() === now.getFullYear()) return `${d.getDate()} ${MONTHS[d.getMonth()]} ${hhmm(d)}`;
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export function dayLabel(iso: string): string {

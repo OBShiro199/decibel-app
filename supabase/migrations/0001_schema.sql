@@ -1,5 +1,5 @@
 -- =============================================================================
--- Decibels — 0001_schema.sql
+-- Decibel — 0001_schema.sql
 -- Supabase Postgres migration: extensions, enums, tables, indexes, helpers,
 -- triggers, RLS policies, views, storage policies.
 -- =============================================================================
@@ -216,7 +216,7 @@ create unique index phone_numbers_one_default_per_ws
 create index phone_numbers_ws_idx on public.phone_numbers(workspace_id);
 
 -- ---------------------------------------------------------------------------
--- 6. Global lead database (Decibels-owned, not tenant data)
+-- 6. Global lead database (Decibel-owned, not tenant data)
 -- ---------------------------------------------------------------------------
 create table public.industries (
   id     serial primary key,

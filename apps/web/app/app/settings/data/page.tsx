@@ -78,7 +78,7 @@ export default function DataPage() {
       );
       if (!rows.length) return toast('No people to export');
       auditedCsv(workspace.id, 'people',
-        `decibels-people-${today()}.csv`,
+        `decibel-people-${today()}.csv`,
         rows.map((r) => {
           const company = Array.isArray(r.company) ? r.company[0] : r.company;
           return {
@@ -123,7 +123,7 @@ export default function DataPage() {
       );
       if (!rows.length) return toast('No calls to export');
       auditedCsv(workspace.id, 'calls',
-        `decibels-calls-${today()}.csv`,
+        `decibel-calls-${today()}.csv`,
         rows.map((r) => {
           const person = Array.isArray(r.person) ? r.person[0] : r.person;
           return {

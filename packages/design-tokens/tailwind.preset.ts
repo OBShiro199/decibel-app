@@ -1,4 +1,4 @@
-// Decibels Tailwind preset (PRD section 12.6)
+// Decibel Tailwind preset (PRD section 12.6)
 const preset = {
   theme: {
     colors: {

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Decibels — 0003_app_support.sql
+-- Decibel — 0003_app_support.sql
 -- Support objects the app and Edge Functions need on top of 0001/0002:
 -- TPS cache, rate limits, Vault helpers for per-workspace Twilio secrets,
 -- server-side dial check, invitation lookup, list helpers, call roll-ups,
@@ -119,7 +119,7 @@ declare sid uuid;
 begin
   select twilio_secret_vault_id into sid from public.workspaces where id = p_workspace_id;
   if sid is null then
-    sid := vault.create_secret(p_secret::text, 'twilio_ws_' || p_workspace_id::text, 'Decibels workspace Twilio credentials');
+    sid := vault.create_secret(p_secret::text, 'twilio_ws_' || p_workspace_id::text, 'Decibel workspace Twilio credentials');
     update public.workspaces set twilio_secret_vault_id = sid where id = p_workspace_id;
   else
     perform vault.update_secret(sid, p_secret::text);

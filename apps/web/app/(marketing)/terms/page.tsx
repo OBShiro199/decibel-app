@@ -4,20 +4,20 @@ import { Prose } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Terms of service',
-  description: 'The terms that apply when you use Decibels, including trials, billing, acceptable use and liability.',
+  description: 'The terms that apply when you use Decibel, including trials, billing, acceptable use and liability.',
 };
 
 export default function TermsPage() {
   return (
-    <Prose draft title="Terms of service" lead="These terms apply when you create a Decibels workspace or use the service." updated="1 October 2026">
+    <Prose draft title="Terms of service" lead="These terms apply when you create a Decibel workspace or use the service." updated="1 October 2026">
       <h2>1. The agreement</h2>
       <p>
-        These terms are between Decibels [legal entity name and company number to be confirmed] and the business that creates a workspace (&ldquo;you&rdquo;).
+        These terms are between Decibel [legal entity name and company number to be confirmed] and the business that creates a workspace (&ldquo;you&rdquo;).
         The service is for business use only. The person accepting these terms confirms they have authority to do so for that business.
       </p>
 
       <h2>2. The service</h2>
-      <p>Decibels provides a B2B contact database, a browser-based dialler and a pipeline for managing outbound calling. Features may change as the product develops.</p>
+      <p>Decibel provides a B2B contact database, a browser-based dialler and a pipeline for managing outbound calling. Features may change as the product develops.</p>
 
       <h2>3. Free trial</h2>
       <p>New workspaces get a 14-day trial with 1 seat, 50 credits and 60 call minutes. No payment card is needed. When the trial ends you need a paid plan to keep calling.</p>
@@ -40,7 +40,7 @@ export default function TermsPage() {
       </ul>
 
       <h2>6. Acceptable use</h2>
-      <p>You must not use Decibels to:</p>
+      <p>You must not use Decibel to:</p>
       <ul>
         <li>call consumers for marketing, or call anyone for unlawful, misleading or harassing purposes;</li>
         <li>attempt to bypass TPS/CTPS screening, the do-not-call list or caller ID presentation;</li>
@@ -59,7 +59,7 @@ export default function TermsPage() {
       <p>We work to keep database contacts accurate but cannot guarantee that every record or phone number is correct or current.</p>
 
       <h2>9. Availability</h2>
-      <p>We aim to keep the service available but do not guarantee uninterrupted service. Calls depend on third-party telephony networks outside our control. Decibels is not for emergency calls.</p>
+      <p>We aim to keep the service available but do not guarantee uninterrupted service. Calls depend on third-party telephony networks outside our control. Decibel is not for emergency calls.</p>
 
       <h2>10. Intellectual property</h2>
       <p>We own the service and the database. You own the data you import and create. You give us permission to process it to provide the service.</p>
@@ -78,7 +78,7 @@ export default function TermsPage() {
 
       <h2>14. Contact</h2>
       <p>
-        <a href="mailto:sales@decibels.io">sales@decibels.io</a> for commercial questions, <a href="mailto:privacy@decibels.io">privacy@decibels.io</a> for
+        <a href="mailto:sales@decibel.io">sales@decibel.io</a> for commercial questions, <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> for
         data protection.
       </p>
     </Prose>

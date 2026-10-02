@@ -2,7 +2,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { prefetchRoute } from '@/lib/queries';
 import {
-  Building2, Check, ChevronsUpDown, Coins, Database, List as ListIcon, LogOut, Phone, Plus, Settings, Sun,
+  Building2, Check, ChevronsUpDown, Coins, Database, List as ListIcon, LogOut, Phone, Plus, Settings, Sun, Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ import { Dialog, MenuItem, Popover } from '@/components/ui/overlay';
 
 const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
   { href: '/app', label: 'Today', icon: Sun, exact: true },
+  { href: '/app/dialler', label: 'Power dialler', icon: Zap },
   { href: '/app/leads', label: 'Leads', icon: Database },
   { href: '/app/companies', label: 'Companies', icon: Building2 },
   { href: '/app/lists', label: 'Lists', icon: ListIcon },
@@ -166,8 +167,23 @@ function Sidebar() {
                 aria-current={active ? 'page' : undefined}
                 className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors', active ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
               >
-                <Icon size={16} strokeWidth={1.5} className="shrink-0" />
-                <span className="truncate max-[1100px]:hidden">{label}</span>
+                {href === '/app/dialler' ? (
+                  <>
+                    <Icon size={16} strokeWidth={1.7} className="shrink-0" style={{ color: 'var(--dialler)' }} />
+                    <span className="relative max-[1100px]:hidden">
+                      {label}
+                      {/* hand-drawn underline marks the dialler as the place to get calls done */}
+                      <svg aria-hidden viewBox="0 0 120 8" preserveAspectRatio="none" className="pointer-events-none absolute -bottom-1.5 left-0 h-[6px] w-full">
+                        <path d="M1 5.2C14 2.6 26 6.4 39 4.1S64 1.9 78 4.4s26 1.6 41-0.9" fill="none" stroke="var(--dialler)" strokeWidth="1.6" strokeLinecap="round" opacity="0.75" />
+                      </svg>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Icon size={16} strokeWidth={1.5} className="shrink-0" />
+                    <span className="truncate max-[1100px]:hidden">{label}</span>
+                  </>
+                )}
               </Link>
             </li>
           );

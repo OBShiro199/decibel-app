@@ -158,7 +158,7 @@ export function Wizard({
 
   const skip = invited ? (
     <button className="h-9 px-2 text-black-700 hover:text-black-400" onClick={() => router.replace('/app')}>
-      Skip and open Decibels
+      Skip and open Decibel
     </button>
   ) : shared && current.skippable ? (
     <button className="h-9 px-2 text-black-700 hover:text-black-400" disabled={finishing} onClick={() => advance(true)}>
@@ -169,7 +169,7 @@ export function Wizard({
   const page = (
     <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
       <aside className="shrink-0 border-b border-white-800 bg-white-200 p-4 md:w-[var(--settings-rail-width)] md:border-b-0 md:border-r md:p-6">
-        <Link href="/" aria-label="Decibels home" className="inline-block">
+        <Link href="/" aria-label="Decibel home" className="inline-block">
           <Logo />
         </Link>
         {invited ? (

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   // shares the build folder with your own `pnpm dev`; sharing one corrupts both.
   distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
+  devIndicators: false,
   transpilePackages: ['@decibels/design-tokens'],
   eslint: { ignoreDuringBuilds: true },
 };

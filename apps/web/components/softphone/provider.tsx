@@ -28,7 +28,7 @@ interface Actions {
   /** Opens the panel at once, then checks DNC/TPS while the microphone and device get ready. */
   callPerson: (person: Dialable, opts?: { listId?: string | null }) => Promise<boolean>;
   /** Onboarding step 5: call the user's own mobile and play the test message. Resolves true if answered. */
-  testCall: (e164: string) => Promise<boolean>;
+  testCall: (e164: string, opts?: { practice?: boolean; name?: string; company?: string }) => Promise<boolean>;
   hangUp: () => void;
   accept: () => void;
   decline: () => void;
@@ -39,13 +39,15 @@ interface Actions {
   setNotes: (notes: string) => void;
   setOutcome: (o: CallOutcome | null) => void;
   /** Saves the outcome in the background and closes the panel immediately. */
-  finish: (opts: { followUpAt?: string | null }) => void;
+  finish: (opts: { followUpAt?: string | null; outcome?: CallOutcome }) => void;
   /** Minimises a live call, refuses to close a call without an outcome, otherwise closes. */
   dismiss: () => void;
   setMinimised: (m: boolean) => void;
   setRecordPref: (on: boolean) => void;
   /** Opens the panel over the app (dial pad when idle) or closes it when idle. */
   togglePanel: () => void;
+  /** A full-screen caller (the power dialler) draws its own call UI and hides the overlay panel. */
+  setPanelSuppressed: (on: boolean) => void;
 }
 
 interface Status {
@@ -137,6 +139,8 @@ export function SoftphoneProvider({
   const toast = useToast();
   const qc = useQueryClient();
   const recordRef = useRef(false);
+  const practiceRef = useRef(false);
+  const [panelSuppressed, setPanelSuppressed] = useState(false);
   const [recordPref, setRecordPrefState] = useState(false);
 
   useEffect(() => {
@@ -217,6 +221,7 @@ export function SoftphoneProvider({
         if (callee.personId) params.PersonId = callee.personId;
         if (callee.listId) params.ListId = callee.listId;
         if (kind === 'test') params.Kind = 'test';
+        if (kind === 'test' && practiceRef.current) params.Practice = 'true';
         if (recordingPolicy === 'rep_choice' && recordRef.current) params.Record = 'true';
         const call = await device.connect({ params });
         bind(call, onEnd);
@@ -279,13 +284,14 @@ export function SoftphoneProvider({
   );
 
   const testCall = useCallback<Actions['testCall']>(
-    (e164) =>
+    (e164, opts) =>
       new Promise<boolean>((resolve) => {
         void (async () => {
           if (busy()) return resolve(false);
           const callId = crypto.randomUUID();
-          const callee: Callee = { personId: null, name: 'Test call', company: 'Your mobile', number: e164 };
+          const callee: Callee = { personId: null, name: opts?.name ?? 'Test call', company: opts?.company ?? 'Your mobile', number: e164 };
           dispatch({ type: 'CHECK', callee, kind: 'test', callId });
+          practiceRef.current = !!opts?.practice;
           const prep = await prepare();
           if (prep) {
             dispatch({ type: 'FAILED', message: prep });
@@ -374,11 +380,13 @@ export function SoftphoneProvider({
   }, [flush]);
 
   const finish = useCallback<Actions['finish']>(
-    ({ followUpAt }) => {
+    (opts) => {
+      const { followUpAt } = opts;
       const s = stateRef.current;
-      if (!s.callId || !s.outcome) return;
+      const outcome = opts.outcome ?? s.outcome;
+      if (!s.callId || !outcome) return;
       const personId = s.callRow?.person_id ?? s.callee?.personId ?? null;
-      const item: PendingOutcome = { callId: s.callId, workspaceId, personId, outcome: s.outcome, notes: s.notes.trim(), followUpAt: followUpAt ?? null, at: Date.now() };
+      const item: PendingOutcome = { callId: s.callId, workspaceId, personId, outcome, notes: s.notes.trim(), followUpAt: followUpAt ?? null, at: Date.now() };
       writePending([...readPending().filter((p) => p.callId !== item.callId), item]);
 
       // optimistic: the person's row updates in place everywhere, the panel closes now
@@ -475,6 +483,7 @@ export function SoftphoneProvider({
         else dispatch({ type: 'RESET' });
       },
       setMinimised: (m) => dispatch({ type: 'MINIMISE', minimised: m }),
+      setPanelSuppressed,
       togglePanel: () => {
         const s = stateRef.current;
         if (s.phase === 'idle') dispatch(s.open ? { type: 'RESET' } : { type: 'OPEN' });
@@ -523,7 +532,7 @@ export function SoftphoneProvider({
       <StatusCtx.Provider value={status}>
         <StateCtx.Provider value={state}>
           {children}
-          {state.open ? <SoftphonePanel mode="overlay" /> : null}
+          {state.open && !panelSuppressed ? <SoftphonePanel mode="overlay" /> : null}
         </StateCtx.Provider>
       </StatusCtx.Provider>
     </ActionsCtx.Provider>

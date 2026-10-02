@@ -4,7 +4,7 @@ import { Prose } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Article 14 notice',
-  description: 'Information for people whose business contact details appear in the Decibels database, as required by Article 14 of the GDPR.',
+  description: 'Information for people whose business contact details appear in the Decibel database, as required by Article 14 of the GDPR.',
 };
 
 export default function Article14Page() {
@@ -12,13 +12,13 @@ export default function Article14Page() {
     <Prose
       draft
       title="Article 14 notice"
-      lead="This notice is for people whose business contact details appear in the Decibels database. We did not collect these details from you directly, so the law requires us to tell you what we hold and why."
+      lead="This notice is for people whose business contact details appear in the Decibel database. We did not collect these details from you directly, so the law requires us to tell you what we hold and why."
       updated="1 October 2026"
     >
       <h2>Who holds your data</h2>
       <p>
-        Decibels is the controller of the database. [Legal entity name, company number and registered address to be confirmed before publication.] Contact:{' '}
-        <a href="mailto:privacy@decibels.io">privacy@decibels.io</a>.
+        Decibel is the controller of the database. [Legal entity name, company number and registered address to be confirmed before publication.] Contact:{' '}
+        <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>.
       </p>
 
       <h2>What we hold</h2>
@@ -44,7 +44,7 @@ export default function Article14Page() {
 
       <h2>Who receives it</h2>
       <p>
-        Decibels customers who search the database and reveal your contact details, and the service providers listed in our <Link href="/dpa">DPA</Link> who
+        Decibel customers who search the database and reveal your contact details, and the service providers listed in our <Link href="/dpa">DPA</Link> who
         host and operate the service for us. A customer that reveals your details becomes a controller of that copy in its own right.
       </p>
 
@@ -71,7 +71,7 @@ export default function Article14Page() {
       </ul>
       <p>
         To use any of these, go to the <Link href="/privacy/opt-out">opt-out page</Link> or email{' '}
-        <a href="mailto:privacy@decibels.io">privacy@decibels.io</a>. Registering your number with the TPS or CTPS also stops Decibels customers calling it
+        <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>. Registering your number with the TPS or CTPS also stops Decibel customers calling it
         through our dialler.
       </p>
 

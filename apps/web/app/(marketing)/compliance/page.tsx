@@ -4,14 +4,14 @@ import { Prose, ProseNote, ProseTable } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Compliance',
-  description: 'How Decibels handles TPS/CTPS screening, caller ID, call recording, lawful basis, data residency and retention for UK and EU outbound calling.',
+  description: 'How Decibel handles TPS/CTPS screening, caller ID, call recording, lawful basis, data residency and retention for UK and EU outbound calling.',
 };
 
 export default function CompliancePage() {
   return (
     <Prose
       title="Compliance"
-      lead="Outbound calling in the UK and EU comes with rules. Decibels enforces the ones a product can enforce and gives you the documents for the rest."
+      lead="Outbound calling in the UK and EU comes with rules. Decibel enforces the ones a product can enforce and gives you the documents for the rest."
       updated="1 October 2026"
     >
       <ProseNote>This page describes how the product works. It is not legal advice.</ProseNote>
@@ -22,7 +22,7 @@ export default function CompliancePage() {
         Telephone Preference Service (TPS) or the Corporate TPS (CTPS), unless the person has told you they do not object.
       </p>
       <p>
-        Decibels checks every number before every dial. The check runs on our servers as part of placing the call, so it cannot be skipped from the browser.
+        Decibel checks every number before every dial. The check runs on our servers as part of placing the call, so it cannot be skipped from the browser.
         If a number is listed, the call is blocked and the rep sees why. Numbers imported by CSV are screened row by row in the same way.
       </p>
 
@@ -59,7 +59,7 @@ export default function CompliancePage() {
         Interests Assessment (LIA) showing the purpose, why the processing is necessary, and how it balances against the rights of the people you contact.
       </p>
       <p>
-        Decibels maintains an LIA for the database. As a customer you are a controller for your own outreach, so you need one too.{' '}
+        Decibel maintains an LIA for the database. As a customer you are a controller for your own outreach, so you need one too.{' '}
         <a href="/lia-template.txt" download>
           Download LIA template
         </a>
@@ -109,18 +109,18 @@ export default function CompliancePage() {
       <h2>Country notes</h2>
       <p>
         Rules differ by country. Germany and Austria are notably stricter about unsolicited B2B calls and generally expect prior or at least presumed consent.
-        Decibels shows a warning in the product when you search for or open contacts in those countries. Check local rules before calling outside the UK.
+        Decibel shows a warning in the product when you search for or open contacts in those countries. Check local rules before calling outside the UK.
       </p>
 
       <h2>Ofcom and abandoned calls</h2>
       <p>
         Ofcom&rsquo;s rules on abandoned and silent calls are aimed at predictive diallers that place more calls than there are agents to answer. The
-        Decibels dialler places one call at a time, started by a rep who is on the line when it connects, so those rules do not apply to it.
+        Decibel dialler places one call at a time, started by a rep who is on the line when it connects, so those rules do not apply to it.
       </p>
 
       <h2>Questions</h2>
       <p>
-        Email <a href="mailto:privacy@decibels.io">privacy@decibels.io</a> and we will answer in plain English.
+        Email <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> and we will answer in plain English.
       </p>
     </Prose>
   );

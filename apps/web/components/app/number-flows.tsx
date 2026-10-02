@@ -46,7 +46,7 @@ export function describeError(e: unknown): string {
   return err?.message || 'Something went wrong.';
 }
 
-/** Option A: buy a Decibels number (with the regulatory bundle step when Twilio requires it). */
+/** Option A: buy a Decibel number (with the regulatory bundle step when Twilio requires it). */
 export function BuyNumberPanel({ workspaceId, onDone }: { workspaceId: string; onDone: (n: PhoneNumber) => void }) {
   const qc = useQueryClient();
   const [country, setCountry] = useState('GB');

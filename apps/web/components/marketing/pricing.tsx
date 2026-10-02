@@ -101,7 +101,7 @@ export function Pricing() {
           <h3 className="t-h3 text-black-0">Scale</h3>
           <p className="t-h1 mt-4 text-black-0">Talk to us</p>
           <p className="t-small mt-2 min-h-4 text-black-700">For larger teams and higher volumes.</p>
-          <CtaLink href="mailto:sales@decibels.io" variant="outline" location="pricing_scale" className="mt-6 w-full">
+          <CtaLink href="mailto:sales@decibel.io" variant="outline" location="pricing_scale" className="mt-6 w-full">
             Email sales
           </CtaLink>
           <FeatureList items={SCALE_FEATURES} />

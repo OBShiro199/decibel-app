@@ -45,16 +45,18 @@ export default function ListsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1200px] p-4 md:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="t-h2">Lists</h1>
-          <p className="mt-1 text-black-700">Ordered sets of people to call. Start a list to put it in your Today queue.</p>
-        </div>
-        <Button variant="primary" onClick={() => setCreating(true)}>
-          <Plus size={16} strokeWidth={1.5} /> New list
+    <div className="flex h-full flex-col">
+      {/* same toolbar as the other tabs: count on the left, the action on the right */}
+      <div className="flex h-12 shrink-0 items-center gap-3 border-b border-white-800 px-4">
+        <span className="text-sm tabular-nums text-black-700">
+          {lists.data ? `${lists.data.length} ${lists.data.length === 1 ? 'list' : 'lists'}` : 'Loading'}
+        </span>
+        <span className="text-sm text-white-900 max-md:hidden">Start a list to put it in your Today queue.</span>
+        <Button size="compact" variant="primary" className="ml-auto" onClick={() => setCreating(true)}>
+          <Plus size={14} strokeWidth={1.5} /> New list
         </Button>
       </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
 
       {lists.error ? (
         <ErrorCard message={(lists.error as Error).message} onRetry={() => lists.refetch()} />
@@ -82,7 +84,7 @@ export default function ListsPage() {
             <article key={l.id} className="card flex flex-col p-4 transition-colors hover:border-black-700">
               <Link href={`/app/lists/${l.id}`} className="block">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="t-h3 truncate">{l.name}</h2>
+                  <h2 className="truncate text-md font-medium text-black-400">{l.name}</h2>
                   {!l.is_shared ? <Badge>Private</Badge> : null}
                 </div>
                 <p className="tabular mt-1 text-black-700">
@@ -103,6 +105,7 @@ export default function ListsPage() {
         </div>
       )}
 
+      </div>
       <ListPickerDialog open={creating} createOnly onClose={() => setCreating(false)} onPick={(id) => router.push(`/app/lists/${id}`)} />
     </div>
   );

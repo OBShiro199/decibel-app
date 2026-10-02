@@ -69,7 +69,7 @@ export function ProductMock({ className }: { className?: string }) {
   return (
     <div
       role="img"
-      aria-label="Decibels showing the record for Oliver Hartley, CEO at Brightmoor Software Ltd, with the softphone open on a live call"
+      aria-label="Decibel showing the record for Oliver Hartley, CEO at Brightmoor Software Ltd, with the softphone open on a live call"
       className={cn('select-none overflow-hidden rounded-lg border border-white-800 bg-white-100 text-left', className)}
     >
       <div className="flex flex-col md:h-[600px] md:flex-row">

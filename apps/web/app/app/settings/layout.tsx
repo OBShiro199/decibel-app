@@ -1,12 +1,11 @@
 'use client';
 import {
-  ArrowDownUp, Bell, Building2, ChevronLeft, Code2, CreditCard, Headphones, Layers, LifeBuoy, Lock, Mic, MonitorSmartphone, Palette, Phone, Search, ShieldCheck, User, Users,
+  ArrowDownUp, Bell, Building2, ChevronLeft, Code2, CreditCard, Headphones, Layers, Lock, Mic, MonitorSmartphone, Palette, Phone, Search, ShieldCheck, User, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { ButtonLink } from '@/components/ui/button';
 import { Select } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 
@@ -60,7 +59,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     if (!needle) return GROUPS;
     return GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => i.label.toLowerCase().includes(needle)) })).filter((g) => g.items.length);
   }, [q]);
-  const CurrentIcon = current?.icon;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden md:flex-row">
@@ -125,16 +123,6 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="hidden h-12 shrink-0 items-center justify-between border-b border-white-800 bg-white-100 px-4 md:flex">
-          <div className="flex min-w-0 items-center gap-2">
-            {CurrentIcon ? <CurrentIcon size={16} strokeWidth={1.5} className="shrink-0 text-black-700" /> : null}
-            <span className="truncate">{current?.label ?? 'Settings'}</span>
-          </div>
-          <ButtonLink href="mailto:support@decibels.io" variant="ghost" size="compact">
-            <LifeBuoy size={16} strokeWidth={1.5} />
-            Help
-          </ButtonLink>
-        </div>
         <main className="min-h-0 flex-1 overflow-y-auto bg-white-200 [scrollbar-gutter:stable]">
           <div className="mx-auto w-full max-w-[936px] px-4 pb-16 pt-8 md:px-6 md:pt-12">{children}</div>
         </main>

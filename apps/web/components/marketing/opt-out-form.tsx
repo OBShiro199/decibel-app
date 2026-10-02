@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
-const TO = 'privacy@decibels.io';
+const TO = 'privacy@decibel.io';
 
 /**
  * There is no suppression-list backend yet, so this form does not submit anywhere.
@@ -16,7 +16,7 @@ export function OptOutForm() {
     const data = new FormData(e.currentTarget);
     const get = (k: string) => String(data.get(k) ?? '').trim();
     const body = [
-      'I would like to opt out of the Decibels database and object to my data being processed for direct marketing.',
+      'I would like to opt out of the Decibel database and object to my data being processed for direct marketing.',
       '',
       `Name: ${get('name')}`,
       `Email: ${get('email')}`,

@@ -1,4 +1,4 @@
-# Decibels Supabase config. Link with: supabase link --project-ref fkjwglvztyyerewldnty
+# Decibel Supabase config. Link with: supabase link --project-ref fkjwglvztyyerewldnty
 project_id = "decibels"
 
 [api]

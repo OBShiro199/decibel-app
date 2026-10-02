@@ -39,6 +39,7 @@ export const BLOCK_REASONS: Record<string, { title: string; fix: string; href?: 
   no_caller_id: { title: 'No number yet', fix: 'Get a number or verify your own to place calls.', href: '/app/settings/phone-numbers' },
   person_not_found: { title: 'Person not found', fix: 'This record no longer exists.' },
   forbidden: { title: 'Not allowed', fix: 'You are not a member of this workspace.' },
+  test_number_not_yours: { title: 'Not your number', fix: 'Practice and test calls can only ring your own mobile (Settings, Profile) or a verified number.' },
 };
 
 export const TPS_LABEL: Record<TpsStatus, string> = {

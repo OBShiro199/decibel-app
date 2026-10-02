@@ -6,7 +6,7 @@ import { DemoButton } from '@/components/marketing/demo-dialog';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Decibels · Turn up your outbound' },
+  title: { absolute: 'Decibel · Turn up your outbound' },
   description: 'Verified UK & EU mobiles, a browser dialler and a pipeline, in one place.',
 };
 
@@ -19,11 +19,11 @@ const FAQS: FaqItem[] = [
   {
     question: 'Is cold calling legal in the UK?',
     answer:
-      'Yes. B2B cold calling is lawful in the UK under PECR provided you screen numbers against the TPS and CTPS registers and honour opt-outs. Under UK GDPR the usual lawful basis is legitimate interest, supported by a documented assessment. Decibels enforces the screening and opt-out steps for you, but this is not legal advice and other countries have stricter rules.',
+      'Yes. B2B cold calling is lawful in the UK under PECR provided you screen numbers against the TPS and CTPS registers and honour opt-outs. Under UK GDPR the usual lawful basis is legitimate interest, supported by a documented assessment. Decibel enforces the screening and opt-out steps for you, but this is not legal advice and other countries have stricter rules.',
   },
   {
     question: 'Do I need my own Twilio?',
-    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Twilio account, and call minutes are billed through Decibels at cost plus 20%.',
+    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Twilio account, and call minutes are billed through Decibel at cost plus 20%.',
   },
   {
     question: 'Can I bring my own list?',
@@ -57,7 +57,7 @@ const PILLARS = [
 
 const STEPS = [
   ['01', 'Build a list from the database', 'Pick your ICP filters, select the matches and add them to a list. Mobiles are revealed as they are added.'],
-  ['02', 'Click call', 'Decibels checks TPS, CTPS and your do-not-call list, then dials the mobile from your browser.'],
+  ['02', 'Click call', 'Decibel checks TPS, CTPS and your do-not-call list, then dials the mobile from your browser.'],
   ['03', 'Log the outcome and move on', 'Nine outcomes, keyboard 1 to 9. The next person in the queue is already under the cursor.'],
 ];
 
@@ -179,7 +179,7 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-2">
           <div className="border-b border-white-800 px-5 py-14 md:border-b-0 md:border-r md:px-10 md:py-20">
             <Head eyebrow="Compliance" title="The rules are in the code, not in a PDF.">
-              Decibels is built for UK and EU calling rules from the first dial. Data is hosted in the UK (Supabase eu-west-2, London).
+              Decibel is built for UK and EU calling rules from the first dial. Data is hosted in the UK (Supabase eu-west-2, London).
             </Head>
             <Link href="/compliance" className="link mt-6 inline-block text-base">
               Read how compliance works

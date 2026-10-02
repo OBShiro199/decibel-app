@@ -1,4 +1,4 @@
-# Decibels
+# Decibel
 
 Turn up your outbound. A multi-tenant SaaS for UK/EU B2B teams: a lead database with credit-based mobile reveals, a browser dialler on Twilio, and an Attio-style pipeline.
 

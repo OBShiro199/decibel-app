@@ -509,14 +509,19 @@ html:has([data-page-scroll]) {
 
 /* tables: compact rows, hairline dividers, quiet headers */
 .app-shell .tbl th {
-  height: 34px;
+  height: 36px;
   border-right: 0;
   background: #ffffff;
   font-size: 12px;
   font-weight: 400;
   color: var(--color-white-900);
 }
-.app-shell .tbl td { height: 38px; border-right: 0; color: var(--color-black-500); }
+.app-shell .tbl td { height: 48px; border-right: 0; color: var(--color-black-500); }
+/* per-row actions stay quiet until the row is hovered or focused */
+.app-shell .tbl .row-action { border-color: transparent; box-shadow: none; color: var(--color-black-700); }
+.app-shell .tbl tr:hover .row-action,
+.app-shell .tbl tr:focus-within .row-action,
+.app-shell .tbl tr[data-active='true'] .row-action { border-color: var(--color-btn-border); color: var(--color-black-400); }
 .app-shell .tbl tbody tr:hover { background: #fafafb; }
 .app-shell .tbl tbody tr[data-selected='true'] { background: var(--color-accent-050); }
 .app-shell .tbl tbody tr[data-active='true'] { box-shadow: inset 2px 0 0 #cfd1d5; }
@@ -541,3 +546,27 @@ html:has([data-page-scroll]) {
 
 .app-shell .skeleton { background: #f3f3f5; border-radius: 4px; }
 .app-shell .kbd { border-radius: 4px; }
+
+/* Tiles separated by hairlines on a white card. No grey background behind them,
+   so nothing dark shows while tiles fade in. Edge borders are clipped by the card. */
+.stat-grid {
+  overflow: hidden;
+  border: 1px solid var(--color-white-800);
+  border-radius: var(--radius-lg, 0px);
+  background: var(--color-white-100);
+}
+.stat-grid > * {
+  margin: 0 -1px -1px 0;
+  border-right: 1px solid var(--color-white-800);
+  border-bottom: 1px solid var(--color-white-800);
+  background: var(--color-white-100);
+}
+
+/* Power dialler accent: a warm, light orange used only for the dialler */
+.app-shell {
+  --dialler: #ec9a5f;
+  --dialler-soft: #fdf3eb;
+  --dialler-edge: #f6c9a6;
+}
+.dialler-bar { transform-origin: left center; transition: transform 120ms linear; }
+@media (prefers-reduced-motion: reduce) { .dialler-bar { transition: none; } }

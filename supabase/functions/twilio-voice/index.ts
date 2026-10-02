@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
   // Whisper leg: TwiML played to the callee when they answer, before bridging.
   const whisper = query.get('whisper');
   if (whisper === 'notice') return xml(`<Response>${say(ws.recording_notice_text)}</Response>`);
-  if (whisper === 'test') return xml(`<Response>${say('This is Decibels. Your setup works.')}</Response>`);
+  if (whisper === 'test') return xml(`<Response>${say('This is Decibel. Your setup works.')}</Response>`);
 
   const userId = fromIdentity(body.From ?? '');
   if (!UUID.test(userId)) return blockedTwiml('This call could not be authorised.');
@@ -31,13 +31,20 @@ Deno.serve(async (req) => {
   const callId = UUID.test(body.CallId ?? '') ? body.CallId : crypto.randomUUID();
 
   // independent lookups run together: this function sits between "connect" and the phone ringing
-  const [numbersRes, checkRes, personRes, memberRes] = await Promise.all([
+  const [numbersRes, checkRes, personRes, memberRes, ownRes] = await Promise.all([
     db.from('phone_numbers').select('id,e164,is_default').eq('workspace_id', ws.id).eq('status', 'active').order('is_default', { ascending: false }).limit(1),
     kind === 'standard' && personId
       ? db.rpc('can_dial_for', { p_workspace_id: ws.id, p_person_id: personId, p_user_id: userId }).single()
       : Promise.resolve({ data: null }),
     kind === 'standard' && personId ? db.from('people').select('mobile_e164').eq('id', personId).eq('workspace_id', ws.id).maybeSingle() : Promise.resolve({ data: null }),
     kind === 'test' ? db.from('workspace_members').select('user_id').eq('workspace_id', ws.id).eq('user_id', userId).maybeSingle() : Promise.resolve({ data: null }),
+    // test and practice calls may only ring the caller's own mobile or one of the workspace's verified numbers
+    kind === 'test'
+      ? Promise.all([
+          db.from('profiles').select('mobile_e164').eq('id', userId).maybeSingle(),
+          db.from('phone_numbers').select('e164').eq('workspace_id', ws.id).eq('status', 'active'),
+        ])
+      : Promise.resolve(null),
   ]);
   const caller = numbersRes.data?.[0] ?? null;
 
@@ -51,6 +58,11 @@ Deno.serve(async (req) => {
     else to = (personRes.data as { mobile_e164: string | null } | null)?.mobile_e164 ?? '';
   } else if (!memberRes.data) blocked = 'forbidden';
   else if (ws.minute_balance_seconds <= 0 && !ws.stripe_customer_id) blocked = 'no_minutes';
+  else {
+    const [profileRes, ownNumbers] = (ownRes ?? [{ data: null }, { data: [] }]) as [{ data: { mobile_e164: string | null } | null }, { data: { e164: string }[] | null }];
+    const allowed = new Set([profileRes.data?.mobile_e164, ...(ownNumbers.data ?? []).map((n) => n.e164)].filter(Boolean));
+    if (!allowed.has(to)) blocked = 'test_number_not_yours';
+  }
   if (!blocked && !E164.test(to)) blocked = 'no_mobile';
   if (!blocked && !caller) blocked = 'no_caller_id';
 
@@ -114,7 +126,7 @@ Deno.serve(async (req) => {
   // and captured at the start of the recording.
   const whisperUrl = record
     ? ` url="${esc(`${FUNCTIONS_URL}/twilio-voice?ws=${ws.id}&whisper=notice`)}"`
-    : kind === 'test'
+    : kind === 'test' && body.Practice !== 'true'
       ? ` url="${esc(`${FUNCTIONS_URL}/twilio-voice?ws=${ws.id}&whisper=test`)}"`
       : '';
 

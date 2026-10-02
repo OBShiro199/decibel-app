@@ -13,7 +13,7 @@ import { formatDate } from '@/lib/utils';
 import { OutcomeBadge, PersonCell } from '@/components/app/records';
 import { RevealOnce } from '@/components/ui/reveal';
 import { Button, ButtonLink } from '@/components/ui/button';
-import { CompanyLogo, EmptyState, ErrorCard, TableSkeleton } from '@/components/ui/display';
+import { CompanyLogo, EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
 import { Field, Input, Select, Textarea } from '@/components/ui/form';
 import { Dialog, Drawer, useToast } from '@/components/ui/overlay';
 
@@ -88,10 +88,11 @@ export default function CompaniesPage() {
           />
         ) : (
           <RevealOnce id="companies">
-          <div className="tbl-wrap"><table className="tbl tbl-fixed"><colgroup><col style={{ width: 300 }} /><col style={{ width: 200 }} /><col style={{ width: 120 }} /><col style={{ width: 180 }} /><col style={{ width: 100 }} /><col style={{ width: 140 }} /></colgroup>
+          <div className="tbl-wrap"><table className="tbl tbl-fixed"><colgroup><col /><col style={{ width: 200 }} /><col style={{ width: 210 }} /><col style={{ width: 110 }} /><col style={{ width: 160 }} /><col style={{ width: 90 }} /><col style={{ width: 130 }} /></colgroup>
             <thead>
               <tr>
                 <th>Company</th>
+                <th>Website</th>
                 <th>Industry</th>
                 <th>Size</th>
                 <th>Location</th>
@@ -102,17 +103,10 @@ export default function CompaniesPage() {
             <tbody>
               {rows.map((c) => (
                 <tr key={c.id} onClick={() => setOpenId(c.id)} className="cursor-pointer">
-                  <td className="max-w-[280px]">
-                    <span className="flex items-center gap-2">
-                      <CompanyLogo name={c.name} size={24} />
-                      <span className="min-w-0">
-                        <span className="block truncate">{c.name}</span>
-                        {c.domain ? <span className="t-caption block truncate text-black-700">{c.domain}</span> : null}
-                      </span>
-                    </span>
-                  </td>
-                  <td className="text-black-700">{c.industry ?? '–'}</td>
-                  <td className="tabular text-black-700">{c.size_band ?? '–'}</td>
+                  <td className="font-medium text-black-400">{c.name}</td>
+                  <td className="text-black-700">{c.domain ?? <span className="text-faint">–</span>}</td>
+                  <td>{c.industry ? <Tag>{c.industry}</Tag> : <span className="text-faint">–</span>}</td>
+                  <td>{c.size_band ? <Tag color={7}>{c.size_band}</Tag> : <span className="text-faint">–</span>}</td>
                   <td className="text-black-700">{c.city ?? '–'}</td>
                   <td className="tabular">{c.people?.[0]?.count ?? 0}</td>
                   <td className="t-caption text-black-700">{formatDate(c.created_at)}</td>

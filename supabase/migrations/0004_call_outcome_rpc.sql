@@ -1,5 +1,5 @@
 -- =============================================================================
--- Decibels — 0004_call_outcome_rpc.sql
+-- Decibel — 0004_call_outcome_rpc.sql
 -- One round trip, one transaction, to log a call's outcome. Replaces four
 -- sequential client writes (call, note, task, person) that could partially fail.
 -- Idempotent: saving the same call twice updates rather than duplicates.

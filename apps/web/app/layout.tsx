@@ -8,10 +8,10 @@ const sans = Geist({ subsets: ['latin'], variable: '--font-sans', display: 'swap
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
-  title: { default: 'Decibels · Turn up your outbound', template: '%s · Decibels' },
+  title: { default: 'Decibel · Turn up your outbound', template: '%s · Decibel' },
   description: 'Verified UK & EU mobiles, a browser dialler and a pipeline, in one place.',
   openGraph: {
-    title: 'Decibels · Turn up your outbound',
+    title: 'Decibel · Turn up your outbound',
     description: 'Verified UK & EU mobiles, a browser dialler and a pipeline, in one place.',
     type: 'website',
     locale: 'en_GB',

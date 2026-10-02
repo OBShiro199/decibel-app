@@ -67,9 +67,9 @@ Deno.serve(async (req) => {
     if (owner?.email) {
       await sendEmail(
         owner.email,
-        'Your Decibels number is active',
+        'Your Decibel number is active',
         layout('Your number is ready', `Twilio approved your details for <b>${ws.name}</b>. You can start calling from your new number.`, {
-          label: 'Open Decibels',
+          label: 'Open Decibel',
           url: `${APP_URL}/app/settings/phone-numbers`,
         }),
       );

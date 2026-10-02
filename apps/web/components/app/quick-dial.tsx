@@ -83,7 +83,7 @@ function useQuickDial(onDone?: () => void) {
 function Matches({ items, onPick }: { items: Match[]; onPick: (m: Match) => void }) {
   if (!items.length) return null;
   return (
-    <ul className="border border-white-800 bg-white-100">
+    <ul className="rounded-md border border-white-800 bg-white-100">
       {items.map((m) => {
         const blocked = m.do_not_call || m.tps_status === 'tps_listed' || m.tps_status === 'ctps_listed';
         return (
@@ -153,7 +153,7 @@ export function DialPad({ onDone }: { onDone?: () => void }) {
         className="control h-11 tabular-nums text-md"
       />
       <Matches items={d.matches} onPick={(m) => void d.call(m)} />
-      <div className="grid grid-cols-3 gap-px border border-white-800 bg-white-800">
+      <div className="grid grid-cols-3 stat-grid">
         {KEYS.map((k) => (
           <button key={k} type="button" onClick={() => d.setValue((looksLikeNumber(d.value) || !d.value ? d.value : '') + k)} className="h-10 bg-white-100 tabular-nums text-base hover:bg-panel active:bg-white-300">
             {k}
@@ -171,48 +171,50 @@ export function DialPad({ onDone }: { onDone?: () => void }) {
   );
 }
 
-/** Sidebar: a rectangular widget pinned above the profile row. */
+/** Sidebar: a single pill. Type a name or number, press Enter or the phone button. */
 export function SidebarCallWidget() {
   const d = useQuickDial();
   return (
-    <div className="mx-2 mb-2 border border-white-800 bg-white-100 p-2.5 max-[1100px]:hidden">
-      <div className="flex items-center justify-between">
-        <p className="t-label">Quick call</p>
-        {d.live ? (
-          <span className="flex w-[104px] items-center gap-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">
-            <span className="pulse-dot bg-accent-500" style={{ width: 6, height: 6 }} />
-            {PHASE_LABEL[d.phone.phase]}
-          </span>
-        ) : (
-          <ConnectionDot />
-        )}
-      </div>
+    <div className="px-3 pb-3 max-[1100px]:hidden">
       {d.live && d.phone.calleeName ? (
-        <div className="mt-2">
-          <p className="truncate font-medium">{d.phone.calleeName}</p>
-          <p className="truncate tabular-nums text-xs text-white-900">{formatPhone(d.phone.calleeNumber)}</p>
-          <Button variant="danger" size="compact" className="mt-2 w-full" onClick={d.softphone.hangUp}>
+        <div className="flex h-9 items-center gap-2 rounded-sm border border-white-800 pl-3 pr-1">
+          <span className="pulse-dot shrink-0 bg-accent-500" style={{ width: 6, height: 6 }} />
+          <span className="min-w-0 flex-1 truncate text-sm text-black-400">{d.phone.calleeName}</span>
+          <button onClick={d.softphone.hangUp} aria-label="Hang up" className="flex h-7 items-center rounded-[5px] px-2.5 text-xs text-danger-700 hover:bg-danger-100">
             Hang up
-          </Button>
+          </button>
         </div>
       ) : (
         <form
-          className="relative mt-2 flex flex-col gap-2"
+          className="relative"
           onSubmit={(e) => {
             e.preventDefault();
             void d.call();
           }}
         >
           {d.matches.length ? (
-            <div className="absolute bottom-full left-0 right-0 z-menu mb-1 shadow-popover">
+            <div className="absolute bottom-full left-0 right-0 z-menu mb-1 overflow-hidden rounded-md shadow-popover">
               <Matches items={d.matches} onPick={(m) => void d.call(m)} />
             </div>
           ) : null}
-          <input value={d.value} onChange={(e) => d.setValue(e.target.value)} placeholder="Name or number" aria-label="Name or number to call" className="control h-8 tabular-nums text-xs" />
-          {d.error ? <p className="t-caption text-danger-700" role="alert">{d.error}</p> : null}
-          <Button type="submit" variant="primary" size="compact" className="w-full" loading={d.busy} disabled={!d.value.trim()}>
-            <Phone size={14} strokeWidth={1.5} /> Call
-          </Button>
+          <div className="flex h-9 items-center rounded-sm border border-white-800 bg-white-100 pl-3 pr-1 transition-colors focus-within:border-white-900 hover:border-btnborder">
+            <input
+              value={d.value}
+              onChange={(e) => d.setValue(e.target.value)}
+              placeholder="Quick call"
+              aria-label="Quick call: name or number"
+              className="h-full min-w-0 flex-1 bg-transparent text-sm tabular-nums text-black-400 outline-none placeholder:text-white-900"
+            />
+            <button
+              type="submit"
+              aria-label="Call"
+              disabled={!d.value.trim() || d.busy}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[5px] text-black-700 transition-colors hover:bg-white-300 hover:text-black-400 disabled:text-white-900 disabled:hover:bg-transparent"
+            >
+              <Phone size={14} strokeWidth={1.6} />
+            </button>
+          </div>
+          {d.error ? <p className="mt-1.5 px-1 text-xs text-danger-700" role="alert">{d.error}</p> : null}
         </form>
       )}
     </div>

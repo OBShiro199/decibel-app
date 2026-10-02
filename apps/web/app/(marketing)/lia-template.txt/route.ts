@@ -3,7 +3,7 @@ export const dynamic = 'force-static';
 const TEMPLATE = `LEGITIMATE INTERESTS ASSESSMENT (LIA) TEMPLATE
 B2B outbound telephone prospecting
 
-This template is a starting point provided by Decibels. It is not legal advice.
+This template is a starting point provided by Decibel. It is not legal advice.
 Complete every section in your own words, have it reviewed, and keep it on file.
 Review it at least once a year or whenever your outreach changes.
 
@@ -103,7 +103,7 @@ export function GET() {
   return new Response(TEMPLATE, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="decibels-lia-template.txt"',
+      'Content-Disposition': 'attachment; filename="decibel-lia-template.txt"',
       'Cache-Control': 'public, max-age=3600',
     },
   });

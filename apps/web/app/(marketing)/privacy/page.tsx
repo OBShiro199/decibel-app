@@ -4,7 +4,7 @@ import { Prose, ProseTable } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Privacy policy',
-  description: 'How Decibels collects, uses, stores and shares personal data, and the rights you have over it.',
+  description: 'How Decibel collects, uses, stores and shares personal data, and the rights you have over it.',
 };
 
 export default function PrivacyPage() {
@@ -12,20 +12,20 @@ export default function PrivacyPage() {
     <Prose
       draft
       title="Privacy policy"
-      lead="This policy explains what personal data Decibels handles, why, and what you can do about it."
+      lead="This policy explains what personal data Decibel handles, why, and what you can do about it."
       updated="1 October 2026"
     >
       <h2>1. Who we are</h2>
       <p>
-        Decibels (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides a contact database, browser dialler and pipeline for B2B sales teams. [Legal entity name,
+        Decibel (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides a contact database, browser dialler and pipeline for B2B sales teams. [Legal entity name,
         company number and registered address to be confirmed before publication.] You can reach our privacy team at{' '}
-        <a href="mailto:privacy@decibels.io">privacy@decibels.io</a>.
+        <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>.
       </p>
 
       <h2>2. Who this policy covers</h2>
       <ul>
         <li>
-          <strong>Customers and users:</strong> people who sign up for and use the Decibels app.
+          <strong>Customers and users:</strong> people who sign up for and use the Decibel app.
         </li>
         <li>
           <strong>Website visitors:</strong> people who browse this site.
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
         <li>move your data to another provider, where that applies.</li>
       </ul>
       <p>
-        Email <a href="mailto:privacy@decibels.io">privacy@decibels.io</a> or use the <Link href="/privacy/opt-out">opt-out page</Link>. We respond within
+        Email <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> or use the <Link href="/privacy/opt-out">opt-out page</Link>. We respond within
         one month. You can also complain to the Information Commissioner&rsquo;s Office (ico.org.uk) or your local supervisory authority.
       </p>
 

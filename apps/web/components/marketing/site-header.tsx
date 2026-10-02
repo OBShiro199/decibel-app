@@ -26,7 +26,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-header h-16 border-b border-white-800 bg-white-200">
       <div className="mx-auto flex h-full max-w-[1180px] items-center gap-8 border-x border-white-800 px-5 md:px-8">
-        <Link href="/" aria-label="Decibels home" className="rounded-sm" onClick={() => setOpen(false)}>
+        <Link href="/" aria-label="Decibel home" className="rounded-sm" onClick={() => setOpen(false)}>
           <Logo />
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">

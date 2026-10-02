@@ -26,10 +26,10 @@ Deno.serve(async (req) => {
     const link = `${APP_URL}/invite/${inv.token}`;
     const sent = await sendEmail(
       inv.email,
-      `${inviter} invited you to ${wsName} on Decibels`,
+      `${inviter} invited you to ${wsName} on Decibel`,
       layout(
         `${inviter} invited you to ${wsName}`,
-        `Join your team on Decibels to start calling from your browser. This invite is for <b>${inv.email}</b> and expires in 7 days.`,
+        `Join your team on Decibel to start calling from your browser. This invite is for <b>${inv.email}</b> and expires in 7 days.`,
         { label: 'Join workspace', url: link },
       ),
     );

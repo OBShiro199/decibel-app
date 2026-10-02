@@ -247,7 +247,7 @@ export function PeopleView({
                     <td className="tabular-nums text-xs text-white-900">{p.last_called_at ? timeAgo(p.last_called_at) : 'Never'}</td>
                     <td className="max-w-[140px] truncate text-black-700">{p.owner_id ? (names[p.owner_id] ?? 'Teammate') : '–'}</td>
                     <td className="text-right">
-                      <Button size="compact" disabled={isBlocked(p)} title={blocked ?? `Call ${p.full_name}`} onClick={(e) => { e.stopPropagation(); call(p); }}>
+                      <Button size="compact" className="row-action" disabled={isBlocked(p)} title={blocked ?? `Call ${p.full_name}`} onClick={(e) => { e.stopPropagation(); call(p); }}>
                         <Phone size={14} strokeWidth={1.5} /> Call
                       </Button>
                     </td>

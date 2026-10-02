@@ -102,7 +102,7 @@ export function MicTest({ onReady }: { onReady?: (ok: boolean) => void }) {
         <p className="text-black-700">
           {permission === 'denied'
             ? 'Your browser blocked the microphone. Click the padlock in the address bar, allow the microphone, then try again.'
-            : 'Decibels needs your microphone to place calls from the browser. Nothing is recorded during this test.'}
+            : 'Decibel needs your microphone to place calls from the browser. Nothing is recorded during this test.'}
         </p>
         <Button variant="primary" onClick={() => start()}>
           {permission === 'denied' ? 'Try again' : 'Allow microphone'}

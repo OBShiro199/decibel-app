@@ -38,7 +38,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <SettingsPage title="Notifications" description="Choose which emails Decibels sends you. These apply to you only.">
+    <SettingsPage title="Notifications" description="Choose which emails Decibel sends you. These apply to you only.">
       {error ? <Notice tone="danger">{error}</Notice> : null}
       <Section title="Email notifications">
         <ul className="card divide-y divide-white-800">

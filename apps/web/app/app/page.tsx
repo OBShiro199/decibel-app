@@ -63,7 +63,7 @@ function Today() {
 
   return (
     <div className="mx-auto flex max-w-[1200px] flex-col gap-4 p-4 md:p-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="t-h2">
             {greeting()}, {firstName(profile.full_name || profile.email.split('@')[0])}
@@ -76,15 +76,17 @@ function Today() {
           </p>
         </div>
         {/* caller ID status sits in a fixed-height slot so nothing below it moves when it loads */}
-        <div className="flex h-9 items-center gap-3">
+        <div className="flex h-9 items-center gap-2">
           {!numbers ? (
             <Skeleton className="h-6 w-44" />
           ) : active ? (
-            <span className="flex items-center gap-2 tabular-nums text-xs text-black-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-success-500" />
-              Calling from {formatPhone(active.e164)}
-              {pending ? <Badge tone="warning">1 in review</Badge> : null}
-            </span>
+            <>
+              <span className="tag tag-0 tabular-nums" title="Your caller ID">
+                <Phone size={12} strokeWidth={1.7} />
+                {formatPhone(active.e164)}
+              </span>
+              {pending ? <span className="tag tag-2">1 number in review</span> : null}
+            </>
           ) : (
             <>
               <Badge tone="warning">{pending ? 'Number in review' : 'No number yet'}</Badge>
@@ -97,7 +99,7 @@ function Today() {
       </header>
 
 
-      <div className="stagger grid grid-cols-2 gap-px border border-white-800 bg-white-800 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 stat-grid lg:grid-cols-4">
         <StatTile label="Dials today" value={stats.data?.dials ?? 0} loading={stats.isLoading} />
         <StatTile label="Connects" value={stats.data?.connects ?? 0} loading={stats.isLoading} />
         <StatTile label="Meetings booked" value={stats.data?.meetings ?? 0} loading={stats.isLoading} />
@@ -145,7 +147,7 @@ function Today() {
                       <OutcomeBadge outcome={p.last_outcome} />
                     </td>
                     <td className="text-right">
-                      <Button size="compact" disabled={isBlocked(p)} title={blockedLabel(p) ?? undefined} onClick={(e) => { e.stopPropagation(); call(p); }}>
+                      <Button size="compact" className="row-action" disabled={isBlocked(p)} title={blockedLabel(p) ?? undefined} onClick={(e) => { e.stopPropagation(); call(p); }}>
                         <Phone size={14} strokeWidth={1.5} /> Call
                       </Button>
                     </td>

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Decibels — 0005_audit_log.sql
+-- Decibel — 0005_audit_log.sql
 -- Writes to public.audit_log. Triggers cover reveals, member and invitation
 -- changes, phone numbers and DNC edits, so nothing depends on the client
 -- remembering to log. Exports happen in the browser, so they call log_audit().

@@ -24,12 +24,12 @@ export function DemoButton() {
         <Play size={16} strokeWidth={1.5} />
         Watch a 2-min demo
       </Button>
-      <Dialog open={open} onClose={() => setOpen(false)} title="Decibels in two minutes" width={800}>
+      <Dialog open={open} onClose={() => setOpen(false)} title="Decibel in two minutes" width={800}>
         {videoUrl ? (
           <div className="aspect-video overflow-hidden rounded-md border border-white-800 bg-canvas">
             <iframe
               src={videoUrl}
-              title="Decibels product demo"
+              title="Decibel product demo"
               className="h-full w-full"
               loading="lazy"
               allow="autoplay; fullscreen; picture-in-picture"
@@ -43,7 +43,7 @@ export function DemoButton() {
               <Play size={20} strokeWidth={1.5} />
             </span>
             <p className="t-h4 mt-4 text-black-0">Demo video coming soon</p>
-            <p className="mt-1 max-w-sm text-black-700">We are recording the walkthrough. In the meantime the free trial is the quickest way to see Decibels working.</p>
+            <p className="mt-1 max-w-sm text-black-700">We are recording the walkthrough. In the meantime the free trial is the quickest way to see Decibel working.</p>
           </div>
         )}
       </Dialog>

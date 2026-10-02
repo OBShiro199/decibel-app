@@ -4,7 +4,7 @@ import { Prose, ProseTable } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Cookie policy',
-  description: 'The cookies and browser storage Decibels uses, what they are for, and how to change your choice.',
+  description: 'The cookies and browser storage Decibel uses, what they are for, and how to change your choice.',
 };
 
 export default function CookiesPage() {
@@ -43,7 +43,7 @@ export default function CookiesPage() {
 
       <h2>Contact</h2>
       <p>
-        Questions: <a href="mailto:privacy@decibels.io">privacy@decibels.io</a>.
+        Questions: <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>.
       </p>
     </Prose>
   );

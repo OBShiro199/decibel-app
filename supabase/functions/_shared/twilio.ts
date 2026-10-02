@@ -202,7 +202,7 @@ export async function ensureWorkspaceTwilio(ws: WorkspaceRow): Promise<{ ws: Wor
           parent,
           'POST',
           'https://api.twilio.com/2010-04-01/Accounts.json',
-          { FriendlyName: `Decibels · ${ws.name} · ${ws.id}`.slice(0, 64) },
+          { FriendlyName: `Decibel · ${ws.name} · ${ws.id}`.slice(0, 64) },
         );
         account = { account_sid: sub.sid, auth_token: sub.auth_token };
         mode = 'subaccount';
@@ -219,7 +219,7 @@ export async function ensureWorkspaceTwilio(ws: WorkspaceRow): Promise<{ ws: Wor
   const app = ws.twilio_twiml_app_sid
     ? { sid: ws.twilio_twiml_app_sid }
     : await twilio<{ sid: string }>(account, 'POST', '/Applications.json', {
-        FriendlyName: `Decibels ${ws.id}`,
+        FriendlyName: `Decibel ${ws.id}`,
         VoiceUrl: `${FUNCTIONS_URL}/twilio-voice`,
         VoiceMethod: 'POST',
         StatusCallback: `${FUNCTIONS_URL}/twilio-status?ws=${ws.id}&leg=client`,
@@ -227,7 +227,7 @@ export async function ensureWorkspaceTwilio(ws: WorkspaceRow): Promise<{ ws: Wor
       });
 
   const key = await twilio<{ sid: string; secret: string }>(account, 'POST', '/Keys.json', {
-    FriendlyName: `Decibels ${ws.id}`,
+    FriendlyName: `Decibel ${ws.id}`,
   });
 
   const creds: TwilioCreds = { ...account, api_key_sid: key.sid, api_key_secret: key.secret };

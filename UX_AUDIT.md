@@ -1,4 +1,4 @@
-# Decibels UX Audit
+# Decibel UX Audit
 
 Phase 0 (recon) and Phase 1 (diagnostic audit) of the Dashboard UX Overhaul brief. No code has been changed for this audit.
 

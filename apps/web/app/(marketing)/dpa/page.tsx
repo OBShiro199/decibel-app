@@ -4,7 +4,7 @@ import { Prose, ProseTable } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Data Processing Addendum',
-  description: 'The Decibels Data Processing Addendum, including security measures and the list of sub-processors.',
+  description: 'The Decibel Data Processing Addendum, including security measures and the list of sub-processors.',
 };
 
 export default function DpaPage() {
@@ -12,13 +12,13 @@ export default function DpaPage() {
     <Prose
       draft
       title="Data Processing Addendum"
-      lead="This addendum forms part of the agreement between Decibels and each customer, and applies where Decibels processes personal data on the customer's behalf."
+      lead="This addendum forms part of the agreement between Decibel and each customer, and applies where Decibel processes personal data on the customer's behalf."
       updated="1 October 2026"
     >
       <h2>1. Roles</h2>
       <p>
         For data the customer brings to or creates in the service (imported contacts, notes, call recordings, call outcomes), the customer is the controller
-        and Decibels is the processor. For the Decibels contact database itself, Decibels is an independent controller, and the customer becomes an
+        and Decibel is the processor. For the Decibel contact database itself, Decibel is an independent controller, and the customer becomes an
         independent controller of any contact it reveals and uses.
       </p>
 
@@ -26,7 +26,7 @@ export default function DpaPage() {
       <ProseTable
         head={['Item', 'Detail']}
         rows={[
-          ['Subject matter', 'Providing the Decibels database, dialler and pipeline'],
+          ['Subject matter', 'Providing the Decibel database, dialler and pipeline'],
           ['Duration', 'The term of the agreement plus the deletion period in section 9'],
           ['Nature and purpose', 'Storing, organising, transmitting and recording data so the customer can run outbound calling'],
           ['Data subjects', 'The customer’s users, and the business contacts the customer calls or imports'],
@@ -92,7 +92,7 @@ export default function DpaPage() {
 
       <h2>11. Contact</h2>
       <p>
-        Questions about this addendum: <a href="mailto:privacy@decibels.io">privacy@decibels.io</a>. See also the <Link href="/privacy">privacy policy</Link>{' '}
+        Questions about this addendum: <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>. See also the <Link href="/privacy">privacy policy</Link>{' '}
         and <Link href="/compliance">compliance page</Link>.
       </p>
     </Prose>

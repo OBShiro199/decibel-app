@@ -9,7 +9,7 @@ import { BLOCK_REASONS, CALL_STATUS_LABEL, OUTCOMES } from '@/lib/constants';
 import { useLists, useMemberNames, useMembers } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import type { Call, CallOutcome, Recording } from '@/lib/types';
-import { formatDate, formatDuration, formatPhone } from '@/lib/utils';
+import { formatDate, formatDuration, formatPhone, formatWhen } from '@/lib/utils';
 import { FilterMenu } from '@/components/app/filter-menu';
 import { RecordingPlayer } from '@/components/app/recording-player';
 import { OutcomeBadge } from '@/components/app/records';
@@ -121,7 +121,7 @@ export default function CallsPage() {
           )
         ) : (
           <RevealOnce id="calls">
-          <div className="tbl-wrap"><table className="tbl tbl-fixed"><colgroup><col style={{ width: 150 }} /><col /><col /><col style={{ width: 150 }} /><col style={{ width: 160 }} /><col style={{ width: 84 }} /><col style={{ width: 236 }} /></colgroup>
+          <div className="tbl-wrap"><table className="tbl tbl-fixed"><colgroup><col style={{ width: 140 }} /><col /><col /><col style={{ width: 140 }} /><col style={{ width: 160 }} /><col style={{ width: 84 }} /><col style={{ width: 236 }} /></colgroup>
             <thead>
               <tr>
                 <th>When</th>
@@ -138,7 +138,7 @@ export default function CallsPage() {
                 const r = rec(c);
                 return (
                   <tr key={c.id} onClick={() => setOpenId(c.id)} className="cursor-pointer">
-                    <td className="text-sm tabular-nums text-black-700">{formatDate(c.started_at, true)}</td>
+                    <td className="text-sm tabular-nums text-black-700">{formatWhen(c.started_at)}</td>
                     <td>
                       <span className="flex min-w-0 items-center gap-1.5">
                         {c.direction === 'inbound' ? (

@@ -19,7 +19,7 @@ import { LeadsSkeleton } from '@/components/app/skeletons';
 import { BulkAction, BulkBar, ListPickerDialog, PersonCell, TpsBadge } from '@/components/app/records';
 import { RevealOnce } from '@/components/ui/reveal';
 import { Button } from '@/components/ui/button';
-import { Badge, CompanyLogo, EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
+import { Badge, EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
 import { Checkbox, ChipsInput, Input } from '@/components/ui/form';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
@@ -50,7 +50,7 @@ function Leads() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const fit = useFitRows(40, 36);
+  const fit = useFitRows();
   const PAGE = fit.rows;
 
   const active: LeadFilters = useMemo(() => ({ ...filters, q }), [filters, q]);
@@ -129,7 +129,7 @@ function Leads() {
   };
   const exportCsv = () => {
     auditedCsv(workspace.id, 'leads',
-      'decibels-leads.csv',
+      'decibel-leads.csv',
       contacts
         .filter((c) => selected.has(c.id))
         .map((c) => ({
@@ -307,10 +307,7 @@ function Leads() {
                         <td className="max-w-[230px] truncate text-black-500">{c.job_title ?? <span className="text-faint">–</span>}</td>
                         <td>{c.seniority ? <Tag>{seniorityLabel(c.seniority)}</Tag> : <span className="text-faint">–</span>}</td>
                         <td>
-                          <span className="flex items-center gap-2">
-                            <CompanyLogo name={c.company_name} size={20} />
-                            <span className="max-w-[220px] truncate">{c.company_name ?? '–'}</span>
-                          </span>
+                          <span className="block truncate text-black-400">{c.company_name ?? '–'}</span>
                         </td>
                         <td>{c.industry ? <Tag>{c.industry}</Tag> : <span className="text-faint">–</span>}</td>
                         <td>{c.company_size_band ? <Tag color={7}>{c.company_size_band}</Tag> : <span className="text-faint">–</span>}</td>

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-/** Decibels wordmark: five sound bars + the name. Inherits colour from `currentColor`. */
+/** Decibel wordmark: five sound bars + the name. Inherits colour from `currentColor`. */
 export function LogoMark({ size = 20, className }: { size?: number; className?: string }) {
   const bars = [
     [1, 8, 4],
@@ -22,7 +22,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-2 text-black-0', className)}>
       <LogoMark />
-      <span className="font-display text-lg font-semibold leading-6 tracking-[-0.36px]">Decibels</span>
+      <span className="font-display text-lg font-semibold leading-6 tracking-[-0.36px]">Decibel</span>
     </span>
   );
 }

@@ -267,7 +267,7 @@ export default function PersonPage() {
             <OwnerRow value={p.owner_id} onChange={(owner_id) => update({ owner_id })} />
             <Attr icon={PhoneCall} label="Calls" value={String(p.call_count)} />
             <Attr icon={Tag} label="Tags" value={p.tags.length ? p.tags.join(', ') : null} empty="Add tags" onEmpty={() => setEditing(true)} />
-            <Attr icon={Upload} label="Source" value={p.source === 'database' ? 'Decibels database' : p.source === 'import' ? 'CSV import' : 'Added manually'} />
+            <Attr icon={Upload} label="Source" value={p.source === 'database' ? 'Decibel database' : p.source === 'import' ? 'CSV import' : 'Added manually'} />
             <Attr icon={CalendarClock} label="Added" value={formatDate(p.created_at)} />
           </RailSection>
         </aside>
@@ -376,7 +376,7 @@ function Timeline({
           <h2 className="t-h4 mb-3">{g.day}</h2>
           <ol className="relative flex flex-col gap-3 before:absolute before:bottom-2 before:left-[9.5px] before:top-2 before:w-px before:bg-white-800">
             {g.items.map((a) => {
-              const who = names[a.actor_id ?? ''] ?? 'Decibels';
+              const who = names[a.actor_id ?? ''] ?? 'Decibel';
               const Icon = SYSTEM_ICON[a.kind] ?? ActivityIcon;
               const call = a.call_id ? callById.get(a.call_id) : undefined;
               const note = a.note_id ? noteById.get(a.note_id) : undefined;
