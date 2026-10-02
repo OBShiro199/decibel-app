@@ -1,0 +1,492 @@
+'use client';
+// Daygent-system building blocks for the landing page: scroll reveals, the
+// procedural ASCII / ordered-dither canvas, marquee, live pill, console chrome,
+// the dark scroll "engine" and the single pricing card.
+import { useEffect, useRef, useState } from 'react';
+import { ANNUAL_DISCOUNT, PLANS } from '@/lib/constants';
+import { cn } from '@/lib/utils';
+import { CtaLink, trackMarketing } from './analytics';
+
+// ------------------------------------------------------------------ reveal --
+export function Reveal({ children, delay = 0, className, eager }: { children: React.ReactNode; delay?: number; className?: string; eager?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || eager) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setShown(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.12 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [eager]);
+  // eager = above the fold: a pure CSS animation, visible even before hydration
+  if (eager) {
+    return (
+      <div className={cn('hero-in', className)} style={{ animationDelay: `${delay}ms` }}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div ref={ref} data-in={shown} className={cn('reveal', className)} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------- ascii canvas --
+const RAMP = ' .·:;+=oxX#%@';
+const BAYER = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+];
+const hash = (x: number, y: number) => {
+  const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+};
+
+export type Scene = 'signal' | 'radar' | 'bars' | 'engine';
+
+/** Intensity 0..1 for a cell. u,v are centred coords (v scaled so cells read square). */
+function field(scene: Scene, u: number, v: number, t: number, col: number, row: number, cols: number, rows: number, p: number): number {
+  if (scene === 'signal') {
+    // a call going out: rings from the source, plus a carrier waveform through the middle
+    const d = Math.hypot(u + 0.55, v);
+    const rings = (0.5 + 0.5 * Math.sin(d * 14 - t * 2.4)) * Math.max(0, 1 - d * 0.62);
+    const wave = Math.sin(u * 9 + t * 1.6) * 0.16 * (0.6 + 0.4 * Math.sin(u * 2.3 - t * 0.7));
+    const band = Math.max(0, 1 - Math.abs(v - wave) * 9) * Math.max(0, Math.min(1, (u + 0.5) * 1.6));
+    return Math.min(1, rings * 0.8 + band * 0.75);
+  }
+  if (scene === 'radar') {
+    // TPS screening: a sweep over scattered numbers, most clear, a few blocked
+    const d = Math.hypot(u, v);
+    if (d > 0.92) return 0;
+    const a = Math.atan2(v, u);
+    const sweep = (((a - t * 1.1) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const trail = Math.pow(1 - sweep / (Math.PI * 2), 5);
+    const ring = Math.max(0, 1 - Math.abs((d * 3) % 1 - 0.5) * 16) * 0.22;
+    const blip = hash(Math.floor(col / 3), Math.floor(row / 2)) > 0.93 ? 0.9 * trail + 0.15 : 0;
+    return Math.min(1, trail * 0.55 + ring + blip);
+  }
+  if (scene === 'bars') {
+    // live audio level: equaliser columns
+    const band = Math.floor(col / 2);
+    const h = 0.18 + 0.72 * Math.abs(Math.sin(band * 0.9 + t * 2.1) * Math.sin(band * 0.37 - t * 1.3));
+    const y = 1 - row / rows;
+    return col % 2 === 0 && y < h ? 0.35 + 0.65 * (y / h) : 0;
+  }
+  // engine: scroll progress p morphs noise (a raw list) -> rings (the call) -> ordered columns (the pipeline)
+  const noise = hash(col, row + Math.floor(t * 2)) > 0.9 ? 0.55 + 0.45 * hash(row, col) : 0;
+  const d = Math.hypot(u, v);
+  const rings = (0.5 + 0.5 * Math.sin(d * 16 - t * 2.6)) * Math.max(0, 1 - d * 0.9);
+  const stage = Math.floor((col / cols) * 5);
+  const fill = [0.9, 0.7, 0.52, 0.36, 0.22][stage] ?? 0.2;
+  const y = 1 - row / rows;
+  const colsField = col % Math.max(2, Math.floor(cols / 5)) > 1 && y < fill + 0.03 * Math.sin(t + stage) ? 0.4 + 0.6 * (y / fill) : 0;
+  const a = Math.max(0, 1 - p * 3);
+  const b = Math.max(0, 1 - Math.abs(p - 0.5) * 3.2);
+  const c = Math.max(0, (p - 0.62) * 2.7);
+  return Math.min(1, noise * a + rings * b + colsField * c);
+}
+
+export function AsciiCanvas({
+  scene,
+  className,
+  color = '#2c2c2a',
+  progress,
+  cell = 13,
+}: {
+  scene: Scene;
+  className?: string;
+  color?: string;
+  /** 0..1, read every frame; used by the engine scene */
+  progress?: React.RefObject<number>;
+  cell?: number;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const mono = getComputedStyle(document.documentElement).getPropertyValue('--font-sans') || 'sans-serif';
+    let raf = 0;
+    let visible = true;
+    let w = 0;
+    let h = 0;
+    const cw = cell * 0.62;
+    const ch = cell * 1.18;
+
+    const resize = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = canvas.clientWidth;
+      h = canvas.clientHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const draw = (ms: number) => {
+      const t = ms / 1000;
+      const cols = Math.ceil(w / cw);
+      const rows = Math.ceil(h / ch);
+      const aspect = w / Math.max(1, h);
+      ctx.clearRect(0, 0, w, h);
+      ctx.font = `500 ${cell}px ${mono}, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = color;
+      const p = progress?.current ?? 0;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const u = ((c + 0.5) / cols - 0.5) * 2 * Math.min(1.6, aspect);
+          const v = ((r + 0.5) / rows - 0.5) * 2;
+          const i = field(scene, u, v, t, c, r, cols, rows, p);
+          if (i <= 0.04) continue;
+          // ordered (Bayer) dither picks between neighbouring ramp characters
+          const level = i * (RAMP.length - 1) + (BAYER[r & 3][c & 3] / 16 - 0.5);
+          const chr = RAMP[Math.max(0, Math.min(RAMP.length - 1, Math.round(level)))];
+          if (chr !== ' ') ctx.fillText(chr, c * cw + cw / 2, r * ch);
+        }
+      }
+    };
+    const loop = (ms: number) => {
+      if (visible) draw(ms);
+      raf = requestAnimationFrame(loop);
+    };
+    resize();
+    const ro = new ResizeObserver(() => {
+      resize();
+      if (reduced) draw(4000);
+    });
+    ro.observe(canvas);
+    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting));
+    io.observe(canvas);
+    if (reduced) draw(4000);
+    else raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      io.disconnect();
+    };
+  }, [scene, color, progress, cell]);
+  return <canvas ref={ref} aria-hidden className={cn('block h-full w-full', className)} />;
+}
+
+// -------------------------------------------------------------- small parts --
+export function LivePill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative inline-flex overflow-hidden rounded-full p-px">
+      <span className="spin-ring absolute inset-[-150%]" style={{ background: 'conic-gradient(from 0deg, #e7e7e3 0deg, #e7e7e3 250deg, #1d9d5b 320deg, #e7e7e3 360deg)' }} aria-hidden />
+      <span className="relative inline-flex h-7 items-center gap-2 rounded-full bg-white-100 px-3 tabular-nums text-[11px] tracking-[0.06em] text-black-700">
+        <span className="pulse-dot bg-[#1d9d5b]" />
+        {children}
+      </span>
+    </span>
+  );
+}
+
+export function Status({ color = '#1d9d5b', children }: { color?: string; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 tabular-nums text-[10.5px] uppercase tracking-[0.06em] text-black-700">
+      <span className="pulse-dot" style={{ background: color, width: 6, height: 6 }} />
+      {children}
+    </span>
+  );
+}
+
+export function Console({ file, right, children, className }: { file: string; right?: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn('overflow-hidden rounded-card border border-white-800 bg-white-100', className)}>
+      <div className="flex h-10 items-center gap-2 border-b border-rule bg-panel px-4">
+        {[0, 1, 2].map((i) => (
+          <span key={i} className="h-[11px] w-[11px] rounded-full bg-[#e2e2dd]" />
+        ))}
+        <span className="ml-2 tabular-nums text-[11.5px] text-white-900">{file}</span>
+        <span className="ml-auto">{right}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function Marquee({ rows }: { rows: string[][] }) {
+  return (
+    <div className="marquee-mask overflow-hidden py-10" aria-hidden>
+      {rows.map((words, r) => (
+        <div key={r} className="marquee-track" style={{ animationDirection: r % 2 ? 'reverse' : 'normal', animationDuration: `${38 + r * 9}s` }}>
+          {[0, 1].map((dup) => (
+            <div key={dup} className="flex shrink-0 items-center">
+              {words.map((w, i) => (
+                <span key={`${dup}-${i}`} className="flex items-center">
+                  <span className={cn('whitespace-nowrap px-6 font-medium leading-[1.05] tracking-[-0.045em]', (i + r) % 2 ? 'text-[#d9d9d4]' : 'text-black-400')} style={{ fontSize: 'clamp(44px,6vw,84px)' }}>
+                    {w}
+                  </span>
+                  <span className="tabular-nums text-[13px] tracking-[0.06em] text-faint">{'///'}</span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------- hero console --
+const QUEUE = [
+  ['Oliver Hartley', 'Brightmoor Software', '+44 7700 900101'],
+  ['Priya Raman', 'Harrow & Finch', '+44 7700 900102'],
+  ['James Whitfield', 'Northgate Logistics', '+44 7700 900103'],
+  ['Sarah Okafor', 'Pennine Precision', '+44 7700 900104'],
+  ['Tom Bradshaw', 'Cobalt Digital', '+44 7700 900105'],
+  ['Fiona MacLeod', 'Thistle Financial', '+44 7700 900106'],
+];
+const STATES = ['QUEUED', 'DIALLING', 'RINGING', 'IN CALL', 'MEETING BOOKED'];
+
+export function HeroConsole() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t = setInterval(() => setTick((n) => n + 1), 1400);
+    return () => clearInterval(t);
+  }, []);
+  const active = Math.floor(tick / 5) % 5; // Fiona (index 5) is never dialled: TPS listed
+  const phase = tick % 5;
+  return (
+    <Console file="today.queue" right={<Status>{STATES[Math.max(1, phase)]}</Status>}>
+      <div className="grid md:grid-cols-[1.1fr_1fr]">
+        <div className="relative h-[250px] border-b border-rule md:h-[330px] md:border-b-0 md:border-r">
+          <AsciiCanvas scene="signal" />
+          <span className="absolute left-3 top-3 tabular-nums text-[10px] tracking-[0.06em] text-faint">[ OUTBOUND ]</span>
+          <span className="absolute bottom-3 right-3 tabular-nums text-[10px] tracking-[0.06em] text-faint">[ 48 KHZ OPUS ]</span>
+        </div>
+        <ul className="tabular-nums text-[12px]">
+          {QUEUE.map(([name, company, number], i) => {
+            const blocked = i === 5;
+            const done = !blocked && i < active;
+            const live = i === active;
+            const label = blocked ? 'TPS BLOCKED' : done ? 'LOGGED' : live ? STATES[phase] : 'QUEUED';
+            return (
+              <li key={name} className={cn('flex h-[55px] items-center gap-3 border-b border-rule px-4 last:border-b-0', live && 'bg-panel')}>
+                <span className="w-5 text-faint">{String(i + 1).padStart(2, '0')}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-sans text-[13.5px] font-medium text-black-400">{name}</span>
+                  <span className="block truncate text-[11px] text-white-900">{company} · {number}</span>
+                </span>
+                <span
+                  className={cn('w-[124px] shrink-0 text-right text-[10.5px] tracking-[0.06em]', blocked ? 'text-danger-500' : live ? 'text-accent-500' : done ? 'text-success-500' : 'text-faint')}
+                >
+                  {live ? <span className="pulse-dot mr-1.5 bg-accent-500 align-middle" style={{ width: 6, height: 6 }} /> : null}
+                  {label}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </Console>
+  );
+}
+
+// ------------------------------------------------------------ demo panels ---
+const REVEAL_ROWS = [
+  ['aisling doherty', 'ceo', '+447700900117'],
+  ['rahul mehta', 'cto', '+447700900109'],
+  ['charlotte nkemelu', 'commercial dir', '+447700900108'],
+  ['andrew patel', 'vp operations', '+447700900114'],
+  ['emily chen', 'head of partnerships', '+447700900111'],
+  ['michael fenwick', 'managing partner', '+447700900112'],
+];
+
+export function RevealPanel() {
+  const [n, setN] = useState(2);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t = setInterval(() => setN((v) => (v >= REVEAL_ROWS.length ? 0 : v + 1)), 1300);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="h-[258px] overflow-hidden bg-white-100 p-5 tabular-nums text-[12px] leading-[26px] text-black-700">
+      <p className="text-faint">$ search --seniority c_level,director --has-mobile --tps-clear</p>
+      {REVEAL_ROWS.map(([name, title, mobile], i) => (
+        <p key={name} className="flex gap-3 whitespace-nowrap">
+          <span className="w-[150px] truncate text-black-500">{name}</span>
+          <span className="w-[150px] truncate max-sm:hidden">{title}</span>
+          <span className={i < n ? 'text-black-400' : 'text-faint'}>{i < n ? mobile : `${mobile.slice(0, 4)} ••••••${mobile.slice(-3)}`}</span>
+          {i < n ? <span className="text-success-500">✓ −1 credit</span> : null}
+        </p>
+      ))}
+      <p className="text-faint">
+        credits left: <span className="text-black-400">{50 - n}</span>
+      </p>
+    </div>
+  );
+}
+
+const STAGES: [string, number][] = [
+  ['new', 42],
+  ['attempted', 31],
+  ['connected', 17],
+  ['meeting booked', 9],
+  ['qualified', 5],
+  ['won', 2],
+];
+export function PipelinePanel() {
+  return (
+    <div className="h-[258px] overflow-hidden bg-white-100 p-5 tabular-nums text-[12px] leading-[30px] text-black-700">
+      {STAGES.map(([name, count]) => (
+        <p key={name} className="flex items-center gap-3 whitespace-nowrap">
+          <span className="w-[120px] text-black-500">{name}</span>
+          <span className="flex-1 overflow-hidden text-faint">
+            <span className="text-black-400">{'█'.repeat(Math.round(count / 2))}</span>
+            {'░'.repeat(24 - Math.round(count / 2))}
+          </span>
+          <span className="w-6 text-right text-black-400">{count}</span>
+        </p>
+      ))}
+      <p className="text-faint">outcome → stage, automatically</p>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ engine --
+const PHASES = [
+  ['01', 'A raw list.', 'Filter 14M+ contacts by title, seniority, size and country. Reveal only the mobiles you will call.'],
+  ['02', 'One click, one call.', 'The dialler screens TPS and your do-not-call list, then rings their mobile from your browser.'],
+  ['03', 'An ordered pipeline.', 'Pick an outcome. The record, the recording and the stage update before the next call connects.'],
+];
+
+/** Dark full-bleed section: sticky viewport in a tall scroll container; the ASCII scene follows scroll progress. */
+export function Engine() {
+  const wrap = useRef<HTMLDivElement>(null);
+  const progress = useRef(0);
+  const [phase, setPhase] = useState(0);
+  const line = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = wrap.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const p = Math.max(0, Math.min(1, -rect.top / Math.max(1, rect.height - window.innerHeight)));
+      progress.current = p;
+      if (line.current) line.current.style.height = `${p * 100}%`;
+      setPhase(p < 0.34 ? 0 : p < 0.67 ? 1 : 2);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <section ref={wrap} className="relative h-[320vh] bg-black-0 text-white-200" aria-label="How a call moves through Decibels">
+      <div className="sticky top-0 flex h-screen items-center overflow-hidden">
+        <div className="absolute inset-0 opacity-70">
+          <AsciiCanvas scene="engine" color="#9a9a94" progress={progress} cell={14} />
+        </div>
+        <div className="relative mx-auto w-full max-w-[1180px] px-6 md:px-10">
+          <p className="tabular-nums text-[11.5px] tracking-[0.06em] text-[#6b6b66]">[ the engine ]</p>
+          <div className="relative mt-5 h-[220px]">
+            {PHASES.map(([n, title, body], i) => (
+              <div
+                key={n}
+                className="absolute inset-0 max-w-[520px] transition-all duration-700"
+                style={{ opacity: phase === i ? 1 : 0, transform: `translateY(${phase === i ? 0 : phase > i ? -18 : 18}px)`, transitionTimingFunction: 'var(--ease-settle)' }}
+                aria-hidden={phase !== i}
+              >
+                <p className="tabular-nums text-[12px] tracking-[0.06em] text-[#6b6b66]">{n} / 03</p>
+                <h2 className="mt-3 font-medium tracking-[-0.04em]" style={{ fontSize: 'clamp(28px,4vw,50px)', lineHeight: 1.05 }}>
+                  {title}
+                </h2>
+                <p className="mt-4 max-w-[440px] text-[16px] leading-[25px] text-[#9a9a94]">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="absolute bottom-[18%] right-6 top-[18%] w-px bg-[#2b2b29] md:right-10">
+          <span ref={line} className="absolute left-0 top-0 block w-px bg-white-200" style={{ height: 0 }} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ----------------------------------------------------------------- pricing --
+const INCLUDED: Record<'starter' | 'growth', string[]> = {
+  starter: ['500 mobile reveals per seat, every month', 'Browser dialler with a UK number per seat', 'Every call recorded, kept 90 days', 'TPS and CTPS screening on every dial', 'Lists, pipeline, CSV import'],
+  growth: ['2,000 mobile reveals per seat, every month', 'Browser dialler with a UK number per seat', 'Every call recorded, kept 1 year', 'TPS and CTPS screening on every dial', 'Lists, pipeline, CSV import', 'Per-rep dashboard and call review'],
+};
+
+export function PricingCard() {
+  const [plan, setPlan] = useState<'starter' | 'growth'>('growth');
+  const [annual, setAnnual] = useState(false);
+  const base = PLANS[plan].monthly;
+  const price = annual ? base * (1 - ANNUAL_DISCOUNT) : base;
+  const seg = (on: boolean) => cn('h-8 px-3 tabular-nums text-[11px] uppercase tracking-[0.06em] transition-colors', on ? 'bg-black-0 text-white-100' : 'text-black-700 hover:bg-white-300');
+  return (
+    <div className="overflow-hidden rounded-card border border-white-800 bg-white-100">
+      <div className="grid md:grid-cols-2">
+        <div className="border-b border-rule p-7 md:border-b-0 md:border-r md:p-9">
+          <div className="flex flex-wrap gap-2">
+            <div className="flex border border-btnborder" role="radiogroup" aria-label="Plan">
+              {(['starter', 'growth'] as const).map((p) => (
+                <button key={p} role="radio" aria-checked={plan === p} className={seg(plan === p)} onClick={() => setPlan(p)}>
+                  {PLANS[p].name}
+                </button>
+              ))}
+            </div>
+            <div className="flex border border-btnborder" role="radiogroup" aria-label="Billing interval">
+              {[false, true].map((a) => (
+                <button
+                  key={String(a)}
+                  role="radio"
+                  aria-checked={annual === a}
+                  className={seg(annual === a)}
+                  onClick={() => {
+                    setAnnual(a);
+                    trackMarketing('pricing_toggle', { interval: a ? 'annual' : 'monthly' });
+                  }}
+                >
+                  {a ? 'Annual −20%' : 'Monthly'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="mt-8 flex items-end gap-2">
+            <span className="tabular text-[64px] font-medium leading-[0.95] tracking-[-0.05em] text-black-300">£{Number.isInteger(price) ? price : price.toFixed(2)}</span>
+            <span className="pb-1.5 tabular-nums text-[11.5px] tracking-[0.06em] text-white-900">/ SEAT / MONTH</span>
+          </p>
+          <p className="mt-3 text-[15px] leading-[23px] text-black-700">
+            {annual ? `Billed £${(price * 12).toFixed(0)} per seat each year.` : 'Billed monthly.'} Call minutes at cost plus 20%. Prices exclude VAT.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <CtaLink location={`pricing_${plan}`} href="/signup" variant="primary" size="lg">
+              Start free trial
+            </CtaLink>
+            <CtaLink location="pricing_scale" href="mailto:sales@decibels.io" size="lg">
+              Talk to us
+            </CtaLink>
+          </div>
+          <p className="mt-5 tabular-nums text-[11px] tracking-[0.06em] text-white-900">14 DAYS · 1 SEAT · 50 CREDITS · 60 MINUTES · NO CARD</p>
+        </div>
+        <ul className="p-7 md:p-9">
+          {INCLUDED[plan].map((item) => (
+            <li key={item} className="flex gap-3 border-b border-rule py-3.5 text-[15px] text-black-500 last:border-b-0">
+              <span className="tabular-nums text-success-500">✓</span>
+              {item}
+            </li>
+          ))}
+          <li className="pt-4 tabular-nums text-[11px] tracking-[0.06em] text-white-900">30+ SEATS: SCALE PLAN, PRICED WITH OUR TEAM</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
