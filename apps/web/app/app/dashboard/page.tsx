@@ -2,11 +2,12 @@
 // Team stats. Headline numbers with a like-for-like comparison, an activity chart
 // over the whole period (future days marked), a dials-to-meetings funnel and a rep
 // leaderboard. Every block has a fixed height so switching period never moves the page.
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '@/lib/app-context';
-import { dashboardQuery, thisWeek, type StatRow } from '@/lib/queries';
+import { dashboardQuery, type StatRow } from '@/lib/queries';
+import { addDays, dashboardRanges, fmtDay, fmtWeekday, london, ranges, type Period } from '@/lib/dashboard';
 import { useMemberNames } from '@/lib/hooks';
 import { cn, formatTalkTime } from '@/lib/utils';
 import { ButtonLink } from '@/components/ui/button';
@@ -14,65 +15,12 @@ import { Avatar, EmptyState, ErrorCard, Skeleton } from '@/components/ui/display
 import { Input } from '@/components/ui/form';
 import { useFirstReveal } from '@/components/ui/reveal';
 
-type Period = 'today' | 'week' | 'month' | 'custom';
 const PERIODS: [Period, string][] = [
   ['today', 'Today'],
   ['week', 'This week'],
   ['month', 'This month'],
   ['custom', 'Custom'],
 ];
-
-// ---------------------------------------------------------------- dates (London, yyyy-mm-dd) --
-const london = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(d);
-const toDate = (s: string) => new Date(`${s}T12:00:00Z`);
-const iso = (d: Date) => d.toISOString().slice(0, 10);
-const addDays = (s: string, n: number) => {
-  const d = toDate(s);
-  d.setUTCDate(d.getUTCDate() + n);
-  return iso(d);
-};
-const daysBetween = (a: string, b: string) => Math.round((toDate(b).getTime() - toDate(a).getTime()) / 86400000);
-const lastOfMonth = (s: string) => iso(new Date(Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)), 0, 12)));
-const fmtDay = (s: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(toDate(s));
-const fmtWeekday = (s: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(toDate(s));
-
-interface Ranges {
-  /** what the numbers cover (never past today) */
-  start: string;
-  end: string;
-  /** the same span one period earlier */
-  prevStart: string;
-  prevEnd: string;
-  prevLabel: string;
-  /** the days the chart draws; days after today are drawn as empty slots */
-  chartStart: string;
-  chartEnd: string;
-}
-
-function ranges(period: Period, from: string, to: string): Ranges {
-  const today = london(new Date());
-  if (period === 'today') {
-    return { start: today, end: today, prevStart: addDays(today, -1), prevEnd: addDays(today, -1), prevLabel: 'yesterday', chartStart: addDays(today, -6), chartEnd: today };
-  }
-  if (period === 'week') {
-    const { start } = thisWeek();
-    return { start, end: today, prevStart: addDays(start, -7), prevEnd: addDays(today, -7), prevLabel: 'the same days last week', chartStart: start, chartEnd: addDays(start, 6) };
-  }
-  if (period === 'month') {
-    const start = `${today.slice(0, 8)}01`;
-    const prevStart = iso(new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 2, 1, 12)));
-    const prevLast = lastOfMonth(prevStart);
-    const sameDay = `${prevStart.slice(0, 8)}${today.slice(8)}`;
-    return { start, end: today, prevStart, prevEnd: sameDay > prevLast ? prevLast : sameDay, prevLabel: 'the same days last month', chartStart: start, chartEnd: lastOfMonth(today) };
-  }
-  let start = from || today;
-  let end = to || today;
-  if (start > end) [start, end] = [end, start];
-  if (end > today) end = today;
-  if (daysBetween(start, end) > 91) start = addDays(end, -91);
-  const span = daysBetween(start, end) + 1;
-  return { start, end, prevStart: addDays(start, -span), prevEnd: addDays(start, -1), prevLabel: `the previous ${span === 1 ? 'day' : `${span} days`}`, chartStart: start, chartEnd: end };
-}
 
 function sum(rows: StatRow[]) {
   return rows.reduce((a, r) => ({ dials: a.dials + r.dials, connects: a.connects + r.connects, meetings: a.meetings + r.meetings, talk: a.talk + (r.talk_seconds ?? 0) }), { dials: 0, connects: 0, meetings: 0, talk: 0 });
@@ -125,6 +73,24 @@ export default function DashboardPage() {
     });
     return [...byRep.entries()].map(([id, rows]) => [id, sum(rows)] as const).sort((a, b) => b[1].dials - a[1].dials || b[1].meetings - a[1].meetings);
   }, [cur.data]);
+
+  // once this period is on screen, warm the other presets so switching is instant
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (cur.isLoading) return;
+    const warm = () => {
+      for (const p of ['today', 'week', 'month'] as Period[]) {
+        if (p === period) continue;
+        for (const { start, end } of dashboardRanges(p)) void qc.prefetchQuery(dashboardQuery(workspace.id, start, end));
+      }
+    };
+    const id = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(warm, { timeout: 2000 }) : window.setTimeout(warm, 300);
+    return () => {
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(id);
+      clearTimeout(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cur.isLoading, workspace.id]);
 
   const loading = cur.isLoading;
   const compareReady = !prev.isLoading;

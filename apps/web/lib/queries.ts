@@ -4,7 +4,10 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { COUNTRIES, MARKETS } from '@/lib/constants';
-import type { Call, List, Person, PhoneNumber, Recording, TenantCompany } from '@/lib/types';
+import { dashboardRanges, thisWeek } from '@/lib/dashboard';
+import { knownFitRows } from '@/lib/fit-rows';
+import { applyLeadFilters, EMPTY_FILTERS, type LeadFilters } from '@/lib/leads';
+import type { Activity, Call, ContactPublic, List, Note, Person, PhoneNumber, Recording, Task, TenantCompany } from '@/lib/types';
 
 export const PERSON_SELECT = '*, company:tenant_companies(id,name,domain)';
 
@@ -151,12 +154,7 @@ export interface StatRow {
   talk_seconds: number | null;
 }
 /** Monday of this week to today, Europe/London: the dashboard's default period. */
-export function thisWeek(): { start: string; end: string } {
-  const now = new Date();
-  const d = new Date(now);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return { start: londonDay(d), end: londonDay(now) };
-}
+export { thisWeek };
 export const dashboardQuery = (workspaceId: string, start: string, end: string) =>
   queryOptions({
     queryKey: ['dashboard', workspaceId, start, end],
@@ -171,22 +169,99 @@ export const dashboardQuery = (workspaceId: string, start: string, end: string) 
     },
   });
 
+// ---- leads search -----------------------------------------------------------------
+export const leadsQuery = (workspaceId: string, scoped: LeadFilters, page: number, pageSize: number) =>
+  queryOptions({
+    queryKey: ['leads', workspaceId, scoped, page, pageSize],
+    queryFn: async () => {
+      const db = supabase();
+      const { data, count, error } = await applyLeadFilters(db.from('contacts_public').select('*', { count: 'estimated' }), scoped)
+        .order('last_verified_at', { ascending: false })
+        .order('id')
+        .range(page * pageSize, page * pageSize + pageSize - 1);
+      if (error) throw error;
+      const contacts = (data ?? []) as ContactPublic[];
+      // which of these has the workspace already revealed? (free forever, show unmasked)
+      const map: Record<string, Pick<Person, 'id' | 'mobile_e164' | 'email'>> = {};
+      if (contacts.length) {
+        const { data: people } = await db.from('people').select('id,source_contact_id,mobile_e164,email').eq('workspace_id', workspaceId).in('source_contact_id', contacts.map((c) => c.id));
+        (people ?? []).forEach((p) => (map[p.source_contact_id as string] = p));
+      }
+      return { contacts, count: count ?? 0, revealed: map };
+    },
+  });
+
+// ---- person record ----------------------------------------------------------------
+export type PersonCallRow = Call & { recording: Recording[] | Recording | null };
+export const personQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['person', id],
+    placeholderData: undefined,
+    queryFn: async () => {
+      const { data, error } = await supabase().from('people').select('*, company:tenant_companies(*)').eq('id', id).maybeSingle();
+      if (error) throw error;
+      return data as unknown as (Person & { company: TenantCompany | null }) | null;
+    },
+  });
+export const personCallsQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['person', id, 'calls'],
+    placeholderData: undefined,
+    queryFn: async () => ((await supabase().from('calls').select('*, recording:recordings(id,call_id,storage_path,duration_seconds)').eq('person_id', id).order('started_at', { ascending: false }).limit(100)).data ?? []) as unknown as PersonCallRow[],
+  });
+export const personNotesQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['person', id, 'notes'],
+    placeholderData: undefined,
+    queryFn: async () => ((await supabase().from('notes').select('*').eq('person_id', id).order('created_at', { ascending: false }).limit(100)).data ?? []) as Note[],
+  });
+export const personTasksQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['person', id, 'tasks'],
+    placeholderData: undefined,
+    queryFn: async () => ((await supabase().from('tasks').select('*').eq('person_id', id).order('completed_at', { ascending: false, nullsFirst: true }).order('due_at', { ascending: true, nullsFirst: false }).limit(100)).data ?? []) as Task[],
+  });
+export const personActivitiesQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['person', id, 'activities'],
+    placeholderData: undefined,
+    queryFn: async () => ((await supabase().from('activities').select('*').eq('person_id', id).order('created_at', { ascending: false }).limit(200)).data ?? []) as Activity[],
+  });
+
+/** Warm a person's record (hovering a row or link), so opening it shows everything at once. */
+export function prefetchPerson(qc: QueryClient, id: string) {
+  void qc.prefetchQuery(personQuery(id));
+  void qc.prefetchQuery(personCallsQuery(id));
+  void qc.prefetchQuery(personNotesQuery(id));
+  void qc.prefetchQuery(personTasksQuery(id));
+  void qc.prefetchQuery(personActivitiesQuery(id));
+}
+
+// ---- prefetching --------------------------------------------------------------------
+/** Loads a tab's data into the cache ahead of the click. Uses the same keys as the pages. */
 export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string, userId: string) {
-  const go = (o: Parameters<QueryClient['prefetchQuery']>[0]) => void qc.prefetchQuery(o);
   if (href === '/app') {
     void qc.prefetchQuery(todayQueueQuery(workspaceId, userId));
     void qc.prefetchQuery(todayStatsQuery(workspaceId, userId));
     void qc.prefetchQuery(numbersQuery(workspaceId));
   } else if (href === '/app/leads') {
-    void qc.prefetchQuery(marketsQuery(workspaceId));
     void qc.prefetchQuery(industriesQuery());
     void qc.prefetchQuery(savedSearchesQuery(workspaceId));
+    void qc.prefetchQuery(listsQuery(workspaceId, userId));
+    // the first page of results, once the markets are known and the table's size is remembered
+    void qc.fetchQuery(marketsQuery(workspaceId)).then((allowed) => {
+      const pageSize = knownFitRows('leads');
+      if (pageSize) void qc.prefetchQuery(leadsQuery(workspaceId, { ...EMPTY_FILTERS, q: '', countries: allowed }, 0, pageSize));
+    }).catch(() => {});
   } else if (href === '/app/companies') void qc.prefetchQuery(companiesQuery(workspaceId));
-  else if (href === '/app/lists') void qc.prefetchQuery(listsQuery(workspaceId, userId));
-  else if (href === '/app/calls') void qc.prefetchQuery(callsQuery(workspaceId, DEFAULT_CALL_FILTERS));
-  else if (href === '/app/dashboard') {
-    const { start, end } = thisWeek();
-    void qc.prefetchQuery(dashboardQuery(workspaceId, start, end));
+  else if (href === '/app/lists' || href === '/app/dialler') void qc.prefetchQuery(listsQuery(workspaceId, userId));
+  else if (href === '/app/calls') {
+    void qc.prefetchQuery(callsQuery(workspaceId, DEFAULT_CALL_FILTERS));
+    void qc.prefetchQuery(listsQuery(workspaceId, userId));
+  } else if (href === '/app/dashboard') {
+    for (const { start, end } of dashboardRanges('week')) void qc.prefetchQuery(dashboardQuery(workspaceId, start, end));
   }
-  void go;
 }
+
+/** Every main tab plus the dashboard: run once at idle after the first page has its data. */
+export const PREFETCH_ROUTES = ['/app', '/app/leads', '/app/companies', '/app/lists', '/app/calls', '/app/dialler', '/app/dashboard'];

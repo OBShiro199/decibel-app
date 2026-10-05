@@ -10,7 +10,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/lib/app-context';
 import { countryName, outcomeMeta, seniorityLabel, TPS_LABEL } from '@/lib/constants';
-import { PERSON_SELECT, useMemberNames, useMembers, useStages } from '@/lib/hooks';
+import { useMemberNames, useMembers, useStages } from '@/lib/hooks';
+import { personActivitiesQuery, personCallsQuery, personNotesQuery, personQuery, personTasksQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
 import type { Activity, Call, Note, Person, Recording, Task, TenantCompany } from '@/lib/types';
 import { cn, dayLabel, formatDate, formatDuration, formatPhone, normalizePhone, timeAgo } from '@/lib/utils';
@@ -40,30 +41,11 @@ export default function PersonPage() {
   const [editing, setEditing] = useState(false);
   const [railOpen, setRailOpen] = useState(true);
 
-  const person = useQuery({
-    queryKey: ['person', id], placeholderData: undefined,
-    queryFn: async () => {
-      const { data, error } = await db.from('people').select(`${PERSON_SELECT.replace('company:tenant_companies(id,name,domain)', 'company:tenant_companies(*)')}`).eq('id', id).maybeSingle();
-      if (error) throw error;
-      return data as unknown as (Person & { company: TenantCompany | null }) | null;
-    },
-  });
-  const calls = useQuery({
-    queryKey: ['person', id, 'calls'], placeholderData: undefined,
-    queryFn: async () => ((await db.from('calls').select('*, recording:recordings(id,call_id,storage_path,duration_seconds)').eq('person_id', id).order('started_at', { ascending: false }).limit(100)).data ?? []) as unknown as CallRow[],
-  });
-  const notes = useQuery({
-    queryKey: ['person', id, 'notes'], placeholderData: undefined,
-    queryFn: async () => ((await db.from('notes').select('*').eq('person_id', id).order('created_at', { ascending: false }).limit(100)).data ?? []) as Note[],
-  });
-  const tasks = useQuery({
-    queryKey: ['person', id, 'tasks'], placeholderData: undefined,
-    queryFn: async () => ((await db.from('tasks').select('*').eq('person_id', id).order('completed_at', { ascending: false, nullsFirst: true }).order('due_at', { ascending: true, nullsFirst: false }).limit(100)).data ?? []) as Task[],
-  });
-  const activities = useQuery({
-    queryKey: ['person', id, 'activities'], placeholderData: undefined,
-    queryFn: async () => ((await db.from('activities').select('*').eq('person_id', id).order('created_at', { ascending: false }).limit(200)).data ?? []) as Activity[],
-  });
+  const person = useQuery(personQuery(id));
+  const calls = useQuery(personCallsQuery(id));
+  const notes = useQuery(personNotesQuery(id));
+  const tasks = useQuery(personTasksQuery(id));
+  const activities = useQuery(personActivitiesQuery(id));
 
   // live updates while a call to this person is in flight
   useEffect(() => {

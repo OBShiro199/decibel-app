@@ -10,7 +10,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 30_000, // fresh for 30s: no refetch spam
-            gcTime: 5 * 60_000, // instant back-navigation
+            gcTime: 30 * 60_000, // a tab visited in the last half hour opens with its data at once
             refetchOnWindowFocus: true, // quiet background refresh; content never blanks
             retry: 1,
             placeholderData: keepPreviousData, // a changed filter keeps showing the old rows until new ones arrive

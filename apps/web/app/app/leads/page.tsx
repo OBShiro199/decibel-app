@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
-import { industriesQuery, marketsQuery, savedSearchesQuery } from '@/lib/queries';
+import { industriesQuery, leadsQuery, marketsQuery, prefetchPerson, savedSearchesQuery } from '@/lib/queries';
 import { COUNTRIES, countryName, MARKETS, SENIORITIES, seniorityLabel, SIZE_BANDS } from '@/lib/constants';
 import { useDebounced, useFitRows, useLists } from '@/lib/hooks';
 import { applyLeadFilters, EMPTY_FILTERS, type LeadFilters } from '@/lib/leads';
@@ -53,7 +53,7 @@ function Leads() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const fit = useFitRows();
+  const fit = useFitRows('leads');
   const PAGE = fit.rows;
 
   const active: LeadFilters = useMemo(() => ({ ...filters, q }), [filters, q]);
@@ -70,26 +70,7 @@ function Leads() {
 
   const scoped: LeadFilters = useMemo(() => ({ ...active, countries: active.countries?.length ? active.countries : allowed }), [active, allowed]);
 
-  const results = useQuery({
-    queryKey: ['leads', workspace.id, scoped, page, PAGE],
-    enabled: !!allowed && PAGE > 0,
-    placeholderData: (prev) => prev,
-    queryFn: async () => {
-      const { data, count, error } = await applyLeadFilters(db.from('contacts_public').select('*', { count: 'estimated' }), scoped)
-        .order('last_verified_at', { ascending: false })
-        .order('id')
-        .range(page * PAGE, page * PAGE + PAGE - 1);
-      if (error) throw error;
-      const contacts = (data ?? []) as ContactPublic[];
-      // which of these has the workspace already revealed? (free forever, show unmasked)
-      const map: Record<string, Pick<Person, 'id' | 'mobile_e164' | 'email'>> = {};
-      if (contacts.length) {
-        const { data: people } = await db.from('people').select('id,source_contact_id,mobile_e164,email').eq('workspace_id', workspace.id).in('source_contact_id', contacts.map((c) => c.id));
-        (people ?? []).forEach((p) => (map[p.source_contact_id as string] = p));
-      }
-      return { contacts, count: count ?? 0, revealed: map };
-    },
-  });
+  const results = useQuery({ ...leadsQuery(workspace.id, scoped, page, PAGE), enabled: !!allowed && PAGE > 0, placeholderData: (prev) => prev });
 
   useEffect(() => {
     if (results.data && !results.isPlaceholderData) track('search_run', { filters: scoped, result_count: results.data.count });
@@ -302,7 +283,7 @@ function Leads() {
                         </td>
                         <td>
                           {mine ? (
-                            <Link href={`/app/people/${mine.id}`} className="hover:underline">
+                            <Link href={`/app/people/${mine.id}`} onMouseEnter={() => prefetchPerson(qc, mine.id)} className="hover:underline">
                               <PersonCell name={c.full_name} />
                             </Link>
                           ) : (

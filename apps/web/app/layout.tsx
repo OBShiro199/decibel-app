@@ -5,6 +5,8 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
 
+const SUPABASE_ORIGIN = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? '';
+
 // Self-hosted at build time by next/font.
 const sans = Geist({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 
@@ -45,7 +47,12 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, them
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={sans.variable}>
-      <body>
+      <head>
+        {/* the browser opens its connection to the database API while the page is still loading */}
+        {SUPABASE_ORIGIN ? <link rel="preconnect" href={SUPABASE_ORIGIN} crossOrigin="anonymous" /> : null}
+      </head>
+      {/* browser extensions add attributes to <body> before React starts; that is not an app error */}
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
         {/* DataFast web analytics, live site only so local testing never counts as traffic */}
         {process.env.NODE_ENV === 'production' ? (

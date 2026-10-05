@@ -4,7 +4,7 @@ import { Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useApp } from '@/lib/app-context';
-import { companiesQuery } from '@/lib/queries';
+import { companiesQuery, prefetchPerson } from '@/lib/queries';
 import { SIZE_BANDS } from '@/lib/constants';
 import { useDebounced } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
@@ -192,7 +192,7 @@ function CompanyDetail({ company }: { company: TenantCompany }) {
           <ul className="card divide-y divide-white-800">
             {people.data.map((p) => (
               <li key={p.id}>
-                <Link href={`/app/people/${p.id}`} className="flex min-h-11 items-center gap-2 px-3 py-1.5 hover:bg-white-300">
+                <Link href={`/app/people/${p.id}`} onMouseEnter={() => prefetchPerson(qc, p.id)} className="flex min-h-11 items-center gap-2 px-3 py-1.5 hover:bg-white-300">
                   <span className="min-w-0 flex-1">
                     <PersonCell name={p.full_name} sub={p.job_title} />
                   </span>

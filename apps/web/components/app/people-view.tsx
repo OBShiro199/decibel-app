@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
-import { peopleQuery } from '@/lib/queries';
+import { peopleQuery, prefetchPerson } from '@/lib/queries';
 import { useDebounced, useMemberNames, useStages, useTableKeys } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import type { Person, PipelineStage, Task } from '@/lib/types';
@@ -201,7 +201,7 @@ export function PeopleView({
               {rows.map((p, i) => {
                 const blocked = blockedLabel(p);
                 return (
-                  <tr key={p.id} data-selected={selected.has(p.id)} data-active={i === index} onClick={() => setIndex(i)} onDoubleClick={() => open(p)} className="cursor-default">
+                  <tr key={p.id} data-selected={selected.has(p.id)} data-active={i === index} onClick={() => setIndex(i)} onDoubleClick={() => open(p)} onMouseEnter={() => prefetchPerson(qc, p.id)} className="cursor-default">
                     <td>
                       <Checkbox aria-label={`Select ${p.full_name}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} />
                     </td>

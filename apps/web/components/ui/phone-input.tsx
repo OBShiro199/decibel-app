@@ -2,14 +2,35 @@
 // Phone field with a country dropdown. Defaults to the UK (+44); typing an international
 // number (+353..., 00353...) switches the flag to match. Pair with toE164() from lib/phone.
 import { ChevronDown } from 'lucide-react';
-import * as Flags from 'country-flag-icons/react/3x2';
+// Only the flags for DIAL_COUNTRIES, imported one by one: a namespace import would bundle
+// every country's flag (about 250 components) into every app page.
+import AT from 'country-flag-icons/react/3x2/AT';
+import BE from 'country-flag-icons/react/3x2/BE';
+import CH from 'country-flag-icons/react/3x2/CH';
+import DE from 'country-flag-icons/react/3x2/DE';
+import DK from 'country-flag-icons/react/3x2/DK';
+import ES from 'country-flag-icons/react/3x2/ES';
+import FI from 'country-flag-icons/react/3x2/FI';
+import FR from 'country-flag-icons/react/3x2/FR';
+import GB from 'country-flag-icons/react/3x2/GB';
+import IE from 'country-flag-icons/react/3x2/IE';
+import IT from 'country-flag-icons/react/3x2/IT';
+import LU from 'country-flag-icons/react/3x2/LU';
+import NL from 'country-flag-icons/react/3x2/NL';
+import NO from 'country-flag-icons/react/3x2/NO';
+import PL from 'country-flag-icons/react/3x2/PL';
+import PT from 'country-flag-icons/react/3x2/PT';
+import SE from 'country-flag-icons/react/3x2/SE';
+import US from 'country-flag-icons/react/3x2/US';
 import { forwardRef } from 'react';
 import { countryFromInternational, DIAL_COUNTRIES, type DialCountry } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 import { MenuItem, Popover } from '@/components/ui/overlay';
 
+const FLAGS: Record<string, React.ComponentType<{ title?: string; className?: string }>> = { AT, BE, CH, DE, DK, ES, FI, FR, GB, IE, IT, LU, NL, NO, PL, PT, SE, US };
+
 export function Flag({ code, className }: { code: string; className?: string }) {
-  const F = (Flags as Record<string, React.ComponentType<{ title?: string; className?: string }>>)[code];
+  const F = FLAGS[code];
   return F ? <F title="" className={cn('h-3.5 w-[21px] shrink-0 overflow-hidden rounded-[2px] shadow-[0_0_0_1px_rgba(8,9,10,0.08)]', className)} /> : null;
 }
 

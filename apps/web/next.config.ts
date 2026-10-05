@@ -9,9 +9,11 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@decibels/design-tokens'],
   eslint: { ignoreDuringBuilds: true },
   experimental: {
+    // import only the icons used, in dev as well as production (lucide-react is covered by default)
+    optimizePackageImports: ['@phosphor-icons/react'],
     // Client router cache. App pages fetch their own data in the browser (TanStack Query),
     // so their server payload barely changes: reuse it instead of a server round trip per tab click.
-    staleTimes: { dynamic: 30, static: 300 },
+    staleTimes: { dynamic: 300, static: 300 },
   },
 };
 

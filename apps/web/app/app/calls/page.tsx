@@ -4,7 +4,7 @@ import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useApp } from '@/lib/app-context';
-import { CALLS_PAGE as PAGE, callsQuery, type CallLogRow } from '@/lib/queries';
+import { CALLS_PAGE as PAGE, callsQuery, prefetchPerson, type CallLogRow } from '@/lib/queries';
 import { BLOCK_REASONS, CALL_STATUS_LABEL, OUTCOMES } from '@/lib/constants';
 import { useLists, useMemberNames, useMembers } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
@@ -260,7 +260,7 @@ function CallDetail({ call, rep: repName }: { call: Row; rep: string }) {
           Save
         </Button>
         {call.person ? (
-          <Link href={`/app/people/${call.person.id}`} className="flex h-9 items-center rounded-sm border border-white-800 px-3 hover:border-black-700">
+          <Link href={`/app/people/${call.person.id}`} onMouseEnter={() => prefetchPerson(qc, call.person!.id)} className="flex h-9 items-center rounded-sm border border-white-800 px-3 hover:border-black-700">
             Open record
           </Link>
         ) : null}

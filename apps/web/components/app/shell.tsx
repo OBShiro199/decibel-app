@@ -1,6 +1,6 @@
 'use client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { prefetchRoute } from '@/lib/queries';
+import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
 import { Check, ChevronsUpDown, Coins, LogOut, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
 import { AddressBook, Buildings, Lightning, ListBullets, PhoneCall, SunDim, type Icon as PhosphorIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
@@ -40,7 +40,6 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     ],
   },
 ];
-const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 
 export function AppShell({
@@ -166,10 +165,19 @@ function Sidebar() {
   const { workspace, workspaces, profile, switchWorkspace, user } = useApp();
   const qc = useQueryClient();
   const prefetch = (href: string) => prefetchRoute(qc, href, workspace.id, user.id);
-  // once the current page settles, warm the other tabs so switching shows real content
+  // Warm every tab's data as soon as the browser is idle after the first page has loaded, so the
+  // first click on any tab shows real content at once. Hovering a link re-warms it if stale.
   useEffect(() => {
-    const t = window.setTimeout(() => NAV.forEach(({ href }) => prefetch(href)), 2500);
-    return () => clearTimeout(t);
+    let idle: number | null = null;
+    const run = () => PREFETCH_ROUTES.forEach((href) => prefetch(href));
+    const t = window.setTimeout(() => {
+      if (typeof window.requestIdleCallback === 'function') idle = window.requestIdleCallback(run, { timeout: 1500 });
+      else run();
+    }, 400);
+    return () => {
+      clearTimeout(t);
+      if (idle !== null && typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.id]);
   return (

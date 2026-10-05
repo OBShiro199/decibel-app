@@ -1,11 +1,11 @@
 'use client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { useApp } from '@/lib/app-context';
-import { todayQueueQuery, todayStatsQuery } from '@/lib/queries';
+import { prefetchPerson, prefetchRoute, todayQueueQuery, todayStatsQuery } from '@/lib/queries';
 import { useNumbers, useTableKeys } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import type { Person } from '@/lib/types';
@@ -35,6 +35,7 @@ function Today() {
   const softphone = useSoftphoneActions();
   const phone = useSoftphoneStatus();
   const { data: numbers } = useNumbers();
+  const qc = useQueryClient();
   // first arrival from onboarding: an overlay toast, so nothing on the page moves
   useEffect(() => {
     if (params.get('welcome') !== '1') return;
@@ -71,7 +72,7 @@ function Today() {
           </h1>
           <p className="mt-1 text-black-700">
             {queue.isLoading ? 'Loading your queue.' : rows.length ? `${rows.length} ${rows.length === 1 ? 'person' : 'people'} in your queue.` : 'Your queue for today.'}{' '}
-            <Link href="/app/dashboard" className="link">
+            <Link href="/app/dashboard" onMouseEnter={() => prefetchRoute(qc, '/app/dashboard', workspace.id, user.id)} className="link">
               Team stats
             </Link>
           </p>
@@ -137,7 +138,7 @@ function Today() {
                 {rows.map((p, i) => (
                   <tr key={p.id} data-active={i === index} onClick={() => setIndex(i)} onDoubleClick={() => open(p)}>
                     <td className="max-w-[220px]">
-                      <Link href={`/app/people/${p.id}`} onClick={() => setRecordNav(rows.map((r) => r.id))} className="hover:underline">
+                      <Link href={`/app/people/${p.id}`} onMouseEnter={() => prefetchPerson(qc, p.id)} onClick={() => setRecordNav(rows.map((r) => r.id))} className="hover:underline">
                         <PersonCell name={p.full_name} />
                       </Link>
                     </td>

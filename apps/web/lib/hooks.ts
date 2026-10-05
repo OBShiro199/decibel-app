@@ -5,6 +5,7 @@ import { useApp } from '@/lib/app-context';
 import { listsQuery, numbersQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
 import type { List, Member, PhoneNumber, PipelineStage } from '@/lib/types';
+import { knownFitRows, rememberFitRows } from '@/lib/fit-rows';
 
 export { PERSON_SELECT } from '@/lib/queries';
 
@@ -105,9 +106,10 @@ export function useTableKeys<T>(rows: T[], handlers: { onOpen?: (row: T) => void
  * and paginate instead. Measures the real header, row and scrollbar heights from the
  * rendered table rather than assuming them, and re-measures when the size changes.
  */
-export function useFitRows(fallbackRow = 39, fallbackHeader = 35, min = 5) {
+export function useFitRows(table = 'table', fallbackRow = 48, fallbackHeader = 36, min = 5) {
   const ref = useRef<HTMLDivElement>(null);
-  const [rows, setRows] = useState(0);
+  // start from the size measured last time at this window height, so the first fetch is the right one
+  const [rows, setRows] = useState(() => knownFitRows(table));
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -119,6 +121,7 @@ export function useFitRows(fallbackRow = 39, fallbackHeader = 35, min = 5) {
       const headH = head?.offsetHeight || fallbackHeader;
       const scrollbar = wrap ? wrap.offsetHeight - wrap.clientHeight : 0;
       const next = Math.max(min, Math.floor((el.clientHeight - headH - scrollbar) / rowH));
+      rememberFitRows(table, next);
       setRows((prev) => (prev === next ? prev : next));
     };
     measure();
@@ -131,6 +134,6 @@ export function useFitRows(fallbackRow = 39, fallbackHeader = 35, min = 5) {
       ro.disconnect();
       mo.disconnect();
     };
-  }, [fallbackRow, fallbackHeader, min]);
+  }, [table, fallbackRow, fallbackHeader, min]);
   return { ref, rows };
 }
