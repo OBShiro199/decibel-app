@@ -26,7 +26,8 @@ type Dialable = Pick<Person, 'id' | 'full_name' | 'mobile_e164'> & { company?: {
 
 interface Actions {
   /** Opens the panel at once, then checks DNC/TPS while the microphone and device get ready. */
-  callPerson: (person: Dialable, opts?: { listId?: string | null }) => Promise<boolean>;
+  /** `testRoute`: ring this number (the rep's own) instead of the person's mobile; everything else is a normal call. */
+  callPerson: (person: Dialable, opts?: { listId?: string | null; testRoute?: string }) => Promise<boolean>;
   /** Onboarding step 5: call the user's own mobile and play the test message. Resolves true if answered. */
   testCall: (e164: string, opts?: { practice?: boolean; name?: string; company?: string }) => Promise<boolean>;
   hangUp: () => void;
@@ -228,6 +229,7 @@ export function SoftphoneProvider({
         const params: Record<string, string> = { To: callee.number, WorkspaceId: workspaceId, UserId: userId, CallId: callId };
         if (callee.personId) params.PersonId = callee.personId;
         if (callee.listId) params.ListId = callee.listId;
+        if (callee.testRoute) params.TestRoute = 'true';
         if (kind === 'test') params.Kind = 'test';
         if (kind === 'test' && practiceRef.current) params.Practice = 'true';
         if (recordingPolicy === 'rep_choice' && recordRef.current) params.Record = 'true';
@@ -266,7 +268,14 @@ export function SoftphoneProvider({
       }
       const callId = crypto.randomUUID();
       notesWarned.current = false;
-      const callee: Callee = { personId: person.id, name: person.full_name, company: person.company?.name ?? null, number: person.mobile_e164 ?? '', listId: opts?.listId ?? null };
+      const callee: Callee = {
+        personId: person.id,
+        name: person.full_name,
+        company: person.company?.name ?? null,
+        number: opts?.testRoute ?? person.mobile_e164 ?? '',
+        listId: opts?.listId ?? null,
+        testRoute: !!opts?.testRoute,
+      };
       dispatch({ type: 'CHECK', callee, kind: 'standard', callId });
       // the dial check, microphone and device all start at once
       const [check, prep] = await Promise.all([

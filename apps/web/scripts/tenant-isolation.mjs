@@ -96,6 +96,8 @@ async function seed(a) {
   if (cErr) throw new Error(`seed call: ${cErr.message}`);
   await a.client.from('notes').insert({ workspace_id: a.workspaceId, person_id: person.id, author_id: a.user.id, body: 'isolation probe' });
   await a.client.from('lists').insert({ workspace_id: a.workspaceId, name: `Isolation ${randomBytes(2).toString('hex')}`, owner_id: a.user.id });
+  const { error: sErr } = await a.client.from('dialler_sessions').insert({ workspace_id: a.workspaceId, user_id: a.user.id, source: 'today', label: 'Isolation run', lead_ids: [person.id], results: { [person.id]: { state: 'done', outcome: 'no_answer' } } });
+  if (sErr) throw new Error(`seed dialler session: ${sErr.message}`);
   let path = null;
   if (admin) {
     path = `${a.workspaceId}/${callId}.mp3`;
@@ -122,7 +124,7 @@ async function crossChecks(label, attacker, victim, seeded) {
     check(`${label}: cannot read ${table}${column === 'workspace_id' ? '' : ` by ${column}`}`, !error ? data.length === 0 : true, error ? `error: ${error.message}` : `${data.length} rows`);
   };
   await empty('workspaces', 'id');
-  for (const t of ['people', 'calls', 'recordings', 'notes', 'tasks', 'lists', 'list_members', 'activities', 'credit_transactions', 'phone_numbers', 'dnc_entries', 'audit_log', 'invitations', 'pipeline_stages', 'tenant_companies']) await empty(t);
+  for (const t of ['people', 'calls', 'recordings', 'notes', 'tasks', 'lists', 'list_members', 'activities', 'credit_transactions', 'phone_numbers', 'dnc_entries', 'audit_log', 'invitations', 'pipeline_stages', 'tenant_companies', 'dialler_sessions']) await empty(t);
   if (seeded) {
     await empty('people', 'id', seeded.personId);
     await empty('calls', 'id', seeded.callId);
@@ -152,6 +154,10 @@ async function crossChecks(label, attacker, victim, seeded) {
   check(`${label}: today_queue returns nothing for the other workspace`, !queue.error && (queue.data ?? []).length === 0, queue.error?.message ?? `${queue.data?.length} rows`);
   const wsUpd = await c.from('workspaces').update({ name: 'Hacked' }).eq('id', ws).select('id');
   check(`${label}: cannot rename the other workspace`, wsUpd.error || (wsUpd.data ?? []).length === 0, wsUpd.error?.message ?? `${wsUpd.data?.length} rows changed`);
+  const sessIns = await c.from('dialler_sessions').insert({ workspace_id: ws, user_id: (await c.auth.getUser()).data.user?.id, source: 'today', label: 'Intruder run' }).select('id');
+  check(`${label}: cannot start a dialler session in the other workspace`, !!sessIns.error, sessIns.error?.message ?? 'inserted');
+  const sessUpd = await c.from('dialler_sessions').update({ position: 99 }).eq('workspace_id', ws).select('id');
+  check(`${label}: cannot change the other workspace's dialler sessions`, sessUpd.error || (sessUpd.data ?? []).length === 0, sessUpd.error?.message ?? `${sessUpd.data?.length} rows changed`);
   const audit = await c.rpc('log_audit', { p_workspace_id: ws, p_action: 'export.people' });
   check(`${label}: cannot write to the other workspace's audit log`, !!audit.error, audit.error?.message ?? 'written');
 }
@@ -161,6 +167,8 @@ async function controls(label, s, seeded) {
   check(`${label}: positive control, owner can read their own person`, (data ?? []).length === 1);
   const { data: calls } = await s.client.from('calls').select('id').eq('id', seeded.callId);
   check(`${label}: positive control, owner can read their own call`, (calls ?? []).length === 1);
+  const { data: sessions } = await s.client.from('dialler_sessions').select('id,results').eq('workspace_id', s.workspaceId);
+  check(`${label}: positive control, rep can read their own dialler session`, (sessions ?? []).length >= 1 && Object.keys(sessions[0].results ?? {}).length === 1);
   if (seeded.path) {
     const signed = await s.client.storage.from('recordings').createSignedUrl(seeded.path, 60);
     check(`${label}: positive control, owner can sign their own recording`, !signed.error, signed.error?.message ?? '');

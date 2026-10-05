@@ -1,6 +1,6 @@
 'use client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, FileText, Phone, Plus, Trash2, Users } from 'lucide-react';
+import { ChevronLeft, FileText, Phone, Plus, Trash2, Users, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -76,7 +76,7 @@ export default function ListPage() {
   if (list.isLoading) {
     return (
       <div className="flex h-full flex-col" aria-busy>
-        <div className="flex h-[57px] items-center gap-3 border-b border-white-800 bg-white-100 px-4">
+        <div className="flex h-12 items-center gap-3 border-b border-white-800 bg-white-100 px-4">
           <Skeleton className="h-8 w-8" />
           <Skeleton className="h-5 w-56" />
         </div>
@@ -93,13 +93,14 @@ export default function ListPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-white-800 bg-white-100 px-4 py-3">
+      <div className="flex h-12 shrink-0 items-center gap-3 overflow-x-auto border-b border-white-800 bg-white-100 px-4 [scrollbar-width:none]">
         <Link href="/app/lists" aria-label="Back to lists" className="flex h-8 w-8 items-center justify-center rounded-sm hover:bg-white-300">
           <ChevronLeft size={16} strokeWidth={1.5} />
         </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="t-h3 truncate">{l.name}</h1>
-          {l.description ? <p className="truncate text-black-700">{l.description}</p> : null}
+        {/* one line, so the toolbar keeps the shared 48px height */}
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <h1 className="t-h4 shrink-0 truncate">{l.name}</h1>
+          {l.description ? <p className="t-small min-w-0 truncate text-black-700">{l.description}</p> : null}
         </div>
         <Button size="compact" onClick={() => setSettings(true)} disabled={!canEdit}>
           <FileText size={16} strokeWidth={1.5} /> {l.script ? 'Script and settings' : 'Settings'}
@@ -107,9 +108,12 @@ export default function ListPage() {
         <Button size="compact" onClick={() => setAssign(true)} disabled={!isAdmin} title={isAdmin ? undefined : 'Only owners and admins can assign'}>
           <Users size={16} strokeWidth={1.5} /> Assign to
         </Button>
-        <Button size="compact" variant="primary" loading={starting} onClick={start}>
-          <Phone size={16} strokeWidth={1.5} /> Start calling
+        <Button size="compact" loading={starting} onClick={start} title="Queue everyone in this list on your Today page">
+          <Phone size={16} strokeWidth={1.5} /> Add to Today
         </Button>
+        <ButtonLink size="compact" variant="primary" href={`/app/dialler?list=${id}`}>
+          <Zap size={16} strokeWidth={1.6} style={{ color: 'var(--dialler)' }} /> Start power dialler
+        </ButtonLink>
       </div>
       {l.script ? (
         <details className="border-b border-white-800 bg-white-100 px-4 py-2">

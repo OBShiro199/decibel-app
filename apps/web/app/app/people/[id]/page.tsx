@@ -129,7 +129,7 @@ export default function PersonPage() {
   return (
     <div className="flex h-full flex-col bg-white-100">
       {/* 56px top bar: close, previous / next */}
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white-800 px-4">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-white-800 px-4">
         <Button size="icon-compact" aria-label="Close record" onClick={() => router.back()}>
           <X size={16} strokeWidth={1.5} />
         </Button>

@@ -24,6 +24,10 @@ Deno.serve(async (req) => {
   const userId = fromIdentity(body.From ?? '');
   if (!UUID.test(userId)) return blockedTwiml('This call could not be authorised.');
   const kind = body.Kind === 'test' ? 'test' : 'standard';
+  // Test routing (power dialler while testing): a real call to a person in every respect
+  // (checks, call row, outcome, notes, recording) except it rings the rep's own number.
+  // Only the caller's own mobile or one of the workspace's verified numbers is accepted.
+  const testRoute = kind === 'standard' && body.TestRoute === 'true';
   const personId = UUID.test(body.PersonId ?? '') ? body.PersonId : null;
   const listId = UUID.test(body.ListId ?? '') ? body.ListId : null;
   // The browser picks the row id before dialling, so it can attach notes and the
@@ -38,8 +42,8 @@ Deno.serve(async (req) => {
       : Promise.resolve({ data: null }),
     kind === 'standard' && personId ? db.from('people').select('mobile_e164').eq('id', personId).eq('workspace_id', ws.id).maybeSingle() : Promise.resolve({ data: null }),
     kind === 'test' ? db.from('workspace_members').select('user_id').eq('workspace_id', ws.id).eq('user_id', userId).maybeSingle() : Promise.resolve({ data: null }),
-    // test and practice calls may only ring the caller's own mobile or one of the workspace's verified numbers
-    kind === 'test'
+    // test, practice and test-routed calls may only ring the caller's own mobile or one of the workspace's verified numbers
+    kind === 'test' || testRoute
       ? Promise.all([
           db.from('profiles').select('mobile_e164').eq('id', userId).maybeSingle(),
           db.from('phone_numbers').select('e164').eq('workspace_id', ws.id).eq('status', 'active'),
@@ -55,7 +59,12 @@ Deno.serve(async (req) => {
     if (!personId) blocked = 'person_not_found';
     else if (!c?.allowed) blocked = c?.reason ?? 'forbidden';
     // never trust the browser's To: dial the number stored on the person
-    else to = (personRes.data as { mobile_e164: string | null } | null)?.mobile_e164 ?? '';
+    else if (!testRoute) to = (personRes.data as { mobile_e164: string | null } | null)?.mobile_e164 ?? '';
+    else {
+      const [profileRes, ownNumbers] = (ownRes ?? [{ data: null }, { data: [] }]) as [{ data: { mobile_e164: string | null } | null }, { data: { e164: string }[] | null }];
+      const allowed = new Set([profileRes.data?.mobile_e164, ...(ownNumbers.data ?? []).map((n) => n.e164)].filter(Boolean));
+      if (!allowed.has(to)) blocked = 'test_number_not_yours';
+    }
   } else if (!memberRes.data) blocked = 'forbidden';
   else if (ws.minute_balance_seconds <= 0 && !ws.stripe_customer_id) blocked = 'no_minutes';
   else {

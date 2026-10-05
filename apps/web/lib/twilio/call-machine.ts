@@ -14,6 +14,8 @@ export interface Callee {
   company?: string | null;
   number: string;
   listId?: string | null;
+  /** Power dialler test routing: a real call to this person that rings the rep's own number. */
+  testRoute?: boolean;
 }
 
 export interface SoftphoneState {

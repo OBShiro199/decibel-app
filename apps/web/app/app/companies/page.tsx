@@ -59,7 +59,7 @@ export default function CompaniesPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b border-white-800 bg-white-100 px-4 py-2">
+      <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-white-800 bg-white-100 px-4 [scrollbar-width:none]">
         <div className="relative">
           <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-2.5 top-2 text-white-900" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter companies" className="h-8 w-64 pl-8" aria-label="Filter companies" />

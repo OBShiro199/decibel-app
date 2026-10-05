@@ -7,16 +7,18 @@
 // and wrap-up swaps content in place without anything jumping.
 import { useQuery } from '@tanstack/react-query';
 import { Check, Mic, MicOff, Pause, Phone, PhoneOff, Play, SkipForward, Square, Zap } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '@/lib/app-context';
 import { OUTCOMES, outcomeMeta } from '@/lib/constants';
-import { personLead, practiceLeads, PRACTICE_DEFAULT_NUMBER, WRAP_SECONDS, type DialLead } from '@/lib/dialler';
+import { personLead, practiceLeads, PRACTICE_DEFAULT_NUMBER, TEST_ROUTING, WRAP_SECONDS, type DialLead } from '@/lib/dialler';
+import { createSession, findOpenSession, reconcileResults, saveSession, sessionLeads, type DiallerSession, type LeadResult } from '@/lib/dialler-session';
 import { useLists } from '@/lib/hooks';
 import { peopleQuery, todayQueueQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
 import { isLive, PHASE_LABEL } from '@/lib/twilio/call-machine';
 import type { CallOutcome } from '@/lib/types';
-import { cn, formatDuration, formatPhone, normalizePhone } from '@/lib/utils';
+import { cn, formatDuration, formatPhone, normalizePhone, timeAgo } from '@/lib/utils';
 import { FilterMenu } from '@/components/app/filter-menu';
 import { isBlocked } from '@/components/app/records';
 import { useSoftphoneActions, useSoftphoneState, type NoteSaveStatus } from '@/components/softphone/provider';
@@ -26,13 +28,7 @@ import { Input, Textarea } from '@/components/ui/form';
 import { useToast } from '@/components/ui/overlay';
 
 type Mode = 'setup' | 'running' | 'paused' | 'finished';
-interface Result {
-  state: 'pending' | 'calling' | 'done' | 'skipped';
-  outcome?: CallOutcome;
-  note?: string;
-  reason?: string;
-  seconds?: number;
-}
+type Result = LeadResult;
 
 function useTicker(startedAt: number | null, endedAt: number | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -45,6 +41,14 @@ function useTicker(startedAt: number | null, endedAt: number | null) {
 }
 
 export default function DiallerPage() {
+  return (
+    <Suspense fallback={null}>
+      <Dialler />
+    </Suspense>
+  );
+}
+
+function Dialler() {
   const { workspace, user, profile } = useApp();
   const actions = useSoftphoneActions();
   const sp = useSoftphoneState();
@@ -52,12 +56,14 @@ export default function DiallerPage() {
   const { data: lists } = useLists();
 
   // ---- lead source -----------------------------------------------------------
-  const [source, setSource] = useState<string>('practice');
+  // /app/dialler?list=<id> (from a list's "Start power dialler") opens on that list
+  const urlList = useSearchParams().get('list');
+  const [source, setSource] = useState<string>(urlList ? `list:${urlList}` : 'practice');
   const [practiceNumber, setPracticeNumber] = useState(PRACTICE_DEFAULT_NUMBER);
   const listId = source.startsWith('list:') ? source.slice(5) : undefined;
   const today = useQuery({ ...todayQueueQuery(workspace.id, user.id), enabled: source === 'today' });
   const listPeople = useQuery({ ...peopleQuery(workspace.id, listId), enabled: !!listId });
-  const leads: DialLead[] = useMemo(() => {
+  const previewLeads: DialLead[] = useMemo(() => {
     if (source === 'practice') return practiceLeads(normalizePhone(practiceNumber) ?? practiceNumber);
     const people = source === 'today' ? today.data : listPeople.data;
     return (people ?? []).map(personLead);
@@ -65,7 +71,28 @@ export default function DiallerPage() {
   const leadsLoading = source === 'today' ? today.isLoading : listId ? listPeople.isLoading : false;
 
   // ---- session ---------------------------------------------------------------
+  // a run's leads are fixed when it starts (and restored on resume), so list edits mid-run
+  // can't reshuffle it; before that the preview follows the chosen source
+  const [runLeads, setRunLeads] = useState<DialLead[] | null>(null);
+  const leads = runLeads ?? previewLeads;
   const [mode, setMode] = useState<Mode>('setup');
+  // the saved run (public.dialler_sessions) and an unfinished one offered for resuming
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [resumable, setResumable] = useState<DiallerSession | null>(null);
+  const [sessionLookup, setSessionLookup] = useState<'loading' | 'done'>('loading');
+  const [resuming, setResuming] = useState(false);
+  // while a run is offered for resuming, the lead list previews that run and its results
+  const [resumePreview, setResumePreview] = useState<DialLead[] | null>(null);
+  useEffect(() => {
+    if (!resumable) return setResumePreview(null);
+    let cancelled = false;
+    sessionLeads(resumable)
+      .then((l) => !cancelled && setResumePreview(l))
+      .catch(() => !cancelled && setResumePreview(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [resumable]);
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState<Record<string, Result>>({});
   const [wrap, setWrap] = useState<{ remaining: number; total: number } | null>(null);
@@ -146,14 +173,15 @@ export default function DiallerPage() {
     }
     mark(current.id, { state: 'calling' });
     answeredRef.current = false;
+    const testNumber = normalizePhone(practiceNumber) ?? undefined;
     const started = current.practice
       ? (void actions.testCall(current.number, { practice: true, name: current.name, company: current.company }), true)
-      : await actions.callPerson(current.person!);
+      : await actions.callPerson(current.person!, { listId: listId ?? null, testRoute: TEST_ROUTING ? testNumber : undefined });
     if (!started && phaseRef.current === 'idle') {
       mark(current.id, { state: 'skipped', reason: 'Could not start' });
       setWrap({ remaining: 1.5, total: 1.5 });
     }
-  }, [actions, current, mark]);
+  }, [actions, current, mark, practiceNumber, listId]);
 
   // a call finished (or was refused): start the wrap-up countdown
   useEffect(() => {
@@ -181,6 +209,13 @@ export default function DiallerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.phase]);
 
+  useEffect(() => {
+    if (!current || !sp.callId) return;
+    const r = results[current.id];
+    if (r?.state === 'calling' && r.callId !== sp.callId && sp.kind === 'standard') mark(current.id, { callId: sp.callId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp.callId, current?.id, results]);
+
   // countdown: runs only while the session is running
   useEffect(() => {
     if (!wrap || mode !== 'running') return;
@@ -200,16 +235,36 @@ export default function DiallerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, wrap, current?.id, sp.phase, results, dial]);
 
+  /** Starts a fresh run on the chosen leads and saves it, so it can be resumed later. */
   const start = async () => {
-    if (!leads.length) return;
-    if (source === 'practice') {
-      const e164 = normalizePhone(practiceNumber);
-      if (!e164) return toast('Enter a valid mobile number for practice calls.');
+    const snapshot = previewLeads;
+    if (!snapshot.length) return;
+    const e164 = normalizePhone(practiceNumber);
+    // practice calls and test-routed calls ring this number, which must be the rep's own mobile
+    if (source === 'practice' || TEST_ROUTING) {
+      if (!e164) return toast('Enter a valid mobile number for test calls.');
       if (e164 !== profile.mobile_e164) {
         const { error } = await supabase().from('profiles').update({ mobile_e164: e164 }).eq('id', user.id);
         if (error) return toast(`Could not save your mobile: ${error.message}`);
       }
     }
+    let id: string;
+    try {
+      id = await createSession({
+        workspaceId: workspace.id,
+        userId: user.id,
+        source: source === 'practice' ? 'practice' : source === 'today' ? 'today' : 'list',
+        listId: listId ?? null,
+        label: sourceOptions.find((o) => o.value === source)?.label ?? 'Power dialler',
+        testNumber: source === 'practice' || TEST_ROUTING ? e164 : null,
+        leadIds: snapshot.map((l) => l.id),
+      });
+    } catch (e) {
+      return toast(`Could not start the session: ${(e as Error).message}`);
+    }
+    setResumable(null);
+    setSessionId(id);
+    setRunLeads(snapshot);
     setNotice(null);
     setResults({});
     setIndex(0);
@@ -218,6 +273,40 @@ export default function DiallerPage() {
     clearNotes();
     dialingRef.current = null;
     setMode('running');
+  };
+
+  /** Restores an unfinished run exactly where it stopped, paused until the rep carries on. */
+  const resume = async (s: DiallerSession) => {
+    setResuming(true);
+    try {
+      const [restored, reconciled] = await Promise.all([sessionLeads(s), reconcileResults(s.results ?? {})]);
+      if (s.test_number) setPracticeNumber(s.test_number);
+      setSource(s.source === 'list' && s.list_id ? `list:${s.list_id}` : s.source);
+      setRunLeads(restored);
+      setResults(reconciled);
+      // carry on from the first lead that still needs calling
+      const firstOpen = restored.findIndex((l) => (reconciled[l.id]?.state ?? 'pending') === 'pending');
+      const pos = firstOpen === -1 ? restored.length : Math.max(0, firstOpen);
+      setIndex(pos);
+      setSessionId(s.id);
+      setResumable(null);
+      setWrap(null);
+      setChoice(null);
+      clearNotes();
+      dialingRef.current = null;
+      setMode(pos >= restored.length ? 'finished' : 'paused');
+    } catch (e) {
+      toast(`Could not resume: ${(e as Error).message}`);
+    } finally {
+      setResuming(false);
+    }
+  };
+
+  /** Closes the unfinished run (its calls stay saved) and starts again on the chosen leads. */
+  const startOver = async () => {
+    if (resumable) await saveSession(resumable.id, { position: resumable.position, results: resumable.results, status: 'finished' }).catch(() => {});
+    setResumable(null);
+    await start();
   };
 
   const end = () => {
@@ -235,6 +324,69 @@ export default function DiallerPage() {
     mark(current.id, { state: 'skipped', reason: 'Skipped' });
     advance();
   };
+
+  // ---- saving the run -----------------------------------------------------------
+  // Every change (position, results, pause, finish) is saved within 300ms; the latest state is
+  // also flushed when the tab is hidden or the page closes. Failures retry until they land.
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle');
+  const pending = useRef<{ id: string; patch: Parameters<typeof saveSession>[1] } | null>(null);
+  const flush = useCallback(async () => {
+    const job = pending.current;
+    if (!job) return;
+    try {
+      await saveSession(job.id, job.patch);
+      if (pending.current === job) {
+        pending.current = null;
+        setSaveStatus('saved');
+      }
+    } catch {
+      setSaveStatus('retrying');
+      setTimeout(() => void flush(), 3000);
+    }
+  }, []);
+  useEffect(() => {
+    if (!sessionId || mode === 'setup') return;
+    pending.current = {
+      id: sessionId,
+      patch: { position: Math.min(index, leads.length), results, status: mode === 'finished' ? 'finished' : mode === 'paused' ? 'paused' : 'active' },
+    };
+    setSaveStatus((st) => (st === 'retrying' ? st : 'saving'));
+    const t = setTimeout(() => void flush(), 300);
+    return () => clearTimeout(t);
+  }, [sessionId, mode, index, results, leads.length, flush]);
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') void flush();
+    };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onHide);
+      void flush(); // leaving the dialler: save whatever is pending
+    };
+  }, [flush]);
+
+  // on open: offer the last unfinished run (for this list, when opened from one)
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    setSessionLookup('loading');
+    findOpenSession(workspace.id, user.id, urlList ?? undefined)
+      .then((found) => !cancelled && setResumable(found))
+      .catch(() => {})
+      .finally(() => !cancelled && setSessionLookup('done'));
+    return () => {
+      cancelled = true;
+    };
+  }, [workspace.id, user.id, urlList]);
+  // opened from a list with nothing to resume: start calling straight away
+  useEffect(() => {
+    if (!urlList || autoStarted.current || sessionLookup !== 'done' || resumable || mode !== 'setup' || leadsLoading || !previewLeads.length) return;
+    autoStarted.current = true;
+    void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlList, sessionLookup, resumable, mode, leadsLoading, previewLeads.length]);
 
   // keyboard: 1-9 outcome during wrap-up, N next now, P pause / resume
   useEffect(() => {
@@ -262,6 +414,11 @@ export default function DiallerPage() {
     ...(lists ?? []).map((l) => ({ value: `list:${l.id}`, label: l.name })),
   ];
 
+  const previewingResume = mode === 'setup' && !!resumable;
+  const listLeads = previewingResume ? (resumePreview ?? []) : leads;
+  const listResults: Record<string, Result> = previewingResume ? (resumable?.results ?? {}) : results;
+  const listLoading = previewingResume ? !resumePreview : leadsLoading;
+
   return (
     <div className="flex h-full flex-col">
       {/* toolbar */}
@@ -281,6 +438,7 @@ export default function DiallerPage() {
           </span>
         ) : null}
         <div className="ml-auto flex items-center gap-2">
+          {sessionId && mode !== 'setup' ? <SessionSaveState status={saveStatus} /> : null}
           {mode === 'running' ? (
             <Button size="compact" onClick={() => setMode('paused')}>
               <Pause size={14} strokeWidth={1.6} /> Pause
@@ -302,18 +460,18 @@ export default function DiallerPage() {
         {/* lead list */}
         <aside className="flex w-[320px] shrink-0 flex-col border-r border-white-800">
           <p className="flex h-10 shrink-0 items-center px-4 text-xs text-white-900">
-            {leadsLoading ? 'Loading leads' : `${leads.length} ${leads.length === 1 ? 'lead' : 'leads'}`}
+            {listLoading ? 'Loading leads' : `${listLeads.length} ${listLeads.length === 1 ? 'lead' : 'leads'}${previewingResume ? ' in your unfinished run' : ''}`}
           </p>
           <ol className="min-h-0 flex-1 overflow-y-auto">
-            {leadsLoading
+            {listLoading
               ? Array.from({ length: 8 }).map((_, i) => (
                   <li key={i} className="flex h-14 items-center gap-3 border-t border-rule px-4">
                     <Skeleton className="h-6 w-6" />
                     <Skeleton className="h-3 flex-1" />
                   </li>
                 ))
-              : leads.map((l, i) => {
-                  const r = results[l.id];
+              : listLeads.map((l, i) => {
+                  const r = listResults[l.id];
                   const isCurrent = mode !== 'setup' && mode !== 'finished' && i === index;
                   return (
                     <li
@@ -324,7 +482,10 @@ export default function DiallerPage() {
                       <span className="w-5 shrink-0 text-xs tabular-nums text-white-900">{i + 1}</span>
                       <span className="min-w-0 flex-1">
                         <span className={cn('block truncate text-sm', r?.state === 'done' || r?.state === 'skipped' ? 'text-black-700' : 'font-medium text-black-400')}>{l.name}</span>
-                        <span className="block truncate text-xs text-white-900">{l.company}</span>
+                        <span className="block truncate text-xs text-white-900">
+                          {l.company}
+                          {!r && l.person?.last_outcome ? ` · last: ${outcomeMeta(l.person.last_outcome)?.label.toLowerCase() ?? l.person.last_outcome}${l.person.last_called_at ? ` ${timeAgo(l.person.last_called_at)}` : ''}` : ''}
+                        </span>
                       </span>
                       <span className="shrink-0">
                         {r?.state === 'calling' ? (
@@ -359,9 +520,11 @@ export default function DiallerPage() {
             <div className="flex h-[112px] items-center gap-4">
               {stage === 'setup' || stage === 'finished' ? (
                 <div>
-                  <h1 className="text-xl font-medium text-black-400">{stage === 'setup' ? 'Ready when you are' : 'Session complete'}</h1>
+                  <h1 className="text-xl font-medium text-black-400">{stage === 'setup' ? (previewingResume ? 'Welcome back' : 'Ready when you are') : 'Session complete'}</h1>
                   <p className="mt-1 text-base text-black-700">
-                    {stage === 'setup'
+                    {stage === 'setup' && previewingResume
+                      ? 'Your last run is saved. Resume to carry on from the next person, or start over.'
+                      : stage === 'setup'
                       ? 'Calls each lead in turn. After every call you get 20 seconds for notes, then the next one dials.'
                       : `${done.length} calls · ${connects} connected · ${meetings} meetings booked`}
                   </p>
@@ -384,12 +547,27 @@ export default function DiallerPage() {
             <div className="flex h-12 items-center gap-3 border-y border-white-800">
               {stage === 'setup' || stage === 'finished' ? (
                 <span className="text-sm text-black-700">
-                  {leads.length} {leads.length === 1 ? 'lead' : 'leads'} ·{' '}
-                  {source === 'practice' ? 'practice calls ring your own mobile' : 'TPS-listed and do-not-call numbers are skipped'}
+                  {previewingResume ? `${resumable!.label} · ` : `${leads.length} ${leads.length === 1 ? 'lead' : 'leads'} · `}
+                  {previewingResume
+                    ? resumable!.source === 'practice'
+                      ? 'practice calls ring your own mobile'
+                      : resumable!.test_number
+                        ? `test mode: every call rings ${formatPhone(resumable!.test_number)}`
+                        : 'TPS-listed and do-not-call numbers are skipped'
+                    : source === 'practice'
+                    ? 'practice calls ring your own mobile'
+                    : TEST_ROUTING
+                      ? `test mode: every call rings ${formatPhone(normalizePhone(practiceNumber) ?? practiceNumber)}`
+                      : 'TPS-listed and do-not-call numbers are skipped'}
                 </span>
               ) : (
                 <>
                   <span className="text-base tabular-nums text-black-500">{formatPhone(current!.number)}</span>
+                  {TEST_ROUTING && !current!.practice ? (
+                    <span className="tag tag-2" title="Test mode: the call rings your test number">
+                      Rings {formatPhone(normalizePhone(practiceNumber) ?? practiceNumber)}
+                    </span>
+                  ) : null}
                   <span className="ml-auto flex items-center gap-2">
                     {stage === 'live' ? <Badge tone={sp.phase === 'in_call' ? 'success' : 'accent'}>{PHASE_LABEL[sp.phase]}</Badge> : null}
                     <span className="w-14 text-right text-lg tabular-nums text-black-400">{formatDuration(stage === 'live' || stage === 'wrap' ? seconds : 0)}</span>
@@ -400,15 +578,21 @@ export default function DiallerPage() {
 
             {/* action area: one fixed footprint for every stage */}
             <div className="h-[244px] py-5">
-              {stage === 'setup' ? (
+              {stage === 'setup' && resumable ? (
+                <ResumeCard session={resumable} busy={resuming} onResume={() => void resume(resumable)} onStartOver={() => void startOver()} />
+              ) : stage === 'setup' ? (
                 <div className="flex h-full flex-col justify-between">
-                  {source === 'practice' ? (
+                  {source === 'practice' || TEST_ROUTING ? (
                     <div>
                       <label className="t-label mb-1.5 block" htmlFor="practice-number">
-                        Practice number
+                        {source === 'practice' ? 'Practice number' : 'Test number'}
                       </label>
                       <Input id="practice-number" type="tel" className="max-w-[260px] tabular-nums" value={practiceNumber} onChange={(e) => setPracticeNumber(e.target.value)} />
-                      <p className="mt-1.5 text-xs text-white-900">Ten practice leads all ring this number, saved as your mobile. Nothing is written to your records.</p>
+                      <p className="mt-1.5 text-xs text-white-900">
+                        {source === 'practice'
+                          ? 'Ten practice leads all ring this number, saved as your mobile. Nothing is written to your records.'
+                          : 'Test mode: every call rings this number instead of the lead. Outcomes and notes are saved to each person as normal.'}
+                      </p>
                     </div>
                   ) : (
                     <p className="text-sm text-black-700">Outcomes and notes are saved to each person, exactly as with single calls.</p>
@@ -428,7 +612,17 @@ export default function DiallerPage() {
                     <Button variant="primary" onClick={start} disabled={!leads.length}>
                       <Play size={14} strokeWidth={1.6} /> Run again
                     </Button>
-                    <Button onClick={() => setMode('setup')}>Change leads</Button>
+                    <Button
+                      onClick={() => {
+                        setRunLeads(null);
+                        setSessionId(null);
+                        setResults({});
+                        setIndex(0);
+                        setMode('setup');
+                      }}
+                    >
+                      Change leads
+                    </Button>
                   </div>
                 </div>
               ) : stage === 'live' ? (
@@ -523,7 +717,7 @@ const NOTE_PILL: Record<NoteSaveStatus | 'local', { label: string; tone: string 
   saving: { label: 'Saving…', tone: 'tag-7' },
   saved: { label: 'Saved', tone: 'tag-0' },
   deferred: { label: 'Saves with the outcome', tone: 'tag-7' },
-  local: { label: 'Practice call, kept for this session', tone: 'tag-7' },
+  local: { label: 'Saved with this session', tone: 'tag-0' },
 };
 
 /** Shows whether the call notes have been saved. Renders nothing until there is something to save. */
@@ -535,5 +729,50 @@ function NoteSavePill({ status }: { status: NoteSaveStatus | 'local' | null }) {
       {status === 'saved' ? <Check size={12} strokeWidth={2} /> : null}
       {label}
     </span>
+  );
+}
+
+/** Toolbar indicator for the saved run. */
+function SessionSaveState({ status }: { status: 'idle' | 'saving' | 'saved' | 'retrying' }) {
+  if (status === 'idle') return null;
+  const meta = status === 'saved' ? { label: 'Progress saved', tone: 'tag-0' } : status === 'retrying' ? { label: 'Not saved yet, retrying', tone: 'tag-2' } : { label: 'Saving…', tone: 'tag-7' };
+  return (
+    <span key={status} className={cn('tag t-fade gap-1', meta.tone)} role="status" aria-live="polite">
+      {status === 'saved' ? <Check size={12} strokeWidth={2} /> : null}
+      {meta.label}
+    </span>
+  );
+}
+
+/** Offered on open when the rep has an unfinished run: carry on, or close it and start fresh. */
+function ResumeCard({ session, busy, onResume, onStartOver }: { session: DiallerSession; busy: boolean; onResume: () => void; onStartOver: () => void }) {
+  const all = Object.values(session.results ?? {});
+  const called = all.filter((r) => r.state === 'done' || r.state === 'skipped' || r.state === 'calling').length;
+  const connected = all.filter((r) => r.outcome === 'connected' || r.outcome === 'meeting_booked').length;
+  const booked = all.filter((r) => r.outcome === 'meeting_booked').length;
+  const total = session.lead_ids.length;
+  return (
+    <div className="flex h-full flex-col justify-between">
+      <div className="rounded-lg border border-white-800 p-4">
+        <p className="text-xs" style={{ color: 'var(--dialler)' }}>
+          Pick up where you left off
+        </p>
+        <p className="mt-1 truncate text-md font-medium text-black-400">{session.label}</p>
+        <p className="mt-1 text-sm tabular-nums text-black-700">
+          {called} of {total} called · {connected} connected · {booked} booked · last active {timeAgo(session.updated_at)}
+        </p>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white-300">
+          <div className="h-full rounded-full" style={{ width: `${total ? (called / total) * 100 : 0}%`, background: 'var(--dialler)' }} />
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button variant="primary" size="lg" onClick={onResume} loading={busy}>
+          <Play size={16} strokeWidth={1.6} /> Resume session
+        </Button>
+        <Button size="lg" onClick={onStartOver} disabled={busy}>
+          Start over
+        </Button>
+      </div>
+    </div>
   );
 }

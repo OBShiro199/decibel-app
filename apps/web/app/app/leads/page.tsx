@@ -170,7 +170,7 @@ function Leads() {
   return (
     <div className="flex h-full">
       <div className="flex min-w-0 flex-1 flex-col bg-white-100">
-        <div className="flex flex-wrap items-center gap-2 border-b border-white-800 px-4 py-2">
+        <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-white-800 px-4 [scrollbar-width:none]">
           <div className="relative">
             <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-2.5 top-2 text-white-900" />
             <Input value={text} onChange={(e) => { setText(e.target.value); setPage(0); }} placeholder="Search name, company or title" className="h-8 w-72 pl-8 max-sm:w-44" aria-label="Search the database" />

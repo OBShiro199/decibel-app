@@ -144,6 +144,14 @@ export const TABLES: Record<string, unknown[]> = {
   dnc_entries: [{ id: 'd1', workspace_id: WS, e164: '+447700900188', reason: 'Requested on call', added_by: ME, created_at: ago(1) }],
   imports: [{ id: 'im1', workspace_id: WS, user_id: ME, storage_path: 'x', filename: 'trade-show-leads.csv', status: 'completed', column_map: {}, row_count: 48, imported_count: 45, skipped_count: 3, error: null, list_id: null, created_at: ago(2), completed_at: ago(2) }],
   icp_profiles: [], usage_reports: [], audit_log: [],
+  // an unfinished power dialler run on the first list, so the dialler offers "pick up where you left off"
+  dialler_sessions: [
+    {
+      id: 'aaaaaaaa-0000-4000-8000-000000000001', workspace_id: WS, user_id: ME, source: 'list', list_id: lists[0].id, label: lists[0].name, test_number: '+447585509647',
+      lead_ids: people.slice(0, 6).map((p) => p.id), position: 2, status: 'paused', started_at: ago(0, 3), updated_at: ago(0, 2),
+      results: { [people[0].id]: { state: 'done', outcome: 'connected', seconds: 142 }, [people[1].id]: { state: 'done', outcome: 'no_answer', seconds: 31 } },
+    },
+  ],
 };
 
 export const RPC: Record<string, unknown> = {

@@ -126,7 +126,7 @@ function Sidebar() {
       aria-label="Main"
       className="flex w-[var(--sidebar-width)] shrink-0 flex-col border-r border-white-800 bg-canvas transition-[width]"
     >
-      <Link href="/app" aria-label="Decibel home" className="flex h-11 shrink-0 items-center gap-1.5 border-b border-white-800 px-4 max-[1100px]:justify-center max-[1100px]:px-0">
+      <Link href="/app" aria-label="Decibel home" className="flex h-12 shrink-0 items-center gap-1.5 border-b border-white-800 px-4 max-[1100px]:justify-center max-[1100px]:px-0">
         <LogoMark size={20} />
         <span className="font-semibold tracking-[-0.02em] text-black-400 max-[1100px]:hidden">Decibel</span>
       </Link>

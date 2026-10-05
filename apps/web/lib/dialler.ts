@@ -14,6 +14,12 @@ export interface DialLead {
 
 export const WRAP_SECONDS = 20;
 export const PRACTICE_DEFAULT_NUMBER = '07585509647';
+/**
+ * While testing, every power dialler call rings the test number (the rep's own mobile)
+ * instead of the lead's mobile. Calls are otherwise real: checks, call rows, outcomes,
+ * notes and recordings are all saved against the person. Set to false for live calling.
+ */
+export const TEST_ROUTING = true;
 
 const PRACTICE: [string, string, string][] = [
   ['Amelia Ward', 'Ward & Hale Interiors', 'Managing Director'],
