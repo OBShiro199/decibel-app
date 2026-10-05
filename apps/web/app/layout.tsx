@@ -28,7 +28,8 @@ export const metadata: Metadata = {
   manifest: '/brand/site.webmanifest',
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#f6f6f4' };
+// light only: stops the OS dark setting (and Chrome's auto dark mode) restyling native controls or the page
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#f6f6f4', colorScheme: 'only light' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -328,15 +328,15 @@ function ActivityChart({ days, loading, today, subtitle }: { days: { day: string
                 {days.map((d, i) => (
                   <div
                     key={d.day}
-                    className="relative flex h-full min-w-0 flex-1 items-end"
+                    className="relative flex h-full min-w-0 flex-1 items-end justify-center"
                     onMouseEnter={() => setHover(i)}
                   >
                     {/* hover column */}
                     <div className={cn('absolute inset-0 rounded-[3px] bg-white-300 transition-opacity duration-150', hover === i ? 'opacity-100' : 'opacity-0')} />
                     {d.future ? (
-                      <div className="relative h-[2px] w-full rounded-full bg-white-800" />
+                      <div className="relative mx-auto h-[2px] w-full max-w-[56px] rounded-full bg-white-800" />
                     ) : (
-                      <div className="relative w-full transition-[height] duration-300 ease-[cubic-bezier(0.2,0,0,1)]" style={{ height: `${(d.dials / top) * 100}%`, minHeight: d.dials ? 2 : 0 }}>
+                      <div className="relative mx-auto w-full max-w-[56px] transition-[height] duration-300 ease-[cubic-bezier(0.2,0,0,1)]" style={{ height: `${(d.dials / top) * 100}%`, minHeight: d.dials ? 2 : 0 }}>
                         <div className="absolute inset-0 rounded-t-[3px] bg-accent-500 opacity-25" />
                         <div className="absolute inset-x-0 bottom-0 rounded-t-[3px] bg-accent-500 transition-[height] duration-300 ease-[cubic-bezier(0.2,0,0,1)]" style={{ height: d.dials ? `${(d.connects / d.dials) * 100}%` : 0 }} />
                       </div>
