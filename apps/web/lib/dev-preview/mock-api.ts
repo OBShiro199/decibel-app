@@ -11,6 +11,8 @@ function filterRows(rows: Record<string, unknown>[], params: URLSearchParams) {
     if (['select', 'order', 'limit', 'offset', 'or', 'and', 'columns'].includes(key)) return;
     if (!out.length || !(key in out[0])) return;
     if (value.startsWith('eq.')) out = out.filter((r) => String(r[key]) === value.slice(3));
+    else if (value.startsWith('gte.')) out = out.filter((r) => String(r[key]) >= value.slice(4));
+    else if (value.startsWith('lte.')) out = out.filter((r) => String(r[key]) <= value.slice(4));
     else if (value.startsWith('in.(')) {
       const set = value.slice(4, -1).split(',').map((v) => v.replace(/^"|"$/g, ''));
       out = out.filter((r) => set.includes(String(r[key])));

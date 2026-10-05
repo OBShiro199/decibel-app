@@ -94,8 +94,31 @@ export const lists = [
 ];
 export const listMembers = people.slice(0, 6).map((p, i) => ({ list_id: lists[0].id, position: i, person: p }));
 
-export const stats = [0, 1, 2, 3, 4].map((d) => ({ workspace_id: WS, user_id: ME, day: day(d), dials: [14, 31, 22, 0, 18][d], connects: [3, 6, 4, 0, 5][d], meetings: [1, 1, 0, 0, 2][d], talk_seconds: [840, 2100, 1300, 0, 1500][d], duration_seconds: 0 }))
-  .concat([0, 1, 2].map((d) => ({ workspace_id: WS, user_id: PRIYA, day: day(d), dials: [9, 17, 12][d], connects: [2, 3, 2][d], meetings: [0, 1, 0][d], talk_seconds: [420, 900, 600][d], duration_seconds: 0 })));
+// 45 days of sample activity: the first five days are fixed (Today uses them), older days
+// follow a deterministic weekday pattern so the dashboard's comparisons have something to compare
+const weekend = (d: number) => [0, 6].includes(new Date(Date.now() - d * 86400000).getDay());
+const wobble = (d: number, seed: number) => (Math.sin(d * 12.9898 + seed * 78.233) * 43758.5453) % 1;
+const sampleDay = (d: number, base: number, seed: number) => {
+  if (weekend(d)) return { dials: 0, connects: 0, meetings: 0, talk_seconds: 0 };
+  const dials = Math.round(base + Math.abs(wobble(d, seed)) * base);
+  const connects = Math.round(dials * (0.15 + Math.abs(wobble(d, seed + 1)) * 0.1));
+  return { dials, connects, meetings: Math.round(connects * Math.abs(wobble(d, seed + 2)) * 0.4), talk_seconds: connects * 260 };
+};
+export const stats = Array.from({ length: 45 }, (_, d) => ({
+  workspace_id: WS,
+  user_id: ME,
+  day: day(d),
+  ...(d < 5 ? { dials: [14, 31, 22, 0, 18][d], connects: [3, 6, 4, 0, 5][d], meetings: [1, 1, 0, 0, 2][d], talk_seconds: [840, 2100, 1300, 0, 1500][d] } : sampleDay(d, 16, 1)),
+  duration_seconds: 0,
+})).concat(
+  Array.from({ length: 45 }, (_, d) => ({
+    workspace_id: WS,
+    user_id: PRIYA,
+    day: day(d),
+    ...(d < 3 ? { dials: [9, 17, 12][d], connects: [2, 3, 2][d], meetings: [0, 1, 0][d], talk_seconds: [420, 900, 600][d] } : sampleDay(d, 10, 7)),
+    duration_seconds: 0,
+  })),
+);
 
 export const numbers = [{ id: '88888888-0000-4000-8000-000000000001', workspace_id: WS, e164: '+447700900001', friendly_name: 'Verified caller ID', country_code: 'GB', kind: 'verified_caller_id', status: 'active', assigned_user_id: ME, is_default: true, monthly_cost_pence: 0, regulatory_bundle_sid: null, created_at: ago(4) }];
 
