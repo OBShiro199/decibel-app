@@ -17,15 +17,16 @@ export const metadata: Metadata = {
     locale: 'en_GB',
   },
   // favicon.io export, copied into public/brand
+  // ?v= busts browsers' separate favicon cache; bump it whenever the icons change
   icons: {
     icon: [
-      { url: '/brand/favicon.ico', sizes: 'any' },
-      { url: '/brand/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/brand/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/brand/favicon.ico?v=2', sizes: 'any' },
+      { url: '/brand/favicon-32x32.png?v=2', sizes: '32x32', type: 'image/png' },
+      { url: '/brand/favicon-16x16.png?v=2', sizes: '16x16', type: 'image/png' },
     ],
-    apple: '/brand/apple-touch-icon.png',
+    apple: '/brand/apple-touch-icon.png?v=2',
   },
-  manifest: '/brand/site.webmanifest',
+  manifest: '/brand/site.webmanifest?v=2',
 };
 
 // light only: stops the OS dark setting (and Chrome's auto dark mode) restyling native controls or the page
