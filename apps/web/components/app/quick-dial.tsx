@@ -1,6 +1,5 @@
 'use client';
-// Quick call: type a name or a number and dial. Used by the top-bar popover and
-// the sidebar widget. Every call still goes through a People record, so the
+// Quick call: type a name or a number and dial, plus the sidebar's phone toggle. Every call still goes through a People record, so the
 // DNC / TPS checks, the call log and the recording all work as usual.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Delete, Phone } from 'lucide-react';
@@ -171,52 +170,3 @@ export function DialPad({ onDone }: { onDone?: () => void }) {
   );
 }
 
-/** Sidebar: a single pill. Type a name or number, press Enter or the phone button. */
-export function SidebarCallWidget() {
-  const d = useQuickDial();
-  return (
-    <div className="px-3 pb-3 max-[1100px]:hidden">
-      {d.live && d.phone.calleeName ? (
-        <div className="flex h-9 items-center gap-2 rounded-sm border border-white-800 pl-3 pr-1">
-          <span className="pulse-dot shrink-0 bg-accent-500" style={{ width: 6, height: 6 }} />
-          <span className="min-w-0 flex-1 truncate text-sm text-black-400">{d.phone.calleeName}</span>
-          <button onClick={d.softphone.hangUp} aria-label="Hang up" className="flex h-7 items-center rounded-[5px] px-2.5 text-xs text-danger-700 hover:bg-danger-100">
-            Hang up
-          </button>
-        </div>
-      ) : (
-        <form
-          className="relative"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void d.call();
-          }}
-        >
-          {d.matches.length ? (
-            <div className="absolute bottom-full left-0 right-0 z-menu mb-1 overflow-hidden rounded-md shadow-popover">
-              <Matches items={d.matches} onPick={(m) => void d.call(m)} />
-            </div>
-          ) : null}
-          <div className="field-focus flex h-9 items-center rounded-sm border border-white-800 bg-white-100 pl-3 pr-1 transition-[border-color,box-shadow] duration-150 hover:border-btnborder">
-            <input
-              value={d.value}
-              onChange={(e) => d.setValue(e.target.value)}
-              placeholder="Quick call"
-              aria-label="Quick call: name or number"
-              className="h-full min-w-0 flex-1 bg-transparent text-sm tabular-nums text-black-400 outline-none placeholder:text-white-900"
-            />
-            <button
-              type="submit"
-              aria-label="Call"
-              disabled={!d.value.trim() || d.busy}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[5px] text-black-700 transition-colors hover:bg-white-300 hover:text-black-400 disabled:text-white-900 disabled:hover:bg-transparent"
-            >
-              <Phone size={14} strokeWidth={1.6} />
-            </button>
-          </div>
-          {d.error ? <p className="mt-1.5 px-1 text-xs text-danger-700" role="alert">{d.error}</p> : null}
-        </form>
-      )}
-    </div>
-  );
-}

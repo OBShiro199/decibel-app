@@ -15,7 +15,7 @@ import { supabase } from '@/lib/supabase/client';
 import { destroyDevice } from '@/lib/twilio/device';
 import type { Person } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { SidebarCallWidget, SoftphoneToggle } from '@/components/app/quick-dial';
+import { SoftphoneToggle } from '@/components/app/quick-dial';
 import { SoftphoneProvider } from '@/components/softphone/provider';
 import { Avatar, CompanyLogo } from '@/components/ui/display';
 import { LogoMark } from '@/components/marketing/logo';
@@ -217,9 +217,6 @@ function Sidebar() {
         </Popover>
       </div>
 
-      <div className="px-2 pb-2">
-        <SoftphoneToggle />
-      </div>
       <div className="flex flex-1 flex-col gap-4 px-2">
         {NAV_GROUPS.map((group) => (
           <div key={group.label ?? 'main'}>
@@ -259,7 +256,10 @@ function Sidebar() {
         ))}
       </div>
 
-      <SidebarCallWidget />
+      {/* the phone: opens the dial pad, and shows the live call status during a call */}
+      <div className="px-2 pb-2">
+        <SoftphoneToggle />
+      </div>
       <div className="flex items-center gap-1 border-t border-white-800 p-2 max-[1100px]:flex-col">
         <AccountMenu />
         <Link
