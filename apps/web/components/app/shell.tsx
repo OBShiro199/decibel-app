@@ -21,24 +21,26 @@ import { Avatar, CompanyLogo } from '@/components/ui/display';
 import { LogoMark } from '@/components/marketing/logo';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
-// hue: the selected icon's stroke; tint: its pale fill. Pastels from the same family as the tags.
-type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean; hue: string; tint: string };
+type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean };
+// the selected icon: one pastel blue for every section (stroke and pale fill)
+const NAV_HUE = '#5f86e0';
+const NAV_TINT = '#e3ebfc';
 // sidebar sections: the workspace, then outbound calling in its own group
 const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
-      { href: '/app', label: 'Today', icon: Sun, exact: true, hue: '#d39a32', tint: '#fbefd6' },
-      { href: '/app/leads', label: 'Leads', icon: Database, hue: '#5f86e0', tint: '#e3ebfc' },
-      { href: '/app/companies', label: 'Companies', icon: Building2, hue: '#8a76d8', tint: '#ece7fb' },
-      { href: '/app/lists', label: 'Lists', icon: ListIcon, hue: '#3e9f92', tint: '#ddf2ee' },
+      { href: '/app', label: 'Today', icon: Sun, exact: true },
+      { href: '/app/leads', label: 'Leads', icon: Database },
+      { href: '/app/companies', label: 'Companies', icon: Building2 },
+      { href: '/app/lists', label: 'Lists', icon: ListIcon },
     ],
   },
   {
     label: 'Outbound',
     items: [
-      { href: '/app/calls', label: 'Calls', icon: Phone, hue: '#43a46c', tint: '#e0f3e7' },
-      { href: '/app/dialler', label: 'Power dialler', icon: Zap, hue: 'var(--dialler)', tint: 'var(--dialler-soft)' },
+      { href: '/app/calls', label: 'Calls', icon: Phone },
+      { href: '/app/dialler', label: 'Power dialler', icon: Zap },
     ],
   },
 ];
@@ -229,7 +231,7 @@ function Sidebar() {
               </>
             ) : null}
             <ul className="flex flex-col gap-0.5">
-              {group.items.map(({ href, label, icon: Icon, exact, hue, tint }) => {
+              {group.items.map(({ href, label, icon: Icon, exact }) => {
                 const active = exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
                 return (
                   <li key={href}>
@@ -242,12 +244,12 @@ function Sidebar() {
                       aria-current={active ? 'page' : undefined}
                       className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors', active ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
                     >
-                      {/* selected: the section's pastel colour; the dialler is always orange */}
+                      {/* selected: pastel blue; the dialler's icon rests in its light orange */}
                       <Icon
                         size={16}
                         strokeWidth={active || href === '/app/dialler' ? 1.7 : 1.5}
                         className="shrink-0 transition-[color,fill] duration-150"
-                        style={active ? { color: hue, fill: tint } : href === '/app/dialler' ? { color: hue } : { fill: 'none' }}
+                        style={active ? { color: NAV_HUE, fill: NAV_TINT } : href === '/app/dialler' ? { color: 'var(--dialler)' } : { fill: 'none' }}
                       />
                       <span className="truncate max-[1100px]:hidden">{label}</span>
                     </Link>
