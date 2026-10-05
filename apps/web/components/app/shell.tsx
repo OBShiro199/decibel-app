@@ -21,14 +21,27 @@ import { Avatar, CompanyLogo } from '@/components/ui/display';
 import { LogoMark } from '@/components/marketing/logo';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
-const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
-  { href: '/app', label: 'Today', icon: Sun, exact: true },
-  { href: '/app/leads', label: 'Leads', icon: Database },
-  { href: '/app/companies', label: 'Companies', icon: Building2 },
-  { href: '/app/lists', label: 'Lists', icon: ListIcon },
-  { href: '/app/calls', label: 'Calls', icon: Phone },
-  { href: '/app/dialler', label: 'Power dialler', icon: Zap },
+type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean };
+// sidebar sections: the workspace, then outbound calling in its own group
+const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
+  {
+    label: null,
+    items: [
+      { href: '/app', label: 'Today', icon: Sun, exact: true },
+      { href: '/app/leads', label: 'Leads', icon: Database },
+      { href: '/app/companies', label: 'Companies', icon: Building2 },
+      { href: '/app/lists', label: 'Lists', icon: ListIcon },
+    ],
+  },
+  {
+    label: 'Outbound',
+    items: [
+      { href: '/app/calls', label: 'Calls', icon: Phone },
+      { href: '/app/dialler', label: 'Power dialler', icon: Zap },
+    ],
+  },
 ];
+const NAV: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 
 export function AppShell({
@@ -207,40 +220,44 @@ function Sidebar() {
       <div className="px-2 pb-2">
         <SoftphoneToggle />
       </div>
-      <ul className="flex flex-1 flex-col gap-0.5 px-2">
-        {NAV.map(({ href, label, icon: Icon, exact }) => {
-          const active = exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                prefetch
-                title={label}
-                onMouseEnter={() => prefetch(href)}
-                onFocus={() => prefetch(href)}
-                aria-current={active ? 'page' : undefined}
-                className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors', active ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
-              >
-                {href === '/app/dialler' ? (
-                  <>
-                    <Icon size={16} strokeWidth={1.7} className="shrink-0" style={{ color: 'var(--dialler)' }} />
-                    <span className="relative max-[1100px]:hidden">
-                      {label}
-                      {/* a light-orange underline marks the dialler */}
-<span aria-hidden className="pointer-events-none absolute -bottom-[3px] left-0 h-[2px] w-full rounded-full" style={{ background: 'var(--dialler)', opacity: 0.7 }} />
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Icon size={16} strokeWidth={1.5} className="shrink-0" />
-                    <span className="truncate max-[1100px]:hidden">{label}</span>
-                  </>
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="flex flex-1 flex-col gap-4 px-2">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label ?? 'main'}>
+            {group.label ? (
+              <>
+                <p className="flex h-7 items-center px-2 text-white-900 max-[1100px]:hidden">{group.label}</p>
+                {/* collapsed sidebar: a hairline stands in for the section name */}
+                <span aria-hidden className="mx-2 mb-2 hidden h-px bg-white-800 max-[1100px]:block" />
+              </>
+            ) : null}
+            <ul className="flex flex-col gap-0.5">
+              {group.items.map(({ href, label, icon: Icon, exact }) => {
+                const active = exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      prefetch
+                      title={label}
+                      onMouseEnter={() => prefetch(href)}
+                      onFocus={() => prefetch(href)}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors', active ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
+                    >
+                      {href === '/app/dialler' ? (
+                        <Icon size={16} strokeWidth={1.7} className="shrink-0" style={{ color: 'var(--dialler)' }} />
+                      ) : (
+                        <Icon size={16} strokeWidth={1.5} className="shrink-0" />
+                      )}
+                      <span className="truncate max-[1100px]:hidden">{label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
 
       <SidebarCallWidget />
       <div className="flex items-center gap-1 border-t border-white-800 p-2 max-[1100px]:flex-col">
