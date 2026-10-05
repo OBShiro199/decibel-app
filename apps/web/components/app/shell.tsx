@@ -1,12 +1,8 @@
 'use client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { prefetchRoute } from '@/lib/queries';
-import {
-  Building2, Check, ChevronsUpDown, Coins, Database, List as ListIcon, LogOut, Phone, Plus, Settings, Sun, Zap,
-  RotateCcw,
-  Sparkles,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Check, ChevronsUpDown, Coins, LogOut, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
+import { AddressBook, Buildings, Lightning, ListBullets, PhoneCall, SunDim, type Icon as PhosphorIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -21,26 +17,26 @@ import { Avatar, CompanyLogo } from '@/components/ui/display';
 import { LogoMark } from '@/components/marketing/logo';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
-type NavItem = { href: string; label: string; icon: LucideIcon; exact?: boolean };
-// the selected icon: one pastel blue for every section (stroke and pale fill)
+// Sidebar icons are Phosphor: regular outline at rest, duotone (blue outline with a soft
+// blue fill) when selected. The dialler's icon rests in its light orange.
+type NavItem = { href: string; label: string; icon: PhosphorIcon; exact?: boolean };
 const NAV_HUE = '#5f86e0';
-const NAV_TINT = '#e3ebfc';
 // sidebar sections: the workspace, then outbound calling in its own group
 const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
-      { href: '/app', label: 'Today', icon: Sun, exact: true },
-      { href: '/app/leads', label: 'Leads', icon: Database },
-      { href: '/app/companies', label: 'Companies', icon: Building2 },
-      { href: '/app/lists', label: 'Lists', icon: ListIcon },
+      { href: '/app', label: 'Today', icon: SunDim, exact: true },
+      { href: '/app/leads', label: 'Leads', icon: AddressBook },
+      { href: '/app/companies', label: 'Companies', icon: Buildings },
+      { href: '/app/lists', label: 'Lists', icon: ListBullets },
     ],
   },
   {
     label: 'Outbound',
     items: [
-      { href: '/app/calls', label: 'Calls', icon: Phone },
-      { href: '/app/dialler', label: 'Power dialler', icon: Zap },
+      { href: '/app/calls', label: 'Calls', icon: PhoneCall },
+      { href: '/app/dialler', label: 'Power dialler', icon: Lightning },
     ],
   },
 ];
@@ -165,7 +161,8 @@ function AccountMenu() {
 }
 
 function Sidebar() {
-  const pathname = usePathname();
+  // the dev-only design preview mirrors /app routes under /dev-preview; treat them alike
+  const pathname = usePathname().replace(/^\/dev-preview(?=\/|$)/, '/app');
   const { workspace, workspaces, profile, switchWorkspace, user } = useApp();
   const qc = useQueryClient();
   const prefetch = (href: string) => prefetchRoute(qc, href, workspace.id, user.id);
@@ -244,12 +241,12 @@ function Sidebar() {
                       aria-current={active ? 'page' : undefined}
                       className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors', active ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
                     >
-                      {/* selected: pastel blue; the dialler's icon rests in its light orange */}
+                      {/* selected: duotone pastel blue; the dialler's icon rests in its light orange */}
                       <Icon
-                        size={16}
-                        strokeWidth={active || href === '/app/dialler' ? 1.7 : 1.5}
-                        className="shrink-0 transition-[color,fill] duration-150"
-                        style={active ? { color: NAV_HUE, fill: NAV_TINT } : href === '/app/dialler' ? { color: 'var(--dialler)' } : { fill: 'none' }}
+                        size={17}
+                        weight={active ? 'duotone' : 'regular'}
+                        className="shrink-0 transition-colors duration-150"
+                        style={{ color: active ? NAV_HUE : href === '/app/dialler' ? 'var(--dialler)' : undefined }}
                       />
                       <span className="truncate max-[1100px]:hidden">{label}</span>
                     </Link>
