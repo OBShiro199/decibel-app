@@ -167,35 +167,40 @@ export function Wizard({
 
   const page = (
     <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
-      <aside className="shrink-0 border-b border-white-800 bg-white-200 p-4 md:w-[var(--settings-rail-width)] md:border-b-0 md:border-r md:p-6">
+      <aside className="shrink-0 border-b border-white-800 bg-white-100 p-4 md:w-[var(--settings-rail-width)] md:border-b-0 md:border-r md:p-6">
         <Link href="/" aria-label="Decibel home" className="inline-block">
           <Logo />
         </Link>
         {invited ? (
           <p className="mt-6 text-black-700">One quick check and you are in: test your microphone and make a test call.</p>
         ) : (
-          <ol className="mt-4 flex gap-1 overflow-x-auto md:mt-8 md:flex-col">
+          <ol className="mt-4 flex gap-0.5 overflow-x-auto md:mt-8 md:flex-col">
             {STEPS.map((s) => {
               const isDone = completed.has(s.n);
               const isCurrent = s.slug === step;
               const reachable = !!workspace && s.n !== 1 && s.n <= (state.step ?? 1);
               const content = (
                 <>
-                  <span
-                    className={cn(
-                      'flex h-5 w-6 shrink-0 items-center justify-center border tabular-nums text-xs transition-colors',
-                      isDone ? 'border-success-500 bg-success-500 text-white-100' : isCurrent ? 'border-black-400 bg-white-300 text-black-400' : 'border-white-800 text-white-900',
+                  {/* one 16px slot for every state: a quiet tick, a ringed dot, or an empty ring */}
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
+                    {isDone ? (
+                      <Check size={14} strokeWidth={1.75} className="text-success-700" />
+                    ) : isCurrent ? (
+                      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-black-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-black-400" />
+                      </span>
+                    ) : (
+                      <span className="h-3.5 w-3.5 rounded-full border border-white-900 opacity-60" />
                     )}
-                  >
-                    {isDone ? <Check size={12} strokeWidth={2.5} /> : String(s.n).padStart(2, '0')}
                   </span>
                   <span className="whitespace-nowrap">{s.label}</span>
+                  {isDone ? <span className="sr-only">(done)</span> : null}
                 </>
               );
               // one weight for every state, so labels never change width
               const cls = cn(
-                'flex h-9 w-full items-center gap-2.5 border px-2 text-left text-sm transition-colors',
-                isCurrent ? 'border-white-800 bg-white-100 text-black-400' : 'border-transparent text-black-700',
+                'flex h-8 w-full items-center gap-2.5 rounded-sm px-2 text-left text-sm transition-colors',
+                isCurrent ? 'bg-white-300 text-black-400' : isDone ? 'text-black-500' : 'text-black-700',
               );
               return (
                 <li key={s.slug} className="shrink-0">
@@ -215,7 +220,7 @@ export function Wizard({
         )}
       </aside>
 
-      <main className="dotgrid flex min-h-0 min-w-0 flex-1 flex-col bg-canvas">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white-100">
         <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <div className="mx-auto w-full max-w-[680px] px-4 py-8 md:px-6 md:py-12">
             <p className="eyebrow h-4">
