@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
@@ -46,6 +47,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-GB" className={sans.variable}>
       <body>
         <Providers>{children}</Providers>
+        {/* DataFast web analytics, live site only so local testing never counts as traffic */}
+        {process.env.NODE_ENV === 'production' ? (
+          <Script defer data-website-id="dfid_6dsg6iWrvblzqSOAHln2c" data-domain="usedecibel.com" src="https://datafa.st/js/script.js" strategy="afterInteractive" />
+        ) : null}
       </body>
     </html>
   );
