@@ -7,7 +7,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AppProvider, useApp, type AppContextValue } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
 import { destroyDevice } from '@/lib/twilio/device';
@@ -44,14 +44,25 @@ export function AppShell({
   );
 }
 
+// false on the server and during hydration, true on every client render after that
+const noopSubscribe = () => () => {};
+function useHydrated() {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { workspace, user } = useApp();
+  // Page content is client data (TanStack Query). The sidebar prefetches other pages' data,
+  // and that can land before a slow page chunk hydrates, so the first client render would
+  // differ from the server HTML. Pages therefore mount just after hydration; the shell and
+  // sidebar still render on the server. Client-side navigation is unaffected.
+  const hydrated = useHydrated();
   return (
     <div className={`${inter.variable} app-shell`}>
       <SoftphoneProvider workspaceId={workspace.id} userId={user.id} recordingPolicy={workspace.recording_policy}>
         <div className="flex h-dvh">
           <Sidebar />
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-canvas [scrollbar-gutter:stable]">{children}</main>
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-canvas [scrollbar-gutter:stable]">{hydrated ? children : null}</main>
         </div>
         <ShortcutsDialog />
       </SoftphoneProvider>
