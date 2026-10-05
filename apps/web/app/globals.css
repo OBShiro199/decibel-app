@@ -470,7 +470,7 @@ html:has([data-page-scroll]) {
   --radius-xs: 2px;
   --radius-sm: 6px; /* buttons, inputs, nav items */
   --radius-md: 6px; /* menus, option cards */
-  --radius-lg: 12px; /* cards, dialogs */
+  --radius-lg: 6px; /* cards, sections, dialogs: same as the sidebar's selected tab */
 
   /* Geist, set close: a touch of negative tracking at every size */
   font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -497,7 +497,7 @@ html:has([data-page-scroll]) {
 .app-shell .t-caption { font-size: 12px; line-height: 16px; letter-spacing: -0.005em; }
 
 /* cards: 12px, hairline edge, no shadow */
-.app-shell .card { border-radius: 12px; border-color: var(--color-white-800); }
+.app-shell .card { border-radius: 6px; border-color: var(--color-white-800); }
 
 /* inputs: 6px, focus darkens the edge with a soft halo instead of an outline */
 .app-shell .control { border-radius: 6px; border-color: var(--color-white-800); }
