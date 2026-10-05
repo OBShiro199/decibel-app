@@ -609,3 +609,11 @@ html:has([data-page-scroll]) {
   .desktop-gate { display: block; }
   .desktop-content { display: none; }
 }
+
+/* dashboard: one type size, 13px like the sidebar; hierarchy comes from weight and colour only */
+.app-shell .dash-13 { font-size: 13px; line-height: 18px; }
+.app-shell .dash-13 :is(.t-label, .t-caption, .t-small, .text-xs, .text-sm, .text-base, .text-md, .text-lg, .text-xl, .text-2xl, .tbl th, .tbl td, button, input, dt, dd) {
+  font-size: 13px;
+  line-height: 18px;
+}
+.app-shell .dash-13 .tag { font-size: 13px; }

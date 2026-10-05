@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/display';
 // secondary strip, chart and funnel, then the leaderboard, so nothing moves on swap.
 export default function Loading() {
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-4 p-4 md:p-6" aria-busy="true">
+    <div className="dash-13 mx-auto flex max-w-[1200px] flex-col gap-4 p-4 md:p-6" aria-busy="true">
       <div className="flex h-9 items-center">
         <Skeleton className="h-8 w-[300px]" />
       </div>
@@ -14,7 +14,7 @@ export default function Loading() {
             <div className="flex h-5 items-center">
               <Skeleton className="h-3 w-20" />
             </div>
-            <Skeleton className="mt-3 h-9 w-24" />
+            <Skeleton className="mt-2 h-[18px] w-16" />
           </div>
         ))}
       </div>

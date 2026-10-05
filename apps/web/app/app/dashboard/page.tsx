@@ -131,7 +131,7 @@ export default function DashboardPage() {
   const empty = !loading && totals.dials === 0 && credits === 0 && !reps.length;
 
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-4 p-4 md:p-6">
+    <div className="dash-13 mx-auto flex max-w-[1200px] flex-col gap-4 p-4 md:p-6">
       <h1 className="sr-only">Team stats</h1>
 
       {/* toolbar: fixed height, the custom range slots in without moving anything below */}
@@ -266,7 +266,7 @@ function Kpi({ label, value, loading, delta }: { label: string; value: string; l
         <p className="t-label">{label}</p>
         {loading ? null : <DeltaTag delta={delta} />}
       </div>
-      {loading ? <Skeleton className="mt-3 h-9 w-24" /> : <p className="tabular mt-3 text-2xl font-medium leading-9 tracking-[-0.04em] text-black-300">{value}</p>}
+      {loading ? <Skeleton className="mt-2 h-[18px] w-16" /> : <p className="tabular mt-2 font-medium text-black-400">{value}</p>}
     </div>
   );
 }
