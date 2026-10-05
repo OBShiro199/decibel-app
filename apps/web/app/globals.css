@@ -508,7 +508,11 @@ html:has([data-page-scroll]) {
   border-color: #8a8f98;
   box-shadow: 0 0 0 3px rgba(8, 9, 10, 0.06);
 }
-.app-shell :focus-visible { outline-color: var(--color-accent-500); }
+/* elements that opt out of an outline (inputs inside a styled field) keep it off; the field shows focus instead */
+.app-shell :focus-visible:not(.outline-none) { outline-color: var(--color-accent-500); }
+.app-shell .outline-none:focus-visible { outline: none; }
+/* a field wrapping a bare input: same focus treatment as .control */
+.app-shell .field-focus:focus-within { border-color: #8a8f98; box-shadow: 0 0 0 3px rgba(8, 9, 10, 0.06); }
 
 /* tables: compact rows, hairline dividers, quiet headers */
 .app-shell .tbl th {

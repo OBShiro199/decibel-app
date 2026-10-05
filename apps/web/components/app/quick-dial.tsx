@@ -197,7 +197,7 @@ export function SidebarCallWidget() {
               <Matches items={d.matches} onPick={(m) => void d.call(m)} />
             </div>
           ) : null}
-          <div className="flex h-9 items-center rounded-sm border border-white-800 bg-white-100 pl-3 pr-1 transition-colors focus-within:border-white-900 hover:border-btnborder">
+          <div className="field-focus flex h-9 items-center rounded-sm border border-white-800 bg-white-100 pl-3 pr-1 transition-[border-color,box-shadow] duration-150 hover:border-btnborder">
             <input
               value={d.value}
               onChange={(e) => d.setValue(e.target.value)}

@@ -178,7 +178,7 @@ export function ChipsInput({
   const remaining = suggestions.filter((s) => !value.some((v) => v.toLowerCase() === s.toLowerCase()));
   return (
     <div>
-      <div className="control flex h-auto min-h-9 flex-wrap items-center gap-1.5 py-1.5 focus-within:border-black-0">
+      <div className="control field-focus flex h-auto min-h-9 flex-wrap items-center gap-1.5 py-1.5">
         {value.map((v) => (
           <span key={v} className="t-small inline-flex h-6 items-center gap-1 rounded-[3px] border border-white-800 bg-white-200 pl-2 pr-1">
             {v}
