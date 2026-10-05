@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { prefetchRoute } from '@/lib/queries';
 import {
   Building2, Check, ChevronsUpDown, Coins, Database, List as ListIcon, LogOut, Phone, Plus, Settings, Sun, Zap,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -17,7 +19,7 @@ import { SidebarCallWidget, SoftphoneToggle } from '@/components/app/quick-dial'
 import { SoftphoneProvider } from '@/components/softphone/provider';
 import { Avatar, CompanyLogo } from '@/components/ui/display';
 import { LogoMark } from '@/components/marketing/logo';
-import { Dialog, MenuItem, Popover } from '@/components/ui/overlay';
+import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
 const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
   { href: '/app', label: 'Today', icon: Sun, exact: true },
@@ -70,9 +72,23 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Dev only: rerun onboarding without a new account. Never shown in production builds.
+const DEV = process.env.NODE_ENV !== 'production';
+
 function AccountMenu() {
   const router = useRouter();
-  const { profile } = useApp();
+  const { profile, workspace, isOwner } = useApp();
+  const toast = useToast();
+  /** Puts this workspace back into onboarding at step 2 (step 1 always creates a workspace). */
+  const restartOnboarding = async () => {
+    const { error } = await supabase()
+      .from('workspaces')
+      .update({ onboarding_completed_at: null, onboarding_state: { step: 2, completed: [1], started_at: new Date().toISOString() } })
+      .eq('id', workspace.id);
+    if (error) return toast(`Could not restart onboarding: ${error.message}`);
+    router.push('/onboarding/business');
+    router.refresh();
+  };
   const signOut = async () => {
     destroyDevice();
     await supabase().auth.signOut();
@@ -103,6 +119,28 @@ function AccountMenu() {
             <MenuItem onClick={signOut}>
               <LogOut size={16} strokeWidth={1.5} /> Log out
             </MenuItem>
+            {DEV ? (
+              <div className="mt-1 border-t border-white-800 pt-1">
+                <p className="px-2 py-1.5 text-white-900">Developer · local only</p>
+                <MenuItem
+                  disabled={!isOwner}
+                  onClick={() => {
+                    close();
+                    void restartOnboarding();
+                  }}
+                >
+                  <RotateCcw size={16} strokeWidth={1.5} /> Restart onboarding here
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    router.push('/onboarding/workspace?new=1');
+                  }}
+                >
+                  <Sparkles size={16} strokeWidth={1.5} /> Onboard a new workspace
+                </MenuItem>
+              </div>
+            ) : null}
           </>
         )}
       </Popover>
