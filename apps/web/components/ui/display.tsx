@@ -76,7 +76,8 @@ export function CompanyLogo({ name, src, size = 20 }: { name?: string | null; sr
 }
 
 export function Skeleton({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return <div className={cn('skeleton h-4', className)} style={style} aria-hidden />;
+  // a span (styled as a block) so it is valid inside <p>, <button> and other phrasing content
+  return <span className={cn('skeleton block h-4', className)} style={style} aria-hidden />;
 }
 
 /** Same geometry as `.tbl`: 36px header, 40px rows, so real rows drop in without a shift. */
