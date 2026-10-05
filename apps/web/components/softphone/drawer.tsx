@@ -17,7 +17,8 @@ import { DialPad } from '@/components/app/quick-dial';
 import { Button } from '@/components/ui/button';
 import { Avatar, Badge, SignalBars } from '@/components/ui/display';
 import { Input, Switch, Textarea } from '@/components/ui/form';
-import { ConnectionDot } from './connection-dot';
+import { useConnectionStatus } from './connection-dot';
+import { useNumbers } from '@/lib/hooks';
 import { useSoftphoneActions, useSoftphoneState, useSoftphoneStatus } from './provider';
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'];
@@ -100,10 +101,10 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
         <div className="flex h-[72px] shrink-0 items-center justify-between border-b border-white-800 px-4">
           <div>
             <p className="t-h4">Phone</p>
-            <p className="text-sm text-black-700">Ready to call</p>
+            <p className="text-black-700">Ready to call</p>
           </div>
           <div className="flex items-center gap-2">
-            <ConnectionDot />
+            <CallerIdPill />
             {mode === 'overlay' ? (
               <button onClick={sp.dismiss} aria-label="Close softphone" className="flex h-8 w-8 items-center justify-center hover:bg-white-300">
                 <X size={16} strokeWidth={1.5} />
@@ -112,6 +113,7 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <ConnectionProblem />
           <DialPad onDone={() => undefined} />
         </div>
         <div className="flex h-[68px] shrink-0 items-center border-t border-white-800 px-4">
@@ -285,3 +287,30 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
     </aside>
   );
 }
+
+/** Placeholder shown until the workspace has a number of its own. */
+const PLACEHOLDER_NUMBER = '+44 1234 567890';
+
+/** The number people see when you call: the workspace's active number, or a placeholder. */
+function CallerIdPill() {
+  const { data: numbers } = useNumbers();
+  const active = numbers?.find((n) => n.status === 'active');
+  return (
+    <span className={cn('tag gap-1 tabular-nums', active ? 'tag-0' : 'tag-7')} title={active ? 'Your caller ID' : 'No number yet: get one in Settings, Phone numbers'}>
+      <Phone size={12} strokeWidth={1.7} />
+      {active ? formatPhone(active.e164) : PLACEHOLDER_NUMBER}
+    </span>
+  );
+}
+
+/** Only says anything when the line is actually down; a healthy connection needs no badge. */
+function ConnectionProblem() {
+  const status = useConnectionStatus();
+  if (status !== 'reconnecting' && status !== 'offline') return null;
+  return (
+    <p className={cn('tag mb-3 gap-1.5', status === 'offline' ? 'tag-3' : 'tag-2')} role="status">
+      {status === 'offline' ? 'Phone offline. Check your connection.' : 'Reconnecting the phone…'}
+    </p>
+  );
+}
+

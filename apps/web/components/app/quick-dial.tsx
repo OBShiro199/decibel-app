@@ -10,7 +10,6 @@ import { supabase } from '@/lib/supabase/client';
 import { PHASE_LABEL } from '@/lib/twilio/call-machine';
 import type { Person } from '@/lib/types';
 import { cn, formatPhone, normalizePhone } from '@/lib/utils';
-import { ConnectionDot } from '@/components/softphone/connection-dot';
 import { useSoftphoneActions, useSoftphoneStatus } from '@/components/softphone/provider';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/display';
@@ -134,36 +133,47 @@ export function QuickCallButton() {
 
 export function DialPad({ onDone }: { onDone?: () => void }) {
   const d = useQuickDial(onDone);
+  const press = (k: string) => d.setValue((looksLikeNumber(d.value) || !d.value ? d.value : '') + k);
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         void d.call();
       }}
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-3"
     >
-      <p className="t-label">Quick call</p>
       <input
         autoFocus
         value={d.value}
         onChange={(e) => d.setValue(e.target.value)}
-        placeholder="Name or number"
+        placeholder="Type a name or number"
         aria-label="Name or number"
-        className="control h-11 tabular-nums text-md"
+        className="control h-10 tabular-nums"
       />
       <Matches items={d.matches} onPick={(m) => void d.call(m)} />
-      <div className="grid grid-cols-3 stat-grid">
+      {/* spaced keys with the app's 6px corners, not a boxed grid */}
+      <div className="grid grid-cols-3 gap-2">
         {KEYS.map((k) => (
-          <button key={k} type="button" onClick={() => d.setValue((looksLikeNumber(d.value) || !d.value ? d.value : '') + k)} className="h-10 bg-white-100 tabular-nums text-base hover:bg-panel active:bg-white-300">
+          <button
+            key={k}
+            type="button"
+            onClick={() => press(k)}
+            className="h-11 rounded-sm border border-white-800 bg-white-100 font-medium tabular-nums text-black-400 transition-[background-color,border-color,scale] duration-150 hover:border-btnborder hover:bg-white-200 active:scale-[0.96]"
+          >
             {k}
           </button>
         ))}
-        <button type="button" aria-label="Delete" onClick={() => d.setValue(d.value.slice(0, -1))} className="flex h-10 items-center justify-center bg-white-100 text-black-700 hover:bg-panel">
+        <button
+          type="button"
+          aria-label="Delete"
+          onClick={() => d.setValue(d.value.slice(0, -1))}
+          className="flex h-11 items-center justify-center rounded-sm border border-white-800 bg-white-100 text-black-700 transition-[background-color,border-color,scale] duration-150 hover:border-btnborder hover:bg-white-200 active:scale-[0.96]"
+        >
           <Delete size={16} strokeWidth={1.5} />
         </button>
       </div>
-      {d.error ? <p className="t-caption text-danger-700" role="alert">{d.error}</p> : null}
-      <Button type="submit" variant="primary" loading={d.busy} disabled={d.live || !d.value.trim()}>
+      {d.error ? <p className="text-danger-700" role="alert">{d.error}</p> : null}
+      <Button type="submit" variant="primary" className="h-10 w-full" loading={d.busy} disabled={d.live || !d.value.trim()}>
         <Phone size={14} strokeWidth={1.5} /> {d.live ? 'On a call' : d.number ? `Call ${formatPhone(d.number)}` : 'Call'}
       </Button>
     </form>
