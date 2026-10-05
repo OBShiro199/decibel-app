@@ -102,6 +102,7 @@ export default function CallsPage() {
           </button>
         ) : null}
         <span className="ml-auto shrink-0 text-sm tabular-nums text-black-700">
+          {(calls.data?.count ?? 0) > 1000 ? 'About ' : ''}
           {(calls.data?.count ?? 0).toLocaleString('en-GB')} {calls.data?.count === 1 ? 'call' : 'calls'}
         </span>
       </div>

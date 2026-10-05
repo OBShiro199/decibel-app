@@ -176,6 +176,7 @@ function Sidebar() {
             <li key={href}>
               <Link
                 href={href}
+                prefetch
                 title={label}
                 onMouseEnter={() => prefetch(href)}
                 onFocus={() => prefetch(href)}

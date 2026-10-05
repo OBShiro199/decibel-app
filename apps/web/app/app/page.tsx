@@ -9,11 +9,11 @@ import { todayQueueQuery, todayStatsQuery } from '@/lib/queries';
 import { useNumbers, useTableKeys } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import type { Person } from '@/lib/types';
-import { firstName, formatPhone, formatTalkTime, greeting } from '@/lib/utils';
+import { cn, firstName, formatPhone, formatTalkTime, greeting } from '@/lib/utils';
 import { blockedLabel, isBlocked, OutcomeBadge, PersonCell, setRecordNav } from '@/components/app/records';
 import { useSoftphoneActions, useSoftphoneStatus } from '@/components/softphone/provider';
 import { Button, ButtonLink } from '@/components/ui/button';
-import { RevealOnce } from '@/components/ui/reveal';
+import { RevealOnce, useFirstReveal } from '@/components/ui/reveal';
 import { TodaySkeleton } from '@/components/app/skeletons';
 import { Badge, EmptyState, ErrorCard, Skeleton, StatTile, TableSkeleton } from '@/components/ui/display';
 import { useToast } from '@/components/ui/overlay';
@@ -27,6 +27,7 @@ export default function TodayPage() {
 }
 
 function Today() {
+  const firstReveal = useFirstReveal('today:stats');
   const { workspace, user, profile } = useApp();
   const router = useRouter();
   const params = useSearchParams();
@@ -99,7 +100,7 @@ function Today() {
       </header>
 
 
-      <div className="stagger grid grid-cols-2 stat-grid lg:grid-cols-4">
+      <div className={cn(firstReveal && 'stagger', 'grid grid-cols-2 stat-grid lg:grid-cols-4')}>
         <StatTile label="Dials today" value={stats.data?.dials ?? 0} loading={stats.isLoading} />
         <StatTile label="Connects" value={stats.data?.connects ?? 0} loading={stats.isLoading} />
         <StatTile label="Meetings booked" value={stats.data?.meetings ?? 0} loading={stats.isLoading} />

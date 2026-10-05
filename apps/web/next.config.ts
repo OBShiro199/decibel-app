@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   transpilePackages: ['@decibels/design-tokens'],
   eslint: { ignoreDuringBuilds: true },
+  experimental: {
+    // Client router cache. App pages fetch their own data in the browser (TanStack Query),
+    // so their server payload barely changes: reuse it instead of a server round trip per tab click.
+    staleTimes: { dynamic: 30, static: 300 },
+  },
 };
 
 export default nextConfig;

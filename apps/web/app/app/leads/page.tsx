@@ -23,6 +23,9 @@ import { Badge, EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/u
 import { Checkbox, ChipsInput, Input } from '@/components/ui/form';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
+// PostgREST counts exactly up to its row limit (1,000) and estimates above it
+const APPROX_OVER = 1000;
+
 
 export default function LeadsPage() {
   return (
@@ -72,7 +75,7 @@ function Leads() {
     enabled: !!allowed && PAGE > 0,
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const { data, count, error } = await applyLeadFilters(db.from('contacts_public').select('*', { count: 'exact' }), scoped)
+      const { data, count, error } = await applyLeadFilters(db.from('contacts_public').select('*', { count: 'estimated' }), scoped)
         .order('last_verified_at', { ascending: false })
         .order('id')
         .range(page * PAGE, page * PAGE + PAGE - 1);
@@ -173,6 +176,8 @@ function Leads() {
             <Input value={text} onChange={(e) => { setText(e.target.value); setPage(0); }} placeholder="Search name, company or title" className="h-8 w-72 pl-8 max-sm:w-44" aria-label="Search the database" />
           </div>
           <h1 className="text-sm text-black-700">
+            {/* counts above 1,000 are the planner's estimate (count: 'estimated'), so say so */}
+            {results.data && results.data.count > APPROX_OVER ? 'About ' : ''}
             <span className="text-black-400">{results.data ? results.data.count.toLocaleString('en-GB') : '…'}</span> contacts
           </h1>
           <Tag color={7}>Sample data</Tag>

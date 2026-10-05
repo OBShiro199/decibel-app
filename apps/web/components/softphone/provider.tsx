@@ -319,8 +319,20 @@ export function SoftphoneProvider({
   // ---- warm up + inbound -------------------------------------------------------
   useEffect(() => {
     if (!listen || !isVoiceSupported()) return;
-    // load the SDK and a token while the rep looks at the page, so the first call is quick
-    const t = window.setTimeout(() => warmDevice(workspaceId), 800);
+    // Load the SDK, fetch a token and register while the rep looks at the page, so the first call
+    // is quick, but only after the page's own data has had the network: wait a moment, then use
+    // idle time. Starting a call before then warms the device on demand anyway.
+    let cancelIdle: (() => void) | null = null;
+    const warm = () => warmDevice(workspaceId);
+    const t = window.setTimeout(() => {
+      if (typeof window.requestIdleCallback === 'function') {
+        const id = window.requestIdleCallback(warm, { timeout: 8000 });
+        cancelIdle = () => window.cancelIdleCallback(id);
+      } else {
+        const id = window.setTimeout(warm, 1000);
+        cancelIdle = () => window.clearTimeout(id);
+      }
+    }, 2500);
     const off = onIncoming((call) => {
       if (isLive(stateRef.current.phase) || needsOutcome(stateRef.current)) {
         call.reject();
@@ -333,6 +345,7 @@ export function SoftphoneProvider({
     });
     return () => {
       clearTimeout(t);
+      cancelIdle?.();
       off();
     };
   }, [bind, listen, workspaceId]);

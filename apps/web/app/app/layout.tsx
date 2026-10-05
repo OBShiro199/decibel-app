@@ -7,15 +7,24 @@ export const dynamic = 'force-dynamic';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  // getClaims verifies the session token locally (no network hop), so the user id is known at
+  // once and the user record (for email confirmation), profile and memberships load in parallel
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims?.sub;
+  if (!userId) redirect('/login');
 
-  const [{ data: profile }, { data: memberships }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('workspace_members').select('role, workspace:workspaces(*)').eq('user_id', user.id),
+  const [
+    {
+      data: { user },
+    },
+    { data: profile },
+    { data: memberships },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('profiles').select('*').eq('id', userId).single(),
+    supabase.from('workspace_members').select('role, workspace:workspaces(*)').eq('user_id', userId),
   ]);
+  if (!user) redirect('/login');
 
   const rows = ((memberships ?? []) as unknown as { role: WorkspaceRole; workspace: Workspace | null }[]).filter((m) => m.workspace);
   if (!profile || rows.length === 0) redirect('/onboarding');

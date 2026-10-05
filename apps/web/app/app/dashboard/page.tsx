@@ -12,6 +12,7 @@ import { cn, formatTalkTime } from '@/lib/utils';
 import { ButtonLink } from '@/components/ui/button';
 import { Avatar, EmptyState, ErrorCard, Skeleton } from '@/components/ui/display';
 import { Input } from '@/components/ui/form';
+import { useFirstReveal } from '@/components/ui/reveal';
 
 type Period = 'today' | 'week' | 'month' | 'custom';
 const PERIODS: [Period, string][] = [
@@ -88,6 +89,7 @@ function niceMax(v: number) {
 
 // ------------------------------------------------------------------------------------- page --
 export default function DashboardPage() {
+  const firstReveal = useFirstReveal('dashboard:kpis');
   const { workspace } = useApp();
   const names = useMemberNames();
   const [period, setPeriod] = useState<Period>('week');
@@ -148,7 +150,7 @@ export default function DashboardPage() {
       {cur.error ? <ErrorCard message={(cur.error as Error).message} onRetry={() => cur.refetch()} /> : null}
 
       {/* headline numbers */}
-      <section aria-label="Headline numbers" className="stagger grid grid-cols-2 stat-grid lg:grid-cols-4">
+      <section aria-label="Headline numbers" className={cn(firstReveal && 'stagger', 'grid grid-cols-2 stat-grid lg:grid-cols-4')}>
         <Kpi label="Dials" value={num(totals.dials)} loading={loading} delta={compareReady ? change(totals.dials, before.dials) : null} />
         <Kpi label="Connects" value={num(totals.connects)} loading={loading} delta={compareReady ? change(totals.connects, before.connects) : null} />
         <Kpi label="Connect rate" value={`${pct(totals.connects, totals.dials)}%`} loading={loading} delta={compareReady ? points(pct(totals.connects, totals.dials), pct(before.connects, before.dials), before.dials > 0) : null} />

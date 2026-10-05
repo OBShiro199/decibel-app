@@ -7,13 +7,15 @@ import { useState } from 'react';
 import { useApp } from '@/lib/app-context';
 import { useLists, useMemberNames } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
-import { timeAgo } from '@/lib/utils';
+import { cn, timeAgo } from '@/lib/utils';
+import { useFirstReveal } from '@/components/ui/reveal';
 import { ListPickerDialog } from '@/components/app/records';
 import { Button } from '@/components/ui/button';
 import { Avatar, Badge, EmptyState, ErrorCard, Skeleton } from '@/components/ui/display';
 import { useToast } from '@/components/ui/overlay';
 
 export default function ListsPage() {
+  const firstReveal = useFirstReveal('lists:cards');
   const { workspace } = useApp();
   const router = useRouter();
   const toast = useToast();
@@ -79,7 +81,7 @@ export default function ListsPage() {
           <EmptyState title="Create your first list" description="Group the people you want to call, then work the list top to bottom." action={<Button variant="primary" onClick={() => setCreating(true)}>New list</Button>} />
         </div>
       ) : (
-        <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn(firstReveal && 'stagger', 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3')}>
           {lists.data.map((l) => (
             <article key={l.id} className="card flex flex-col p-4 transition-colors hover:border-black-700">
               <Link href={`/app/lists/${l.id}`} className="block">

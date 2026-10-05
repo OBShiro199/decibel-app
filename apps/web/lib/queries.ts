@@ -79,7 +79,7 @@ export const callsQuery = (workspaceId: string, f: CallFilters) =>
     queryFn: async () => {
       let q = supabase()
         .from('calls')
-        .select('*, person:people(id,full_name,job_title,company:tenant_companies(id,name)), recording:recordings(id,call_id,storage_path,duration_seconds)', { count: 'exact' })
+        .select('*, person:people(id,full_name,job_title,company:tenant_companies(id,name)), recording:recordings(id,call_id,storage_path,duration_seconds)', { count: 'estimated' })
         .eq('workspace_id', workspaceId)
         .order('started_at', { ascending: false })
         .range(f.page * CALLS_PAGE, f.page * CALLS_PAGE + CALLS_PAGE - 1);
