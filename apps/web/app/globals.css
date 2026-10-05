@@ -610,10 +610,14 @@ html:has([data-page-scroll]) {
   .desktop-content { display: none; }
 }
 
-/* dashboard: one type size, 13px like the sidebar; hierarchy comes from weight and colour only */
-.app-shell .dash-13 { font-size: 13px; line-height: 18px; }
-.app-shell .dash-13 :is(.t-label, .t-caption, .t-small, .text-xs, .text-sm, .text-base, .text-md, .text-lg, .text-xl, .text-2xl, .tbl th, .tbl td, button, input, dt, dd) {
+/* App type: one size, 13px like the sidebar, for every piece of UI text. Hierarchy comes from
+   weight and colour. Only real headings keep a larger size: .t-h2 (page titles, the greeting)
+   and .t-h3 (dialog titles, the person on a call). Section headings (.t-h4) are 13px medium. */
+.app-shell { font-size: 13px; line-height: 18px; }
+.app-shell :is(.t-body, .t-body-lg, .t-small, .t-caption, .t-label, .eyebrow, .t-mono, .t-h4, .text-xs, .text-sm, .text-base, .text-md, .text-lg, .text-xl, .text-2xl, .text-3xl) {
   font-size: 13px;
   line-height: 18px;
 }
-.app-shell .dash-13 .tag { font-size: 13px; }
+.app-shell :is(.tbl th, .tbl td, button, input, select, textarea, .control, .tag, .kbd, dt, dd, li, label) { font-size: 13px; }
+.app-shell .t-h4 { font-weight: 500; letter-spacing: -0.01em; }
+

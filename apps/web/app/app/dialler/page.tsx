@@ -520,7 +520,7 @@ function Dialler() {
             <div className="flex h-[112px] items-center gap-4">
               {stage === 'setup' || stage === 'finished' ? (
                 <div>
-                  <h1 className="text-xl font-medium text-black-400">{stage === 'setup' ? (previewingResume ? 'Welcome back' : 'Ready when you are') : 'Session complete'}</h1>
+                  <h1 className="t-h3">{stage === 'setup' ? (previewingResume ? 'Welcome back' : 'Ready when you are') : 'Session complete'}</h1>
                   <p className="mt-1 text-base text-black-700">
                     {stage === 'setup' && previewingResume
                       ? 'Your last run is saved. Resume to carry on from the next person, or start over.'
@@ -536,7 +536,7 @@ function Dialler() {
                     <p className="text-xs" style={{ color: 'var(--dialler)' }}>
                       {stage === 'wrap' ? 'Wrap-up' : stage === 'live' ? (sp.phase === 'in_call' ? 'On the line' : 'Calling') : mode === 'paused' ? 'Paused' : 'Up next'}
                     </p>
-                    <h1 className="truncate text-xl font-medium text-black-400">{current!.name}</h1>
+                    <h1 className="t-h3 truncate">{current!.name}</h1>
                     <p className="truncate text-base text-black-700">{[current!.title, current!.company].filter(Boolean).join(' · ')}</p>
                   </div>
                 </>
