@@ -14,7 +14,7 @@
     font-size: 14px;
     line-height: 20px;
     font-weight: 400;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.014em;
   }
   *,
   ::before,
@@ -472,28 +472,29 @@ html:has([data-page-scroll]) {
   --radius-md: 6px; /* menus, option cards */
   --radius-lg: 12px; /* cards, dialogs */
 
-  /* Inter with Linear's alternates */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-family: var(--font-sans);
-  font-feature-settings: 'cv01' on, 'ss03' on, 'zero' on;
-  letter-spacing: -0.01em;
+  /* Geist, set close: a touch of negative tracking at every size */
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: -0.014em;
   color: var(--color-black-500);
   background: #ffffff;
 }
 
-/* weights stay in Linear's 400 / 510 / 590 band; never bold */
-.app-shell .font-medium { font-weight: 510; }
+/* Geist weights: 400 body, 500 emphasis, 600 strong; never bold */
+.app-shell .font-medium { font-weight: 500; }
 .app-shell .font-semibold,
 .app-shell .font-bold,
 .app-shell strong,
-.app-shell b { font-weight: 590; }
-.app-shell .t-h1, .app-shell .t-h2, .app-shell .t-h3, .app-shell .t-h4 { font-weight: 510; color: var(--color-black-400); }
-.app-shell .t-h2 { font-size: 24px; line-height: 32px; letter-spacing: -0.012em; }
-.app-shell .t-h3 { font-size: 20px; line-height: 26px; letter-spacing: -0.012em; }
-.app-shell .t-h4 { font-size: 15px; line-height: 22px; letter-spacing: -0.011em; }
-.app-shell .t-label { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0; color: var(--color-white-900); }
-.app-shell .t-small { font-size: 13px; line-height: 18px; }
-.app-shell .t-caption { font-size: 12px; line-height: 16px; }
+.app-shell b { font-weight: 600; }
+/* tracking tightens as size grows */
+.app-shell .t-h1, .app-shell .t-h2, .app-shell .t-h3, .app-shell .t-h4 { font-weight: 500; color: var(--color-black-400); }
+.app-shell .t-h2 { font-size: 24px; line-height: 32px; letter-spacing: -0.03em; }
+.app-shell .t-h3 { font-size: 20px; line-height: 26px; letter-spacing: -0.025em; }
+.app-shell .t-h4 { font-size: 15px; line-height: 22px; letter-spacing: -0.02em; }
+.app-shell .text-xl, .app-shell .text-2xl, .app-shell .text-3xl { letter-spacing: -0.035em; }
+.app-shell .text-lg, .app-shell .text-md { letter-spacing: -0.02em; }
+.app-shell .t-label { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: -0.005em; color: var(--color-white-900); }
+.app-shell .t-small { font-size: 13px; line-height: 18px; letter-spacing: -0.01em; }
+.app-shell .t-caption { font-size: 12px; line-height: 16px; letter-spacing: -0.005em; }
 
 /* cards: 12px, hairline edge, no shadow */
 .app-shell .card { border-radius: 12px; border-color: var(--color-white-800); }
@@ -544,7 +545,7 @@ html:has([data-page-scroll]) {
 
 /* sidebar: the active item is outlined with a hairline, no fill */
 .app-shell .nav-item { border-radius: 6px; border: 1px solid transparent; }
-.app-shell .nav-item[aria-current='page'] { color: var(--color-black-400); font-weight: 510; border-color: var(--color-white-800); box-shadow: 0 1px 2px rgba(8, 9, 10, 0.04); }
+.app-shell .nav-item[aria-current='page'] { color: var(--color-black-400); font-weight: 500; border-color: var(--color-white-800); box-shadow: 0 1px 2px rgba(8, 9, 10, 0.04); }
 
 .app-shell .skeleton { background: #f3f3f5; border-radius: 4px; }
 .app-shell .kbd { border-radius: 4px; }

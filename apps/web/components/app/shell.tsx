@@ -12,7 +12,6 @@ import { AppProvider, useApp, type AppContextValue } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
 import { destroyDevice } from '@/lib/twilio/device';
 import type { Person } from '@/lib/types';
-import { inter } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
 import { SidebarCallWidget, SoftphoneToggle } from '@/components/app/quick-dial';
 import { SoftphoneProvider } from '@/components/softphone/provider';
@@ -58,7 +57,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   // sidebar still render on the server. Client-side navigation is unaffected.
   const hydrated = useHydrated();
   return (
-    <div className={`${inter.variable} app-shell`}>
+    <div className={`app-shell`}>
       <SoftphoneProvider workspaceId={workspace.id} userId={user.id} recordingPolicy={workspace.recording_policy}>
         <div className="flex h-dvh">
           <Sidebar />

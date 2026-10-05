@@ -9,7 +9,6 @@ import { STEPS, stepBySlug, type StepSlug } from '@/lib/onboarding';
 import { saveInBackground } from '@/lib/background-save';
 import { supabase } from '@/lib/supabase/client';
 import type { OnboardingState, Profile, Workspace } from '@/lib/types';
-import { inter } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/marketing/logo';
 import { SoftphoneProvider } from '@/components/softphone/provider';
@@ -236,7 +235,7 @@ export function Wizard({
   );
 
   return (
-    <div className={`${inter.variable} app-shell`}>
+    <div className={`app-shell`}>
     <NavCtx.Provider
       value={{
         footer,
