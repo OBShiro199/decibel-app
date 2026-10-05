@@ -9,7 +9,9 @@ import { useDebounced, useStages } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import { PHASE_LABEL } from '@/lib/twilio/call-machine';
 import type { Person } from '@/lib/types';
-import { cn, formatPhone, normalizePhone } from '@/lib/utils';
+import { formatPhone } from '@/lib/utils';
+import { DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { useSoftphoneActions, useSoftphoneStatus } from '@/components/softphone/provider';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/display';
@@ -18,7 +20,7 @@ import { Popover } from '@/components/ui/overlay';
 type Match = Pick<Person, 'id' | 'full_name' | 'mobile_e164' | 'tps_status' | 'do_not_call'> & { company: { name: string } | null };
 const looksLikeNumber = (v: string) => /^[+\d][\d\s()-]{5,}$/.test(v.trim());
 
-function useQuickDial(onDone?: () => void) {
+function useQuickDial(onDone?: () => void, country: DialCountry = DEFAULT_DIAL_COUNTRY) {
   const { workspace, user } = useApp();
   const softphone = useSoftphoneActions();
   const phone = useSoftphoneStatus();
@@ -28,13 +30,14 @@ function useQuickDial(onDone?: () => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const term = useDebounced(value.trim(), 200);
-  const number = looksLikeNumber(value) ? normalizePhone(value) : null;
+  // numbers are read in the context of the chosen country: 07..., 44..., +44... all work
+  const number = looksLikeNumber(value) ? toE164(value, country) : null;
 
   const { data: matches } = useQuery({
-    queryKey: ['people', 'quick-dial', workspace.id, term],
+    queryKey: ['people', 'quick-dial', workspace.id, term, country.code],
     enabled: term.length > 1,
     queryFn: async () => {
-      const e164 = looksLikeNumber(term) ? normalizePhone(term) : null;
+      const e164 = looksLikeNumber(term) ? toE164(term, country) : null;
       let q = supabase().from('people').select('id,full_name,mobile_e164,tps_status,do_not_call,company:tenant_companies(name)').eq('workspace_id', workspace.id).not('mobile_e164', 'is', null).limit(5);
       q = e164 ? q.like('mobile_e164', `${e164}%`) : q.ilike('full_name', `%${term.replace(/[%,()]/g, ' ')}%`);
       return ((await q).data ?? []) as unknown as Match[];
@@ -132,7 +135,8 @@ export function QuickCallButton() {
 }
 
 export function DialPad({ onDone }: { onDone?: () => void }) {
-  const d = useQuickDial(onDone);
+  const [country, setCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
+  const d = useQuickDial(onDone, country);
   const press = (k: string) => d.setValue((looksLikeNumber(d.value) || !d.value ? d.value : '') + k);
   return (
     <form
@@ -142,23 +146,26 @@ export function DialPad({ onDone }: { onDone?: () => void }) {
       }}
       className="flex flex-col gap-3"
     >
-      <input
+      <PhoneInput
         autoFocus
         value={d.value}
-        onChange={(e) => d.setValue(e.target.value)}
-        placeholder="Type a name or number"
+        onChange={d.setValue}
+        country={country}
+        onCountryChange={setCountry}
+        placeholder="Name or number"
         aria-label="Name or number"
-        className="control h-10 tabular-nums"
+        inputMode="text"
+        className="h-9"
       />
       <Matches items={d.matches} onPick={(m) => void d.call(m)} />
       {/* spaced keys with the app's 6px corners, not a boxed grid */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5">
         {KEYS.map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => press(k)}
-            className="h-11 rounded-sm border border-white-800 bg-white-100 font-medium tabular-nums text-black-400 transition-[background-color,border-color,scale] duration-150 hover:border-btnborder hover:bg-white-200 active:scale-[0.96]"
+            className="h-9 rounded-sm border border-white-800 bg-white-100 font-medium tabular-nums text-black-400 transition-[background-color,border-color,scale] duration-150 hover:border-btnborder hover:bg-white-200 active:scale-[0.96]"
           >
             {k}
           </button>
@@ -167,13 +174,13 @@ export function DialPad({ onDone }: { onDone?: () => void }) {
           type="button"
           aria-label="Delete"
           onClick={() => d.setValue(d.value.slice(0, -1))}
-          className="flex h-11 items-center justify-center rounded-sm border border-white-800 bg-white-100 text-black-700 transition-[background-color,border-color,scale] duration-150 hover:border-btnborder hover:bg-white-200 active:scale-[0.96]"
+          className="flex h-9 items-center justify-center rounded-sm border border-white-800 bg-white-100 text-black-700 transition-[background-color,border-color,scale] duration-150 hover:border-btnborder hover:bg-white-200 active:scale-[0.96]"
         >
           <Delete size={16} strokeWidth={1.5} />
         </button>
       </div>
       {d.error ? <p className="text-danger-700" role="alert">{d.error}</p> : null}
-      <Button type="submit" variant="primary" className="h-10 w-full" loading={d.busy} disabled={d.live || !d.value.trim()}>
+      <Button type="submit" variant="primary" className="h-9 w-full" loading={d.busy} disabled={d.live || !d.value.trim()}>
         <Phone size={14} strokeWidth={1.5} /> {d.live ? 'On a call' : d.number ? `Call ${formatPhone(d.number)}` : 'Call'}
       </Button>
     </form>

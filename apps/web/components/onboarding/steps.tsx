@@ -18,6 +18,8 @@ import { Badge, CompanyLogo, OptionCard, Skeleton } from '@/components/ui/displa
 import { Checkbox, ChipsInput, Field, Input, PillSelect, Select } from '@/components/ui/form';
 import { useToast } from '@/components/ui/overlay';
 import { StepFooter as Footer, useWizardNav, type StepProps } from './wizard';
+import { countryFromInternational, DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 function Header({ title, description }: { title: string; description: string }) {
   return (
@@ -447,6 +449,7 @@ export function TestStep({ workspace, profile, invited, done }: StepProps) {
   const softphone = useSoftphoneActions();
   const [mic, setMic] = useState(false);
   const [mobile, setMobile] = useState(profile.mobile_e164 ? formatPhone(profile.mobile_e164) : '');
+  const [mobileCountry, setMobileCountry] = useState<DialCountry>(() => countryFromInternational(profile.mobile_e164 ?? '') ?? DEFAULT_DIAL_COUNTRY);
   const [status, setStatus] = useState<'idle' | 'calling' | 'passed' | 'failed'>('idle');
   const [error, setError] = useState<string | null>(null);
   const { data: numbers } = useQuery({
@@ -456,7 +459,7 @@ export function TestStep({ workspace, profile, invited, done }: StepProps) {
   const hasCaller = (numbers?.length ?? 0) > 0;
 
   const call = async () => {
-    const e164 = normalizePhone(mobile);
+    const e164 = toE164(mobile, mobileCountry);
     if (!e164) return setError('Enter your mobile number, for example 07700 900123.');
     setError(null);
     setStatus('calling');
@@ -495,7 +498,7 @@ export function TestStep({ workspace, profile, invited, done }: StepProps) {
             <>
               <Field className="mt-3" label="Your mobile number" htmlFor="test-mobile" error={error}>
                 <div className="flex gap-2">
-                  <Input id="test-mobile" type="tel" className="tabular-nums" placeholder="07700 900123" value={mobile} onChange={(e) => setMobile(e.target.value)} />
+                  <PhoneInput id="test-mobile" value={mobile} onChange={setMobile} country={mobileCountry} onCountryChange={setMobileCountry} />
                   <Button variant={status === 'passed' ? 'outline' : 'primary'} onClick={call} disabled={!mic || status === 'calling'} loading={status === 'calling'}>
                     <Mic size={16} strokeWidth={1.5} /> {status === 'passed' || status === 'failed' ? 'Call again' : 'Call my mobile'}
                   </Button>

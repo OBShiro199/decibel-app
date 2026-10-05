@@ -9,6 +9,8 @@ import { useApp } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
 import { normalizePhone } from '@/lib/utils';
 import { errorMessage, Notice, Section, SettingsPage } from '../_components';
+import { countryFromInternational, DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 const FALLBACK_ZONES = ['Europe/London', 'Europe/Dublin', 'Europe/Berlin', 'Europe/Vienna', 'Europe/Zurich', 'Europe/Amsterdam', 'Europe/Brussels', 'Europe/Paris', 'Europe/Stockholm', 'Europe/Oslo', 'Europe/Copenhagen', 'Europe/Helsinki', 'Europe/Madrid', 'Europe/Rome', 'Europe/Lisbon', 'UTC'];
 
@@ -30,6 +32,7 @@ export default function ProfilePage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState(profile.full_name ?? '');
   const [mobile, setMobile] = useState(profile.mobile_e164 ?? '');
+  const [mobileCountry, setMobileCountry] = useState<DialCountry>(() => countryFromInternational(profile.mobile_e164 ?? '') ?? DEFAULT_DIAL_COUNTRY);
   const [timezone, setTimezone] = useState(profile.timezone || 'Europe/London');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -37,7 +40,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const zones = useMemo(() => timeZones(timezone), [timezone]);
 
-  const mobileE164 = mobile.trim() ? normalizePhone(mobile) : null;
+  const mobileE164 = mobile.trim() ? toE164(mobile, mobileCountry) : null;
   const mobileInvalid = Boolean(mobile.trim()) && !mobileE164;
   const dirty = fullName.trim() !== (profile.full_name ?? '') || (mobileE164 ?? '') !== (profile.mobile_e164 ?? '') || timezone !== profile.timezone;
 
@@ -157,7 +160,7 @@ export default function ProfilePage() {
             hint="Used for test calls so you can hear how your calls sound."
             error={mobileInvalid ? 'Enter a valid number, for example 07700 900123 or +44 7700 900123.' : undefined}
           >
-            <Input id="mobile" type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+44 7700 900123" aria-invalid={mobileInvalid} autoComplete="tel" />
+            <PhoneInput id="mobile" value={mobile} onChange={setMobile} country={mobileCountry} onCountryChange={setMobileCountry} aria-invalid={mobileInvalid} autoComplete="tel" />
           </Field>
           <Field label="Timezone" htmlFor="timezone" hint="Used for task due times and call-back reminders.">
             <Select id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)}>

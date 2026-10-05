@@ -12,6 +12,8 @@ import { useMemberNames } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import { formatDate, formatPhone, normalizePhone, exportCsv as auditedCsv } from '@/lib/utils';
 import { AdminOnly, fetchAll, Notice, Section, SettingsPage } from '../_components';
+import { DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 interface DncEntry {
   id: string;
@@ -37,6 +39,7 @@ export default function CompliancePage() {
   const toast = useToast();
   const names = useMemberNames();
   const [number, setNumber] = useState('');
+  const [dncCountry, setDncCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
   const [reason, setReason] = useState('');
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
@@ -66,7 +69,7 @@ export default function CompliancePage() {
     return all.filter((r) => (digits && r.e164.includes(digits.replace(/^0/, ''))) || (r.reason ?? '').toLowerCase().includes(q));
   }, [dnc.data, search]);
 
-  const e164 = normalizePhone(number);
+  const e164 = toE164(number, dncCountry);
   const bulkParsed = useMemo(() => {
     const lines = bulkText.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean);
     const valid = Array.from(new Set(lines.map((l) => normalizePhone(l)).filter((v): v is string => Boolean(v))));
@@ -166,7 +169,7 @@ export default function CompliancePage() {
         {isAdmin ? (
           <form onSubmit={add} className="card mb-4 grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-start">
             <Field label="Number" htmlFor="dnc_number" error={number.trim() && !e164 ? 'Enter a valid phone number.' : undefined}>
-              <Input id="dnc_number" type="tel" value={number} onChange={(e) => setNumber(e.target.value)} placeholder="+44 7700 900123" aria-invalid={Boolean(number.trim()) && !e164} />
+              <PhoneInput id="dnc_number" value={number} onChange={setNumber} country={dncCountry} onCountryChange={setDncCountry} aria-invalid={Boolean(number.trim()) && !e164} />
             </Field>
             <Field label="Reason (optional)" htmlFor="dnc_reason">
               <Input id="dnc_reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Asked not to be called" maxLength={200} />

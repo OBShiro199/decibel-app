@@ -26,6 +26,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, Badge, Skeleton, Tag } from '@/components/ui/display';
 import { Input, Textarea } from '@/components/ui/form';
 import { useToast } from '@/components/ui/overlay';
+import { DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 type Mode = 'setup' | 'running' | 'paused' | 'finished';
 type Result = LeadResult;
@@ -60,11 +62,12 @@ function Dialler() {
   const urlList = useSearchParams().get('list');
   const [source, setSource] = useState<string>(urlList ? `list:${urlList}` : 'practice');
   const [practiceNumber, setPracticeNumber] = useState(PRACTICE_DEFAULT_NUMBER);
+  const [testCountry, setTestCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
   const listId = source.startsWith('list:') ? source.slice(5) : undefined;
   const today = useQuery({ ...todayQueueQuery(workspace.id, user.id), enabled: source === 'today' });
   const listPeople = useQuery({ ...peopleQuery(workspace.id, listId), enabled: !!listId });
   const previewLeads: DialLead[] = useMemo(() => {
-    if (source === 'practice') return practiceLeads(normalizePhone(practiceNumber) ?? practiceNumber);
+    if (source === 'practice') return practiceLeads(toE164(practiceNumber, testCountry) ?? practiceNumber);
     const people = source === 'today' ? today.data : listPeople.data;
     return (people ?? []).map(personLead);
   }, [source, practiceNumber, today.data, listPeople.data]);
@@ -173,7 +176,7 @@ function Dialler() {
     }
     mark(current.id, { state: 'calling' });
     answeredRef.current = false;
-    const testNumber = normalizePhone(practiceNumber) ?? undefined;
+    const testNumber = toE164(practiceNumber, testCountry) ?? undefined;
     const started = current.practice
       ? (void actions.testCall(current.number, { practice: true, name: current.name, company: current.company }), true)
       : await actions.callPerson(current.person!, { listId: listId ?? null, testRoute: TEST_ROUTING ? testNumber : undefined });
@@ -239,7 +242,7 @@ function Dialler() {
   const start = async () => {
     const snapshot = previewLeads;
     if (!snapshot.length) return;
-    const e164 = normalizePhone(practiceNumber);
+    const e164 = toE164(practiceNumber, testCountry);
     // practice calls and test-routed calls ring this number, which must be the rep's own mobile
     if (source === 'practice' || TEST_ROUTING) {
       if (!e164) return toast('Enter a valid mobile number for test calls.');
@@ -557,7 +560,7 @@ function Dialler() {
                     : source === 'practice'
                     ? 'practice calls ring your own mobile'
                     : TEST_ROUTING
-                      ? `test mode: every call rings ${formatPhone(normalizePhone(practiceNumber) ?? practiceNumber)}`
+                      ? `test mode: every call rings ${formatPhone(toE164(practiceNumber, testCountry) ?? practiceNumber)}`
                       : 'TPS-listed and do-not-call numbers are skipped'}
                 </span>
               ) : (
@@ -565,7 +568,7 @@ function Dialler() {
                   <span className="text-base tabular-nums text-black-500">{formatPhone(current!.number)}</span>
                   {TEST_ROUTING && !current!.practice ? (
                     <span className="tag tag-2" title="Test mode: the call rings your test number">
-                      Rings {formatPhone(normalizePhone(practiceNumber) ?? practiceNumber)}
+                      Rings {formatPhone(toE164(practiceNumber, testCountry) ?? practiceNumber)}
                     </span>
                   ) : null}
                   <span className="ml-auto flex items-center gap-2">
@@ -587,7 +590,7 @@ function Dialler() {
                       <label className="t-label mb-1.5 block" htmlFor="practice-number">
                         {source === 'practice' ? 'Practice number' : 'Test number'}
                       </label>
-                      <Input id="practice-number" type="tel" className="max-w-[260px] tabular-nums" value={practiceNumber} onChange={(e) => setPracticeNumber(e.target.value)} />
+                      <PhoneInput id="practice-number" className="max-w-[300px]" value={practiceNumber} onChange={setPracticeNumber} country={testCountry} onCountryChange={setTestCountry} />
                       <p className="mt-1.5 text-xs text-white-900">
                         {source === 'practice'
                           ? 'Ten practice leads all ring this number, saved as your mobile. Nothing is written to your records.'

@@ -11,6 +11,8 @@ import { formatPhone, normalizePhone } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ErrorCard, Skeleton } from '@/components/ui/display';
 import { Field, Input, PillSelect, Select } from '@/components/ui/form';
+import { countryFromInternational, DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 type NumberType = 'local' | 'national' | 'mobile';
 const AREAS: { id: string; label: string; type: NumberType; prefix: string }[] = [
@@ -298,13 +300,14 @@ function BundleForm({
 export function VerifyCallerIdPanel({ workspaceId, onDone, initialNumber = '' }: { workspaceId: string; onDone: (n: PhoneNumber) => void; initialNumber?: string }) {
   const qc = useQueryClient();
   const [raw, setRaw] = useState(initialNumber);
+  const [verifyCountry, setVerifyCountry] = useState<DialCountry>(() => countryFromInternational(initialNumber ?? '') ?? DEFAULT_DIAL_COUNTRY);
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verified, setVerified] = useState<PhoneNumber | null>(null);
   const [timedOut, setTimedOut] = useState(false);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
-  const e164 = normalizePhone(raw);
+  const e164 = toE164(raw, verifyCountry);
 
   useEffect(() => () => { if (poll.current) clearInterval(poll.current); }, []);
 
@@ -371,7 +374,7 @@ export function VerifyCallerIdPanel({ workspaceId, onDone, initialNumber = '' }:
     <form onSubmit={start} className="flex flex-col gap-4">
       <Field label="Your phone number" htmlFor="verify-number" hint="Twilio will call this number now. Keep your phone to hand." error={error}>
         <div className="flex gap-2">
-          <Input id="verify-number" type="tel" inputMode="tel" placeholder="07700 900123" value={raw} onChange={(e) => setRaw(e.target.value)} disabled={!!code && !timedOut} className="tabular-nums" />
+          <PhoneInput id="verify-number" value={raw} onChange={setRaw} country={verifyCountry} onCountryChange={setVerifyCountry} disabled={!!code && !timedOut} />
           <Button type="submit" variant="primary" loading={busy} disabled={!!code && !timedOut}>
             {timedOut ? 'Call me again' : 'Call me'}
           </Button>

@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, Badge, OptionCard } from '@/components/ui/display';
 import { Field, Input, Select } from '@/components/ui/form';
 import { Dialog, Popover, useToast } from '@/components/ui/overlay';
+import { DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
+import { PhoneInput } from '@/components/ui/phone-input';
 
 export function OutcomeBadge({ outcome }: { outcome: CallOutcome | null | undefined }) {
   const meta = outcomeMeta(outcome);
@@ -221,6 +223,7 @@ export function AddPersonDialog({ open, onClose, listId }: { open: boolean; onCl
   const toast = useToast();
   const blank = { first_name: '', last_name: '', job_title: '', email: '', mobile: '', company: '' };
   const [form, setForm] = useState(blank);
+  const [mobileCountry, setMobileCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -235,7 +238,7 @@ export function AddPersonDialog({ open, onClose, listId }: { open: boolean; onCl
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const mobile = form.mobile.trim() ? normalizePhone(form.mobile) : null;
+    const mobile = form.mobile.trim() ? toE164(form.mobile, mobileCountry) : null;
     if (!form.first_name.trim()) return setError('First name is required.');
     if (form.mobile.trim() && !mobile) return setError('That mobile number does not look valid.');
     setBusy(true);
@@ -303,7 +306,7 @@ export function AddPersonDialog({ open, onClose, listId }: { open: boolean; onCl
           <Input id="ap-email" type="email" value={form.email} onChange={set('email')} />
         </Field>
         <Field label="Mobile" htmlFor="ap-mobile" hint="Checked against your DNC list on save.">
-          <Input id="ap-mobile" type="tel" className="tabular-nums" placeholder="07700 900123" value={form.mobile} onChange={set('mobile')} />
+          <PhoneInput id="ap-mobile" value={form.mobile} onChange={(v) => setForm((f) => ({ ...f, mobile: v }))} country={mobileCountry} onCountryChange={setMobileCountry} />
         </Field>
         {error ? <p className="text-danger-700 sm:col-span-2" role="alert">{error}</p> : null}
         <div className="flex justify-end gap-2 sm:col-span-2">
