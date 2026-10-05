@@ -5,6 +5,7 @@ import { Prose, ProseTable } from '@/components/marketing/prose';
 export const metadata: Metadata = {
   title: 'Cookie policy',
   description: 'The cookies and browser storage Decibel uses, what they are for, and how to change your choice.',
+  alternates: { canonical: '/cookies' },
 };
 
 export default function CookiesPage() {

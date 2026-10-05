@@ -6,6 +6,7 @@ import { Prose } from '@/components/marketing/prose';
 export const metadata: Metadata = {
   title: 'Opt out',
   description: 'Ask Decibel to remove your details from the database or object to your data being used for direct marketing.',
+  alternates: { canonical: '/privacy/opt-out' },
 };
 
 export default function OptOutPage() {

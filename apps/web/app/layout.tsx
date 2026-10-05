@@ -2,20 +2,29 @@ import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers';
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
 
 // Self-hosted at build time by next/font.
 const sans = Geist({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
-  title: { default: 'Decibel · 1 million verified mobiles & the dialler to reach them all', template: '%s · Decibel' },
-  description: 'Search UK and EU decision makers, reveal a direct mobile for one credit and call it from your browser. TPS screening, call recording and a self-updating pipeline built in.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: '%s · Decibel' },
+  description: SITE_DESCRIPTION,
+  applicationName: 'Decibel',
+  keywords: ['B2B data', 'UK mobile numbers', 'EU mobile numbers', 'verified mobiles', 'cold calling software', 'power dialler', 'browser dialler', 'sales dialler UK', 'TPS screening', 'CTPS', 'outbound sales', 'lead database', 'call recording', 'sales pipeline'],
+  category: 'business',
+  alternates: { canonical: '/' },
   openGraph: {
-    title: 'Decibel · 1 million verified mobiles & the dialler to reach them all',
-    description: 'Search UK and EU decision makers, reveal a direct mobile for one credit and call it from your browser. TPS screening, call recording and a self-updating pipeline built in.',
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: '/',
+    siteName: 'Decibel',
     type: 'website',
     locale: 'en_GB',
   },
+  twitter: { card: 'summary_large_image', title: SITE_TITLE, description: SITE_DESCRIPTION },
+  robots: { index: true, follow: true },
   // favicon.io export, copied into public/brand
   // ?v= busts browsers' separate favicon cache; bump it whenever the icons change
   icons: {

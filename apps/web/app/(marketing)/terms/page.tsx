@@ -5,6 +5,7 @@ import { Prose } from '@/components/marketing/prose';
 export const metadata: Metadata = {
   title: 'Terms of service',
   description: 'The terms that apply when you use Decibel, including trials, billing, acceptable use and liability.',
+  alternates: { canonical: '/terms' },
 };
 
 export default function TermsPage() {

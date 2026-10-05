@@ -5,6 +5,7 @@ import { Prose } from '@/components/marketing/prose';
 export const metadata: Metadata = {
   title: 'Article 14 notice',
   description: 'Information for people whose business contact details appear in the Decibel database, as required by Article 14 of the GDPR.',
+  alternates: { canonical: '/art-14' },
 };
 
 export default function Article14Page() {

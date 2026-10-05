@@ -5,6 +5,7 @@ import { Prose, ProseNote, ProseTable } from '@/components/marketing/prose';
 export const metadata: Metadata = {
   title: 'Compliance',
   description: 'How Decibel handles TPS/CTPS screening, caller ID, call recording, lawful basis, data residency and retention for UK and EU outbound calling.',
+  alternates: { canonical: '/compliance' },
 };
 
 export default function CompliancePage() {

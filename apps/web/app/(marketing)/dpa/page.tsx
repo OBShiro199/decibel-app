@@ -5,6 +5,7 @@ import { Prose, ProseTable } from '@/components/marketing/prose';
 export const metadata: Metadata = {
   title: 'Data Processing Addendum',
   description: 'The Decibel Data Processing Addendum, including security measures and the list of sub-processors.',
+  alternates: { canonical: '/dpa' },
 };
 
 export default function DpaPage() {

@@ -9,9 +9,12 @@ import { Faq, type FaqItem } from '@/components/marketing/faq';
 import { LogoMarquee } from '@/components/marketing/logo-marquee';
 import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
+import { PLANS } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: { absolute: 'Decibel · 1 million verified mobiles & the dialler to reach them all' },
+  title: { absolute: SITE_TITLE },
+  alternates: { canonical: '/' },
   description: 'Search UK and EU decision makers, reveal a direct mobile for one credit and call it from your browser. TPS screening, call recording and a self-updating pipeline built in.',
 };
 
@@ -39,6 +42,30 @@ const FAQS: FaqItem[] = [
     answer: 'Number porting is not available at launch. You can verify your existing number and present it as your caller ID, so people you call see a number they can ring back.',
   },
 ];
+
+const STRUCTURED_DATA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Organization', '@id': `${SITE_URL}/#org`, name: 'Decibel', url: SITE_URL, logo: `${SITE_URL}/brand/android-chrome-512x512.png` },
+    { '@type': 'WebSite', '@id': `${SITE_URL}/#site`, name: 'Decibel', url: SITE_URL, publisher: { '@id': `${SITE_URL}/#org` }, inLanguage: 'en-GB' },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Decibel',
+      headline: SITE_TITLE,
+      description: SITE_DESCRIPTION,
+      url: SITE_URL,
+      applicationCategory: 'BusinessApplication',
+      applicationSubCategory: 'Sales dialler and B2B contact data',
+      operatingSystem: 'Web browser',
+      publisher: { '@id': `${SITE_URL}/#org` },
+      offers: Object.values(PLANS).map((p) => ({ '@type': 'Offer', name: p.name, price: p.monthly, priceCurrency: 'GBP', description: `Per seat per month, excluding VAT. ${p.credits.toLocaleString('en-GB')} mobile reveals included.` })),
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map((f) => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })),
+    },
+  ],
+};
 
 function Head({ eyebrow, title, children, center }: { eyebrow: string; title: string; children?: React.ReactNode; center?: boolean }) {
   return (
@@ -77,6 +104,8 @@ export default function LandingPage() {
   return (
     <>
       <TrackView event="landing_view" />
+      {/* structured data: tells search engines what Decibel is, who makes it and what it costs */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
 
       {/* hero */}
       <section className="rail dotgrid relative overflow-hidden">

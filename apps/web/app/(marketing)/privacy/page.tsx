@@ -5,6 +5,7 @@ import { Prose, ProseTable } from '@/components/marketing/prose';
 export const metadata: Metadata = {
   title: 'Privacy policy',
   description: 'How Decibel collects, uses, stores and shares personal data, and the rights you have over it.',
+  alternates: { canonical: '/privacy' },
 };
 
 export default function PrivacyPage() {
