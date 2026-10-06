@@ -68,7 +68,7 @@ export default function PrivacyPage() {
 
       <h2>6. How long we keep it</h2>
       <ul>
-        <li>Call recordings: 90 days on Starter, 1 year on Growth.</li>
+        <li>Call recordings: 1 year on Pro, 90 days during a free trial.</li>
         <li>Call metadata: 3 years.</li>
         <li>Deleted workspaces: purged 30 days after deletion.</li>
         <li>Billing records: as long as tax and accounting law requires.</li>

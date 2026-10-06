@@ -100,8 +100,8 @@ export default function CompliancePage() {
       <ProseTable
         head={['Data', 'Kept for']}
         rows={[
-          ['Call recordings, Starter plan', '90 days'],
-          ['Call recordings, Growth plan', '1 year'],
+          ['Call recordings, Pro plan', '1 year'],
+          ['Call recordings, free trial', '90 days'],
           ['Call metadata (who, when, duration, outcome)', '3 years'],
           ['Deleted workspaces', 'Purged 30 days after deletion'],
         ]}

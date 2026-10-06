@@ -3,7 +3,8 @@
 // procedural ASCII / ordered-dither canvas, marquee, live pill, console chrome,
 // the light "engine" and the single pricing card.
 import { useEffect, useRef, useState } from 'react';
-import { ANNUAL_DISCOUNT, PLANS, TRIAL_CREDITS } from '@/lib/constants';
+import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, PRO, PRO_FEATURES, TRIAL_CREDITS } from '@/lib/constants';
+import { FOUNDER } from '@/lib/site';
 import { cn } from '@/lib/utils';
 import { CtaLink, trackMarketing } from './analytics';
 
@@ -329,29 +330,15 @@ export function PipelinePanel() {
 }
 
 // ----------------------------------------------------------------- pricing --
-const INCLUDED: Record<'starter' | 'growth', string[]> = {
-  starter: ['500 mobile reveals per seat, every month', 'Browser dialler with a UK number per seat', 'Every call recorded, kept 90 days', 'TPS and CTPS screening on every dial', 'Lists, pipeline, CSV import'],
-  growth: ['2,000 mobile reveals per seat, every month', 'Browser dialler with a UK number per seat', 'Every call recorded, kept 1 year', 'TPS and CTPS screening on every dial', 'Lists, pipeline, CSV import', 'Per-rep dashboard and call review'],
-};
-
 export function PricingCard() {
-  const [plan, setPlan] = useState<'starter' | 'growth'>('growth');
   const [annual, setAnnual] = useState(false);
-  const base = PLANS[plan].monthly;
-  const price = annual ? base * (1 - ANNUAL_DISCOUNT) : base;
   const seg = (on: boolean) => cn('h-8 px-3 tabular-nums text-xs tracking-[0.06em] transition-colors', on ? 'bg-white-300 text-black-400' : 'text-black-700 hover:bg-white-300');
   return (
     <div className="overflow-hidden rounded-card border border-white-800 bg-white-100">
       <div className="grid md:grid-cols-2">
         <div className="border-b border-rule p-7 md:border-b-0 md:border-r md:p-9">
-          <div className="flex flex-wrap gap-2">
-            <div className="flex border border-btnborder" role="radiogroup" aria-label="Plan">
-              {(['starter', 'growth'] as const).map((p) => (
-                <button key={p} role="radio" aria-checked={plan === p} className={seg(plan === p)} onClick={() => setPlan(p)}>
-                  {PLANS[p].name}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-base font-medium text-black-400">{PRO.name}</span>
             <div className="flex border border-btnborder" role="radiogroup" aria-label="Billing interval">
               {[false, true].map((a) => (
                 <button
@@ -364,36 +351,35 @@ export function PricingCard() {
                     trackMarketing('pricing_toggle', { interval: a ? 'annual' : 'monthly' });
                   }}
                 >
-                  {a ? 'Annual −20%' : 'Monthly'}
+                  {a ? `Annual, save ${ANNUAL_SAVING_PCT}%` : 'Monthly'}
                 </button>
               ))}
             </div>
           </div>
           <p className="mt-8 flex items-end gap-2">
-            <span className="tabular text-3xl font-medium leading-[0.95] tracking-[-0.05em] text-black-300">£{Number.isInteger(price) ? price : price.toFixed(2)}</span>
-            <span className="pb-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">Per seat per month</span>
+            <span className="tabular text-3xl font-medium leading-[0.95] tracking-[-0.05em] text-black-300">£{(annual ? PRO.annual : PRO.monthly).toLocaleString('en-GB')}</span>
+            <span className="pb-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">{annual ? 'Per seat per year' : 'Per seat per month'}</span>
           </p>
           <p className="mt-3 text-base leading-[23px] text-black-700">
-            {annual ? `Billed £${(price * 12).toFixed(0)} per seat each year.` : 'Billed monthly.'} Call minutes at cost plus 20%. Prices exclude VAT.
+            {annual ? `Works out at £${Math.round(PRO.annual / 12)} a month, saving £${ANNUAL_SAVING.toLocaleString('en-GB')} a year.` : `Billed monthly, or £${PRO.annual.toLocaleString('en-GB')} a year.`} Call minutes at cost plus 20%. Prices exclude VAT.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <CtaLink location={`pricing_${plan}`} href="/signup" variant="primary" size="lg">
+            <CtaLink location={`pricing_pro_${annual ? 'annual' : 'monthly'}`} href="/signup" variant="primary" size="lg">
               Start free trial
             </CtaLink>
-            <CtaLink location="pricing_scale" href="mailto:sales@decibel.io" size="lg">
+            <CtaLink location="pricing_talk" href={`mailto:${FOUNDER.email}`} size="lg">
               Talk to us
             </CtaLink>
           </div>
           <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 1 seat · {TRIAL_CREDITS.toLocaleString('en-GB')} credits · 60 minutes · no card</p>
         </div>
         <ul className="p-7 md:p-9">
-          {INCLUDED[plan].map((item) => (
+          {PRO_FEATURES.map((item) => (
             <li key={item} className="flex gap-3 border-b border-rule py-3.5 text-base text-black-500 last:border-b-0">
               <span className="tabular-nums text-success-500">✓</span>
               {item}
             </li>
           ))}
-          <li className="pt-4 tabular-nums text-xs tracking-[0.06em] text-white-900">30+ seats: Scale plan, priced with our team</li>
         </ul>
       </div>
     </div>

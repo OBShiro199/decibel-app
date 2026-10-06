@@ -10,7 +10,10 @@ import { LogoMarquee } from '@/components/marketing/logo-marquee';
 import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
-import { PLANS, TRIAL_CREDITS } from '@/lib/constants';
+import { PRO, TRIAL_CREDITS } from '@/lib/constants';
+
+// shown under the hero console; there is no TPS "approval" scheme, so these say what Decibel does
+const COMPLIANCE = ['GDPR compliant', 'TPS screened', 'CTPS screened'];
 
 export const metadata: Metadata = {
   title: { absolute: SITE_TITLE },
@@ -58,7 +61,10 @@ const STRUCTURED_DATA = {
       applicationSubCategory: 'Sales dialler and B2B contact data',
       operatingSystem: 'Web browser',
       publisher: { '@id': `${SITE_URL}/#org` },
-      offers: Object.values(PLANS).map((p) => ({ '@type': 'Offer', name: p.name, price: p.monthly, priceCurrency: 'GBP', description: `Per seat per month, excluding VAT. ${p.credits.toLocaleString('en-GB')} mobile reveals included.` })),
+      offers: [
+        { '@type': 'Offer', name: `${PRO.name}, monthly`, price: PRO.monthly, priceCurrency: 'GBP', description: `Per seat per month, excluding VAT. ${PRO.credits.toLocaleString('en-GB')} mobile reveals included each month.` },
+        { '@type': 'Offer', name: `${PRO.name}, annual`, price: PRO.annual, priceCurrency: 'GBP', description: `Per seat per year, excluding VAT. ${PRO.credits.toLocaleString('en-GB')} mobile reveals included each month.` },
+      ],
     },
     {
       '@type': 'FAQPage',
@@ -143,6 +149,17 @@ export default function LandingPage() {
         </div>
         <Reveal eager delay={200} className="relative mx-auto max-w-[980px] px-5 pb-16 md:pb-20">
           <HeroConsole />
+          <ul className="mt-5 flex flex-wrap items-center justify-center gap-2" aria-label="Compliance">
+            {COMPLIANCE.map((label) => (
+              <li key={label} className="inline-flex h-7 items-center gap-1.5 rounded-[4px] border border-white-800 bg-white-100 px-2.5 text-[13px] tracking-[-0.01em] text-black-400">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="text-[#5f86e0]">
+                  <path d="M8 1.5 2.5 3.5v4c0 3.3 2.3 6 5.5 7 3.2-1 5.5-3.7 5.5-7v-4L8 1.5Z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                  <path d="m5.6 8 1.7 1.7 3.2-3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {label}
+              </li>
+            ))}
+          </ul>
         </Reveal>
         <Corner className="bottom-5 left-5">[ TPS screened ]</Corner>
         <Corner className="bottom-5 right-5">[ CSV in ]</Corner>
@@ -252,7 +269,7 @@ export default function LandingPage() {
 
       {/* pricing */}
       <section id="pricing" className="rail px-5 py-14 md:px-10 md:py-20">
-        <Head eyebrow="Pricing" title="Per seat. Credits included.">
+        <Head eyebrow="Pricing" title="One plan. Credits included.">
           A credit is one mobile reveal. A contact you have revealed stays free for your workspace.
         </Head>
         <Reveal delay={120} className="mt-10">

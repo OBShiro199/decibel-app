@@ -6,93 +6,44 @@ import { Badge } from '@/components/ui/display';
 import { PillSelect } from '@/components/ui/form';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
-import { ANNUAL_DISCOUNT, PLANS } from '@/lib/constants';
+import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, PRO, PRO_FEATURES } from '@/lib/constants';
+import { FOUNDER } from '@/lib/site';
 import { useMembers } from '@/lib/hooks';
 import { invoke } from '@/lib/supabase/client';
 import type { PlanTier } from '@/lib/types';
-import { cn, daysLeft, formatDate } from '@/lib/utils';
+import { daysLeft, formatDate } from '@/lib/utils';
 import { describeBillingError, isBillingNotConfigured, Notice, Section, SettingsPage } from '../_components';
 
 type Interval = 'monthly' | 'annual';
-type PaidPlan = keyof typeof PLANS;
-const PLAN_NAME: Record<PlanTier, string> = { trial: 'Free trial', starter: 'Starter', growth: 'Growth', scale: 'Scale' };
-
-const FEATURES: Record<PaidPlan | 'scale', string[]> = {
-  starter: [`${PLANS.starter.credits.toLocaleString('en-GB')} data credits per seat each month`, 'Browser dialler and pipeline', 'TPS and DNC screening on every call', `Recordings kept for ${PLANS.starter.recordings}`],
-  growth: [`${PLANS.growth.credits.toLocaleString('en-GB')} data credits per seat each month`, 'Everything in Starter', `Recordings kept for ${PLANS.growth.recordings}`],
-  scale: ['Everything in Growth', 'Custom credit volumes', 'Pricing agreed with our team'],
-};
+const PLAN_NAME: Record<PlanTier, string> = { trial: 'Free trial', starter: 'Starter', growth: 'Pro', scale: 'Scale' };
 
 export default function PlansPage() {
   const { workspace, isOwner } = useApp();
   const members = useMembers();
   const [interval, setIntervalValue] = useState<Interval>('monthly');
-  const [busy, setBusy] = useState<PaidPlan | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; calm: boolean } | null>(null);
   const seats = members.data?.length ?? 1;
   const trial = workspace.plan === 'trial';
   const left = daysLeft(workspace.trial_ends_at);
 
-  const price = (plan: PaidPlan) => {
-    const monthly = PLANS[plan].monthly;
-    const v = interval === 'annual' ? monthly * (1 - ANNUAL_DISCOUNT) : monthly;
-    return Number.isInteger(v) ? String(v) : v.toFixed(2);
-  };
+  const current = workspace.plan === PRO.tier;
 
-  async function choose(plan: PaidPlan) {
-    setBusy(plan);
+  async function choose() {
+    setBusy(true);
     setError(null);
-    track('checkout_started', { plan, seats });
+    track('checkout_started', { plan: PRO.tier, seats });
     try {
-      const { url } = await invoke<{ url: string }>('billing', { workspace_id: workspace.id, action: 'checkout', plan, interval });
+      const { url } = await invoke<{ url: string }>('billing', { workspace_id: workspace.id, action: 'checkout', plan: PRO.tier, interval });
       window.location.assign(url);
     } catch (e) {
       setError({ message: describeBillingError(e), calm: isBillingNotConfigured(e) });
-      setBusy(null);
+      setBusy(false);
     }
   }
 
-  const card = (plan: PaidPlan) => {
-    const current = workspace.plan === plan;
-    const highlighted = plan === 'growth';
-    return (
-      <div key={plan} className={cn('card flex flex-col p-6', highlighted && 'border-black-700')}>
-        <div className="flex items-center gap-2">
-          <h3 className="t-h3">{PLANS[plan].name}</h3>
-          {current ? <Badge tone="accent">Current plan</Badge> : highlighted ? <Badge>Most popular</Badge> : null}
-        </div>
-        <p className="mt-4">
-          <span className="t-h1 tabular">£{price(plan)}</span>
-          <span className="text-black-700"> / seat / month</span>
-        </p>
-        <p className="t-small mt-1 text-black-700">{interval === 'annual' ? 'Billed annually, excluding VAT.' : 'Billed monthly, excluding VAT.'}</p>
-        <ul className="mt-5 flex-1 space-y-2">
-          {FEATURES[plan].map((f) => (
-            <li key={f} className="flex gap-2">
-              <Check size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-black-700" />
-              {f}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-6">
-          {current ? (
-            <Button disabled className="w-full">
-              Current plan
-            </Button>
-          ) : isOwner ? (
-            <Button variant={highlighted ? 'primary' : 'outline'} className="w-full" loading={busy === plan} disabled={busy !== null} onClick={() => choose(plan)}>
-              Choose {PLANS[plan].name}
-            </Button>
-          ) : (
-            <p className="t-small flex h-9 items-center justify-center rounded-sm border border-white-800 bg-white-200 text-black-700">Ask the workspace owner</p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <SettingsPage title="Plans" description="Simple per-seat pricing. Seats follow the number of members in your workspace.">
+    <SettingsPage title="Plans" description="One plan, priced per seat. Seats follow the number of members in your workspace.">
       <Section title="Current plan">
         <div className="card flex flex-wrap items-center gap-4 p-6">
           <div className="min-w-0 flex-1">
@@ -113,7 +64,7 @@ export default function PlansPage() {
       </Section>
 
       <Section
-        title="Choose a plan"
+        title="Decibel Pro"
         description={`You have ${seats} member${seats === 1 ? '' : 's'}, so you will be billed for ${seats} seat${seats === 1 ? '' : 's'}.`}
         actions={
           <PillSelect<Interval>
@@ -122,36 +73,50 @@ export default function PlansPage() {
             onChange={(v) => setIntervalValue(v[0] ?? 'monthly')}
             options={[
               { value: 'monthly', label: 'Monthly' },
-              { value: 'annual', label: `Annual (−${Math.round(ANNUAL_DISCOUNT * 100)}%)` },
+              { value: 'annual', label: `Annual, save ${ANNUAL_SAVING_PCT}%` },
             ]}
           />
         }
       >
         {error ? <Notice tone={error.calm ? 'neutral' : 'danger'} className="mb-4">{error.message}</Notice> : null}
-        <div className="grid gap-4 lg:grid-cols-3">
-          {card('starter')}
-          {card('growth')}
-          <div className="card flex flex-col p-6">
-            <div className="flex items-center gap-2">
-              <h3 className="t-h3">Scale</h3>
-              {workspace.plan === 'scale' ? <Badge tone="accent">Current plan</Badge> : null}
-            </div>
-            <p className="mt-4">
-              <span className="t-h1">Talk to us</span>
-            </p>
-            <p className="t-small mt-1 text-black-700">For larger teams with custom needs.</p>
-            <ul className="mt-5 flex-1 space-y-2">
-              {FEATURES.scale.map((f) => (
-                <li key={f} className="flex gap-2">
-                  <Check size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-black-700" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <ButtonLink href="mailto:sales@decibel.io" className="mt-6 w-full">
-              Talk to us
-            </ButtonLink>
+        <div className="card flex max-w-[520px] flex-col p-6">
+          <div className="flex items-center gap-2">
+            <h3 className="t-h3">{PRO.name}</h3>
+            {current ? <Badge tone="accent">Current plan</Badge> : null}
           </div>
+          <p className="mt-4">
+            <span className="t-h1 tabular">£{(interval === 'annual' ? PRO.annual : PRO.monthly).toLocaleString('en-GB')}</span>
+            <span className="text-black-700"> / seat / {interval === 'annual' ? 'year' : 'month'}</span>
+          </p>
+          <p className="t-small mt-1 text-black-700">
+            {interval === 'annual'
+              ? `£${Math.round(PRO.annual / 12)} a month, saving £${ANNUAL_SAVING.toLocaleString('en-GB')} a year. Excluding VAT.`
+              : `Billed monthly, or £${PRO.annual.toLocaleString('en-GB')} a year. Excluding VAT.`}
+          </p>
+          <ul className="mt-5 flex-1 space-y-2">
+            {PRO_FEATURES.map((f) => (
+              <li key={f} className="flex gap-2">
+                <Check size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-black-700" />
+                {f}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-6">
+            {current ? (
+              <Button disabled className="w-full">
+                Current plan
+              </Button>
+            ) : isOwner ? (
+              <Button variant="primary" className="w-full" loading={busy} disabled={busy} onClick={choose}>
+                Choose {PRO.name}
+              </Button>
+            ) : (
+              <p className="t-small flex h-9 items-center justify-center rounded-sm border border-white-800 bg-white-200 text-black-700">Ask the workspace owner</p>
+            )}
+          </div>
+          <p className="t-small mt-4 text-black-700">
+            Bigger team? <a href={`mailto:${FOUNDER.email}`} className="underline underline-offset-2">Talk to us</a>
+          </p>
         </div>
       </Section>
     </SettingsPage>

@@ -94,13 +94,25 @@ export const MARKETS: Record<string, string[]> = {
 
 export const JOB_TITLE_SUGGESTIONS = ['CEO', 'Founder', 'Managing Director', 'Head of Sales', 'Sales Director', 'CTO', 'Operations Director', 'Head of Marketing', 'Finance Director', 'Head of Procurement', 'HR Director'];
 
-export const PLANS = {
-  starter: { name: 'Starter', monthly: 49, credits: 500, recordings: '90 days' },
-  growth: { name: 'Growth', monthly: 89, credits: 2000, recordings: '1 year' },
-} as const;
+/**
+ * The one plan. Prices are per seat, excluding VAT. `tier` is what workspaces.plan stores and
+ * what the billing function receives, so Pro reuses the existing top tier (and its Stripe
+ * price env vars, STRIPE_PRICE_GROWTH_*, once Stripe is set up).
+ */
+export const PRO = { name: 'Pro', tier: 'growth', monthly: 149, annual: 997, credits: 2000, recordings: '1 year' } as const;
+/** What annual billing saves against twelve monthly payments: £791, 44%. */
+export const ANNUAL_SAVING = PRO.monthly * 12 - PRO.annual;
+export const ANNUAL_SAVING_PCT = Math.round((ANNUAL_SAVING / (PRO.monthly * 12)) * 100);
+export const PRO_FEATURES = [
+  `${PRO.credits.toLocaleString('en-GB')} mobile reveals per seat, every month`,
+  'Browser dialler with a UK number per seat',
+  `Every call recorded, kept ${PRO.recordings}`,
+  'TPS and CTPS screening on every dial',
+  'Lists, pipeline and CSV import',
+  'Per-rep dashboard and call review',
+];
 /** Welcome credits for every new account, granted once (enforced in the database, migration 0010). */
 export const TRIAL_CREDITS = 5000;
-export const ANNUAL_DISCOUNT = 0.2;
 export const CREDIT_PACKS = [
   { id: '500', credits: 500, price: 75 },
   { id: '2000', credits: 2000, price: 250 },

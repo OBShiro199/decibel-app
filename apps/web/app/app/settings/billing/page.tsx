@@ -32,7 +32,7 @@ interface Invoice {
   url: string | null;
 }
 
-const PLAN_NAME: Record<PlanTier, string> = { trial: 'Free trial', starter: 'Starter', growth: 'Growth', scale: 'Scale' };
+const PLAN_NAME: Record<PlanTier, string> = { trial: 'Free trial', starter: 'Starter', growth: 'Pro', scale: 'Scale' };
 const SUB_STATUS: Record<Subscription['status'], { label: string; tone: Tone }> = {
   trialing: { label: 'Trialling', tone: 'neutral' },
   active: { label: 'Active', tone: 'success' },

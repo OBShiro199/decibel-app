@@ -85,7 +85,7 @@ export default function DpaPage() {
       <h2>9. Deletion and return</h2>
       <p>
         Customers can export their data at any time. When a workspace is deleted, its data is purged after 30 days. Call recordings are deleted on the
-        schedule for the customer&rsquo;s plan (90 days on Starter, 1 year on Growth). Call metadata is retained for 3 years.
+        schedule for the customer&rsquo;s plan (1 year on Pro, 90 days during a free trial). Call metadata is retained for 3 years.
       </p>
 
       <h2>10. Audits</h2>
