@@ -126,7 +126,7 @@ export const FREE_MAIL = ['gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail
 export const isFreeMail = (email: string) => FREE_MAIL.includes(email.split('@')[1]?.toLowerCase() ?? '');
 
 /** Downloads a CSV and records the export in the workspace audit log. */
-export function exportCsv(workspaceId: string, kind: 'people' | 'calls' | 'leads' | 'dnc', filename: string, rows: Record<string, unknown>[]) {
+export function exportCsv(workspaceId: string, kind: 'people' | 'calls' | 'leads' | 'local' | 'dnc', filename: string, rows: Record<string, unknown>[]) {
   downloadCsv(filename, rows);
   void import('@/lib/supabase/client').then(({ supabase }) =>
     supabase()
