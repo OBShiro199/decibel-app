@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
 import { Check, ChevronsUpDown, Coins, LogOut, Mail, Phone, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
 import { FOUNDER } from '@/lib/site';
-import { AddressBook, Lightning, ListBullets, PhoneCall, SunDim, type Icon as PhosphorIcon } from '@phosphor-icons/react';
+import { AddressBook, Lightning, ListBullets, PhoneCall, SunDim } from '@phosphor-icons/react';
+import { GoogleIcon } from '@/components/ui/google-icon';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -21,7 +22,10 @@ import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
 // Sidebar icons are Phosphor: regular outline at rest, duotone (blue outline with a soft
 // blue fill) when selected. The dialler's icon rests in its light orange.
-type NavItem = { href: string; label: string; icon: PhosphorIcon; exact?: boolean };
+type NavIcon = React.ComponentType<{ size?: number; weight?: 'regular' | 'duotone'; className?: string; style?: React.CSSProperties }>;
+type NavItem = { href: string; label: string; icon: NavIcon; exact?: boolean };
+// Google's own mark keeps its brand colours at all times, unlike the pack icons
+const GoogleNavIcon: NavIcon = ({ size, className }) => <GoogleIcon size={size} className={className} />;
 const NAV_HUE = '#5f86e0';
 // sidebar sections: the workspace, then outbound calling in its own group
 const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
@@ -30,6 +34,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     items: [
       { href: '/app', label: 'Today', icon: SunDim, exact: true },
       { href: '/app/leads', label: 'Leads', icon: AddressBook },
+      { href: '/app/local', label: 'Local', icon: GoogleNavIcon },
       // Companies is hidden for now: the page still exists at /app/companies. To bring the tab back,
       // restore { href: '/app/companies', label: 'Companies', icon: Buildings } here and in PREFETCH_ROUTES.
       { href: '/app/lists', label: 'Lists', icon: ListBullets },
