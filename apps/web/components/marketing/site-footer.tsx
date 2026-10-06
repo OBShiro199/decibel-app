@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { FOUNDER } from '@/lib/site';
 import { Logo } from './logo';
 
 type FooterLink = { href: string; label: string; external?: boolean };
@@ -54,6 +55,19 @@ export function SiteFooter() {
           <div className="col-span-2 md:col-span-1">
             <Logo />
             <p className="mt-3 max-w-[240px] text-black-700">Verified UK & EU mobiles, a browser dialler and a pipeline, in one place.</p>
+            <p className="t-small mt-6 text-black-0">Talk to the founder</p>
+            <ul className="mt-3 space-y-2">
+              <li>
+                <a href={`tel:${FOUNDER.phone}`} className={`${linkClass} tabular-nums`}>
+                  {FOUNDER.phoneDisplay}
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${FOUNDER.email}`} className={linkClass}>
+                  {FOUNDER.email}
+                </a>
+              </li>
+            </ul>
           </div>
           {COLUMNS.map((col) => (
             <nav key={col.title} aria-label={col.title}>

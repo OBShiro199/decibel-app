@@ -1,7 +1,8 @@
 'use client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
-import { Check, ChevronsUpDown, Coins, LogOut, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
+import { Check, ChevronsUpDown, Coins, LogOut, Mail, Phone, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
+import { FOUNDER } from '@/lib/site';
 import { AddressBook, Lightning, ListBullets, PhoneCall, SunDim, type Icon as PhosphorIcon } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -129,9 +130,20 @@ function AccountMenu() {
             <Link href="/app/settings/billing" onClick={close} className="flex h-8 items-center gap-2 rounded-sm px-2 text-base hover:bg-white-300">
               <Coins size={16} strokeWidth={1.5} /> Billing and credits
             </Link>
-            <MenuItem onClick={signOut}>
-              <LogOut size={16} strokeWidth={1.5} /> Log out
-            </MenuItem>
+            <div className="mt-1 border-t border-white-800 pt-1">
+              <p className="px-2 py-1.5 text-white-900">Talk to the founder</p>
+              <a href={`tel:${FOUNDER.phone}`} onClick={close} className="flex h-8 items-center gap-2 rounded-sm px-2 text-base tabular-nums hover:bg-white-300">
+                <Phone size={16} strokeWidth={1.5} /> {FOUNDER.phoneDisplay}
+              </a>
+              <a href={`mailto:${FOUNDER.email}`} onClick={close} className="flex h-8 items-center gap-2 rounded-sm px-2 text-base hover:bg-white-300">
+                <Mail size={16} strokeWidth={1.5} /> {FOUNDER.email}
+              </a>
+            </div>
+            <div className="mt-1 border-t border-white-800 pt-1">
+              <MenuItem onClick={signOut}>
+                <LogOut size={16} strokeWidth={1.5} /> Log out
+              </MenuItem>
+            </div>
             {DEV ? (
               <div className="mt-1 border-t border-white-800 pt-1">
                 <p className="px-2 py-1.5 text-white-900">Developer · local only</p>
