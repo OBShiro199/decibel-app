@@ -190,9 +190,6 @@
   .tbl tbody tr[data-selected='true'] {
     @apply bg-accent-50;
   }
-  .tbl tbody tr[data-active='true'] {
-    box-shadow: inset 2px 0 0 var(--color-black-0);
-  }
 
   /* Square pastel pills */
   .tag {
@@ -531,7 +528,8 @@ html:has([data-page-scroll]) {
 .app-shell .tbl tr[data-active='true'] .row-action { border-color: var(--color-btn-border); color: var(--color-black-400); }
 .app-shell .tbl tbody tr:hover { background: #fafafb; }
 .app-shell .tbl tbody tr[data-selected='true'] { background: var(--color-accent-050); }
-.app-shell .tbl tbody tr[data-active='true'] { box-shadow: inset 2px 0 0 #cfd1d5; }
+/* the keyboard row (J / K) gets the same faint tint as hover, no bar */
+.app-shell .tbl tbody tr[data-active='true']:not([data-selected='true']) { background: #fafafb; }
 
 /* badges: 4px, colour-coded in Linear's accents, soft fill with a darker edge */
 .app-shell .tag { border-radius: 4px; font-size: 12px; padding: 0 6px; height: 20px; }
