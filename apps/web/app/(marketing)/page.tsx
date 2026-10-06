@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { CtaLink, TrackView } from '@/components/marketing/analytics';
-import { AsciiCanvas, Engine, HeroConsole, LivePill, Marquee, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
+import { AsciiCanvas, Engine, HeroConsole, LivePill, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
 import { DemoButton } from '@/components/marketing/demo-dialog';
 import { EuFlag, UkFlag } from '@/components/marketing/flags';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
@@ -193,11 +193,6 @@ export default function LandingPage() {
             </Reveal>
           ))}
         </div>
-      </section>
-
-      {/* marquee */}
-      <section className="rail overflow-hidden">
-        <Marquee rows={[['Search', 'Reveal', 'Dial', 'Connect', 'Book'], ['No answer', 'Voicemail', 'Call back', 'Meeting booked', 'Next']]} />
       </section>
 
       {/* the engine: light, contained, no scroll-jacking */}

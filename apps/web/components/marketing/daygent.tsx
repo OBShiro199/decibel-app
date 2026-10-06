@@ -223,29 +223,6 @@ export function Console({ file, right, children, className }: { file: string; ri
   );
 }
 
-export function Marquee({ rows }: { rows: string[][] }) {
-  return (
-    <div className="marquee-mask overflow-hidden py-6" aria-hidden>
-      {rows.map((words, r) => (
-        <div key={r} className="marquee-track" style={{ animationDirection: r % 2 ? 'reverse' : 'normal', animationDuration: `${38 + r * 9}s` }}>
-          {[0, 1].map((dup) => (
-            <div key={dup} className="flex shrink-0 items-center">
-              {words.map((w, i) => (
-                <span key={`${dup}-${i}`} className="flex items-center">
-                  <span className={cn('whitespace-nowrap px-4 font-medium leading-[1.3] tracking-[-0.045em]', (i + r) % 2 ? 'text-[#d9d9d4]' : 'text-black-400')} style={{ fontSize: 'clamp(24px,2.6vw,34px)' }}>
-                    {w}
-                  </span>
-                  <span className="tabular-nums text-sm tracking-[0.06em] text-faint">{'///'}</span>
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ------------------------------------------------------------- hero console --
 const QUEUE = [
   ['Oliver Hartley', 'Brightmoor Software', '+44 7700 900101'],
