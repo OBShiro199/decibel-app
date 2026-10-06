@@ -4,7 +4,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usedeci
 /** The founder's direct line, shown in the website footer, the sign-in footer and the account menu. */
 export const FOUNDER = {
   name: 'Oliver',
-  email: 'oliver@usedaygent.com',
+  email: 'oliver@usedecibel.com',
   phone: '+447585509647',
   phoneDisplay: '+44 7585 509647',
 } as const;
