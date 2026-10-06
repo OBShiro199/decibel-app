@@ -264,4 +264,4 @@ export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string
 }
 
 /** Every main tab plus the dashboard: run once at idle after the first page has its data. */
-export const PREFETCH_ROUTES = ['/app', '/app/leads', '/app/companies', '/app/lists', '/app/calls', '/app/dialler', '/app/dashboard'];
+export const PREFETCH_ROUTES = ['/app', '/app/leads', '/app/lists', '/app/calls', '/app/dialler', '/app/dashboard'];
