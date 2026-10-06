@@ -571,11 +571,11 @@ html:has([data-page-scroll]) {
   background: var(--color-white-100);
 }
 
-/* Power dialler accent: a warm, light orange used only for the dialler */
+/* Power dialler accent: the same pastel blue as selected sidebar icons */
 .app-shell {
-  --dialler: #ec9a5f;
-  --dialler-soft: #fdf3eb;
-  --dialler-edge: #f6c9a6;
+  --dialler: #5f86e0;
+  --dialler-soft: #f1f5fd;
+  --dialler-edge: #c4d4f5;
 }
 .dialler-bar { transform-origin: left center; transition: transform 120ms linear; }
 @media (prefers-reduced-motion: reduce) { .dialler-bar { transition: none; } }

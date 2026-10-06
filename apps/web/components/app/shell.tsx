@@ -16,12 +16,14 @@ import { cn } from '@/lib/utils';
 import { CreditsMeter } from '@/components/app/credits-meter';
 import { SoftphoneToggle } from '@/components/app/quick-dial';
 import { SoftphoneProvider } from '@/components/softphone/provider';
+import { SupportWidget } from '@/components/app/support-widget';
+import { invoke } from '@/lib/supabase/client';
 import { Avatar, CompanyLogo } from '@/components/ui/display';
 import { LogoMark } from '@/components/marketing/logo';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
 // Sidebar icons are Phosphor: regular outline at rest, duotone (blue outline with a soft
-// blue fill) when selected. The dialler's icon rests in its light orange.
+// blue fill) when selected.
 type NavIcon = React.ComponentType<{ size?: number; weight?: 'regular' | 'duotone'; className?: string; style?: React.CSSProperties }>;
 type NavItem = { href: string; label: string; icon: NavIcon; exact?: boolean };
 // Google's own mark keeps its brand colours at all times, unlike the pack icons
@@ -78,6 +80,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   // differ from the server HTML. Pages therefore mount just after hydration; the shell and
   // sidebar still render on the server. Client-side navigation is unaffected.
   const hydrated = useHydrated();
+  useWelcomeEmail(user.id);
   return (
     <div className={`app-shell`}>
       <SoftphoneProvider workspaceId={workspace.id} userId={user.id} recordingPolicy={workspace.recording_policy}>
@@ -86,10 +89,33 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-canvas [scrollbar-gutter:stable]">{hydrated ? children : null}</main>
         </div>
         <ShortcutsDialog />
+        {hydrated ? <SupportWidget /> : null}
       </SoftphoneProvider>
       <div id="app-portal" />
     </div>
   );
+}
+
+/** Asks for the welcome email once per browser; the server sends it only once per account. */
+function useWelcomeEmail(userId: string) {
+  useEffect(() => {
+    if (window.location.pathname.startsWith('/dev-preview')) return;
+    const flag = `decibel.welcome-email.${userId}`;
+    try {
+      if (localStorage.getItem(flag)) return;
+    } catch {
+      /* storage blocked: the server still de-duplicates */
+    }
+    invoke('send-email', { type: 'welcome' })
+      .then(() => {
+        try {
+          localStorage.setItem(flag, '1');
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {});
+  }, [userId]);
 }
 
 // Dev only: rerun onboarding without a new account. Never shown in production builds.
@@ -269,12 +295,12 @@ function Sidebar() {
                       aria-current={active ? 'page' : undefined}
                       className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors', active ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
                     >
-                      {/* selected: duotone pastel blue; the dialler's icon rests in its light orange */}
+                      {/* selected: duotone pastel blue */}
                       <Icon
                         size={17}
                         weight={active ? 'duotone' : 'regular'}
                         className="shrink-0 transition-colors duration-150"
-                        style={{ color: active ? NAV_HUE : href === '/app/dialler' ? 'var(--dialler)' : undefined }}
+                        style={{ color: active ? NAV_HUE : undefined }}
                       />
                       <span className="truncate max-[1100px]:hidden">{label}</span>
                     </Link>

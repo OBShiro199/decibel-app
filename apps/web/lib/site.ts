@@ -7,6 +7,8 @@ export const FOUNDER = {
   email: 'oliver@usedecibel.com',
   phone: '+447585509647',
   phoneDisplay: '+44 7585 509647',
+  /** Square photo for the support chat (public path), or null to show initials. */
+  photo: null as string | null,
 } as const;
 
 export const SITE_TITLE = 'Decibel · 1 million verified mobiles & the dialler to reach them all';

@@ -38,5 +38,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.send-email]
 verify_jwt = false
+[functions.support]
+verify_jwt = false
 [functions.nightly]
 verify_jwt = false

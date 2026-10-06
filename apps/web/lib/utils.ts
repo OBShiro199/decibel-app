@@ -133,4 +133,15 @@ export function exportCsv(workspaceId: string, kind: 'people' | 'calls' | 'leads
       .rpc('log_audit', { p_workspace_id: workspaceId, p_action: `export.${kind}`, p_payload: { rows: rows.length, filename } })
       .then(({ error }) => error && console.warn('[audit] export not logged:', error.message)),
   );
+  // the first export earns a congratulations email (sent once per account, server side)
+  let asked = false;
+  try {
+    asked = !!localStorage.getItem('decibel.first-export-email');
+    localStorage.setItem('decibel.first-export-email', '1');
+  } catch {
+    /* storage blocked: the server still de-duplicates */
+  }
+  if (!asked && !window.location.pathname.startsWith('/dev-preview')) {
+    void import('@/lib/supabase/client').then(({ invoke }) => invoke('send-email', { type: 'first_export', rows: rows.length }).catch(() => {}));
+  }
 }
