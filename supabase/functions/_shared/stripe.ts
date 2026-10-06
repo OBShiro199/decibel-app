@@ -13,7 +13,7 @@ export const CREDIT_PACKS: Record<string, { price: string; credits: number }> = 
 };
 
 /** Monthly data credits granted per seat on each paid invoice. */
-export const PLAN_CREDITS: Record<string, number> = { starter: 500, growth: 2000, scale: 5000 };
+export const PLAN_CREDITS: Record<string, number> = { starter: 500, growth: 5000, scale: 5000 }; // growth is sold as Pro
 
 export function planForPrice(priceId: string | null | undefined): 'starter' | 'growth' | null {
   if (!priceId) return null;

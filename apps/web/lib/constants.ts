@@ -99,7 +99,7 @@ export const JOB_TITLE_SUGGESTIONS = ['CEO', 'Founder', 'Managing Director', 'He
  * what the billing function receives, so Pro reuses the existing top tier (and its Stripe
  * price env vars, STRIPE_PRICE_GROWTH_*, once Stripe is set up).
  */
-export const PRO = { name: 'Pro', tier: 'growth', monthly: 149, annual: 997, credits: 2000, recordings: '1 year' } as const;
+export const PRO = { name: 'Pro', tier: 'growth', monthly: 149, annual: 997, credits: 5000, recordings: '1 year' } as const;
 /** What annual billing saves against twelve monthly payments: £791, 44%. */
 export const ANNUAL_SAVING = PRO.monthly * 12 - PRO.annual;
 export const ANNUAL_SAVING_PCT = Math.round((ANNUAL_SAVING / (PRO.monthly * 12)) * 100);

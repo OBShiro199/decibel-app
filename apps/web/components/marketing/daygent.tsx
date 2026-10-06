@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, PRO, PRO_FEATURES, TRIAL_CREDITS } from '@/lib/constants';
 import { FOUNDER } from '@/lib/site';
+import { CompliancePills } from './compliance-pills';
 import { cn } from '@/lib/utils';
 import { CtaLink, trackMarketing } from './analytics';
 
@@ -372,6 +373,7 @@ export function PricingCard() {
             </CtaLink>
           </div>
           <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 1 seat · {TRIAL_CREDITS.toLocaleString('en-GB')} credits · 60 minutes · no card</p>
+          <CompliancePills className="mt-6" />
         </div>
         <ul className="p-7 md:p-9">
           {PRO_FEATURES.map((item) => (

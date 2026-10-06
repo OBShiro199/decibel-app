@@ -89,7 +89,7 @@ export function ProductMock({ className }: { className?: string }) {
           </div>
           <div className="mt-auto rounded-md border border-white-800 bg-white-100 p-3">
             <p className="t-caption text-black-700">Credits</p>
-            <p className="t-h4 tabular mt-0.5 text-black-0">1,412 of 2,000</p>
+            <p className="t-h4 tabular mt-0.5 text-black-0">3,530 of 5,000</p>
             <div className="mt-2 h-1 rounded-full bg-white-400">
               <div className="h-1 w-[70%] rounded-full bg-black-700" />
             </div>

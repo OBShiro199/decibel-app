@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { CtaLink, TrackView } from '@/components/marketing/analytics';
 import { AsciiCanvas, HeroConsole, LivePill, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
+import { CompliancePills } from '@/components/marketing/compliance-pills';
 import { DemoButton } from '@/components/marketing/demo-dialog';
 import { EuFlag, UkFlag } from '@/components/marketing/flags';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
@@ -11,9 +12,6 @@ import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
 import { PRO, TRIAL_CREDITS } from '@/lib/constants';
-
-// shown under the hero console; there is no TPS "approval" scheme, so these say what Decibel does
-const COMPLIANCE = ['GDPR compliant', 'TPS screened', 'CTPS screened'];
 
 export const metadata: Metadata = {
   title: { absolute: SITE_TITLE },
@@ -149,17 +147,7 @@ export default function LandingPage() {
         </div>
         <Reveal eager delay={200} className="relative mx-auto max-w-[980px] px-5 pb-16 md:pb-20">
           <HeroConsole />
-          <ul className="mt-5 flex flex-wrap items-center justify-center gap-2" aria-label="Compliance">
-            {COMPLIANCE.map((label) => (
-              <li key={label} className="inline-flex h-7 items-center gap-1.5 rounded-[4px] border border-white-800 bg-white-100 px-2.5 text-[13px] tracking-[-0.01em] text-black-400">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="text-[#5f86e0]">
-                  <path d="M8 1.5 2.5 3.5v4c0 3.3 2.3 6 5.5 7 3.2-1 5.5-3.7 5.5-7v-4L8 1.5Z" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-                  <path d="m5.6 8 1.7 1.7 3.2-3.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {label}
-              </li>
-            ))}
-          </ul>
+          <CompliancePills className="mt-5 justify-center" />
         </Reveal>
         <Corner className="bottom-5 left-5">[ TPS screened ]</Corner>
         <Corner className="bottom-5 right-5">[ CSV in ]</Corner>
