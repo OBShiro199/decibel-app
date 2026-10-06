@@ -20,7 +20,7 @@ export default function PrivacyPage() {
       <p>
         Decibel (&ldquo;we&rdquo;, &ldquo;us&rdquo;) provides a contact database, browser dialler and pipeline for B2B sales teams. [Legal entity name,
         company number and registered address to be confirmed before publication.] You can reach our privacy team at{' '}
-        <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>.
+        <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a>.
       </p>
 
       <h2>2. Who this policy covers</h2>
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
         <li>move your data to another provider, where that applies.</li>
       </ul>
       <p>
-        Email <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> or use the <Link href="/privacy/opt-out">opt-out page</Link>. We respond within
+        Email <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a> or use the <Link href="/privacy/opt-out">opt-out page</Link>. We respond within
         one month. You can also complain to the Information Commissioner&rsquo;s Office (ico.org.uk) or your local supervisory authority.
       </p>
 

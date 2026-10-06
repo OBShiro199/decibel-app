@@ -3,7 +3,7 @@
 // procedural ASCII / ordered-dither canvas, marquee, live pill, console chrome,
 // the light "engine" and the single pricing card.
 import { useEffect, useRef, useState } from 'react';
-import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, PRO, PRO_FEATURES, TRIAL_CREDITS } from '@/lib/constants';
+import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, FAIR_USE_NOTE, PRO, PRO_FEATURES, TRIAL_CREDITS } from '@/lib/constants';
 import { FOUNDER } from '@/lib/site';
 import { CompliancePills } from './compliance-pills';
 import { cn } from '@/lib/utils';
@@ -362,7 +362,7 @@ export function PricingCard() {
             <span className="pb-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">{annual ? 'Per seat per year' : 'Per seat per month'}</span>
           </p>
           <p className="mt-3 text-base leading-[23px] text-black-700">
-            {annual ? `Works out at £${Math.round(PRO.annual / 12)} a month, saving £${ANNUAL_SAVING.toLocaleString('en-GB')} a year.` : `Billed monthly, or £${PRO.annual.toLocaleString('en-GB')} a year.`} Call minutes at cost plus 20%. Prices exclude VAT.
+            {annual ? `Works out at £${Math.round(PRO.annual / 12)} a month, saving £${ANNUAL_SAVING.toLocaleString('en-GB')} a year.` : `Billed monthly, or £${PRO.annual.toLocaleString('en-GB')} a year.`} Prices exclude VAT.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <CtaLink location={`pricing_pro_${annual ? 'annual' : 'monthly'}`} href="/signup" variant="primary" size="lg">
@@ -382,6 +382,12 @@ export function PricingCard() {
               {item}
             </li>
           ))}
+          <li className="pt-4 text-xs leading-[17px] tracking-[0.02em] text-white-900">
+            {FAIR_USE_NOTE}{' '}
+            <a href="/fair-use" className="underline underline-offset-2 hover:text-black-700">
+              Fair use policy
+            </a>
+          </li>
         </ul>
       </div>
     </div>

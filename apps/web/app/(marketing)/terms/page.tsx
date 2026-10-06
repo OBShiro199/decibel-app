@@ -25,9 +25,9 @@ export default function TermsPage() {
 
       <h2>4. Plans, credits and billing</h2>
       <ul>
-        <li>Plans are charged per seat, monthly or annually in advance. Annual billing is discounted by 20%.</li>
+        <li>Plans are charged per seat, monthly or annually in advance, at the prices shown on our website.</li>
         <li>Credits are used to reveal mobile numbers. One reveal uses one credit. Plan credits are allocated per seat each month.</li>
-        <li>Call minutes are billed at our cost plus 20%.</li>
+        <li>Calls from the browser dialler are unlimited, subject to our <a href="/fair-use">fair use policy</a>: 1,000 minutes per seat each month, then minutes at cost.</li>
         <li>Prices exclude VAT. Payments are handled by Stripe.</li>
         <li>[Refunds, credit rollover and cancellation terms to be confirmed.]</li>
       </ul>
@@ -79,8 +79,7 @@ export default function TermsPage() {
 
       <h2>14. Contact</h2>
       <p>
-        <a href="mailto:sales@decibel.io">sales@decibel.io</a> for commercial questions, <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> for
-        data protection.
+        Email <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a> for commercial and data protection questions.
       </p>
     </Prose>
   );

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 
-const TO = 'privacy@decibel.io';
+const TO = 'oliver@usedecibel.com';
 
 /**
  * There is no suppression-list backend yet, so this form does not submit anywhere.

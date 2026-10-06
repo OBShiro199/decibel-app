@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/display';
 import { PillSelect } from '@/components/ui/form';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
-import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, PRO, PRO_FEATURES } from '@/lib/constants';
+import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, FAIR_USE_NOTE, PRO, PRO_FEATURES } from '@/lib/constants';
 import { FOUNDER } from '@/lib/site';
 import { useMembers } from '@/lib/hooks';
 import { invoke } from '@/lib/supabase/client';
@@ -115,6 +115,12 @@ export default function PlansPage() {
             )}
           </div>
           <p className="t-small mt-4 text-black-700">
+            {FAIR_USE_NOTE}{' '}
+            <a href="/fair-use" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+              Fair use policy
+            </a>
+          </p>
+          <p className="t-small mt-2 text-black-700">
             Bigger team? <a href={`mailto:${FOUNDER.email}`} className="underline underline-offset-2">Talk to us</a>
           </p>
         </div>

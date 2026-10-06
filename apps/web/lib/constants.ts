@@ -103,13 +103,16 @@ export const PRO = { name: 'Pro', tier: 'growth', monthly: 149, annual: 997, cre
 /** What annual billing saves against twelve monthly payments: £791, 44%. */
 export const ANNUAL_SAVING = PRO.monthly * 12 - PRO.annual;
 export const ANNUAL_SAVING_PCT = Math.round((ANNUAL_SAVING / (PRO.monthly * 12)) * 100);
+/** Unlimited browser calling is subject to fair use (see /fair-use). */
+export const FAIR_USE_MINUTES = 1000;
+export const FAIR_USE_NOTE = `*Unlimited calls are subject to fair use: ${FAIR_USE_MINUTES.toLocaleString('en-GB')} call minutes per seat each month, then minutes at cost.`;
 export const PRO_FEATURES = [
-  `${PRO.credits.toLocaleString('en-GB')} mobile reveals per seat, every month`,
-  'Browser dialler with a UK number per seat',
+  `${PRO.credits.toLocaleString('en-GB')} verified mobile reveals per seat, every month`,
+  'Unlimited calls from the browser dialler*',
+  'Power dialler with a UK number per seat',
   `Every call recorded, kept ${PRO.recordings}`,
   'TPS and CTPS screening on every dial',
-  'Lists, pipeline and CSV import',
-  'Per-rep dashboard and call review',
+  'Lists, pipeline, CSV import and per-rep dashboards',
 ];
 /** Welcome credits for every new account, granted once (enforced in the database, migration 0010). */
 export const TRIAL_CREDITS = 5000;

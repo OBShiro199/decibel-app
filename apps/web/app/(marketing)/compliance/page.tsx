@@ -121,7 +121,7 @@ export default function CompliancePage() {
 
       <h2>Questions</h2>
       <p>
-        Email <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> and we will answer in plain English.
+        Email <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a> and we will answer in plain English.
       </p>
     </Prose>
   );

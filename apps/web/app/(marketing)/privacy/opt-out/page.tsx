@@ -22,7 +22,7 @@ export default function OptOutPage() {
       </p>
       <OptOutForm />
       <p>
-        Prefer to write it yourself? Email <a href="mailto:privacy@decibel.io">privacy@decibel.io</a> with your name and the phone number concerned.
+        Prefer to write it yourself? Email <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a> with your name and the phone number concerned.
       </p>
     </Prose>
   );

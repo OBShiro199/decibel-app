@@ -44,7 +44,7 @@ export default function CookiesPage() {
 
       <h2>Contact</h2>
       <p>
-        Questions: <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>.
+        Questions: <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a>.
       </p>
     </Prose>
   );

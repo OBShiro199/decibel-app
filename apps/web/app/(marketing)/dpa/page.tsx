@@ -93,7 +93,7 @@ export default function DpaPage() {
 
       <h2>11. Contact</h2>
       <p>
-        Questions about this addendum: <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>. See also the <Link href="/privacy">privacy policy</Link>{' '}
+        Questions about this addendum: <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a>. See also the <Link href="/privacy">privacy policy</Link>{' '}
         and <Link href="/compliance">compliance page</Link>.
       </p>
     </Prose>

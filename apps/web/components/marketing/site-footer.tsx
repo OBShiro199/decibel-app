@@ -1,46 +1,46 @@
 import Link from 'next/link';
+import { COMPARE_LINKS, INDUSTRY_LINKS, PRODUCT_LINKS } from '@/lib/marketing-pages';
 import { FOUNDER } from '@/lib/site';
 import { Logo } from './logo';
 
 type FooterLink = { href: string; label: string; external?: boolean };
 
+// Columns come from lib/marketing-pages, so the header, footer and sitemap stay in step.
 const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Product',
-    links: [
-      { href: '/#product', label: 'Overview' },
-      { href: '/#data', label: 'Data' },
-      { href: '/#pricing', label: 'Pricing' },
-      { href: '/signup', label: 'Start free trial' },
-      { href: '/login', label: 'Log in' },
-    ],
+    links: [{ href: '/features', label: 'All features' }, ...PRODUCT_LINKS.filter((l) => l.href !== '/compliance'), { href: '/#pricing', label: 'Pricing' }],
+  },
+  {
+    title: 'Industries',
+    links: [...INDUSTRY_LINKS, { href: '/industries', label: 'All industries' }],
+  },
+  {
+    title: 'Compare',
+    links: [...COMPARE_LINKS.map((l) => ({ href: l.href, label: l.label.replace('Decibel vs. ', 'vs. ') })), { href: '/vs', label: 'All comparisons' }],
   },
   {
     title: 'Company',
     links: [
-      { href: '/compliance', label: 'Compliance' },
-      { href: 'mailto:sales@decibel.io', label: 'Talk to sales', external: true },
-      { href: 'mailto:privacy@decibel.io', label: 'Privacy team', external: true },
+      { href: '/blog', label: 'Blog' },
+      { href: '/careers', label: 'Careers' },
+      { href: '/demo', label: 'Book a 15-min demo' },
+      { href: '/signup', label: 'Start free trial' },
+      { href: '/login', label: 'Log in' },
+      { href: `mailto:${FOUNDER.email}`, label: 'Contact us', external: true },
     ],
   },
   {
     title: 'Legal',
     links: [
+      { href: '/compliance', label: 'Compliance' },
       { href: '/privacy', label: 'Privacy' },
+      { href: '/terms', label: 'Terms' },
+      { href: '/fair-use', label: 'Fair use' },
       { href: '/dpa', label: 'DPA' },
       { href: '/cookies', label: 'Cookies' },
       { href: '/art-14', label: 'Art. 14 notice' },
-      { href: '/terms', label: 'Terms' },
       { href: '/privacy/opt-out', label: 'Opt out' },
-    ],
-  },
-  {
-    title: 'Status',
-    links: [
-      // Placeholders until the status page and social accounts exist.
-      { href: '#', label: 'System status' },
-      { href: '#', label: 'Twitter' },
-      { href: '#', label: 'LinkedIn' },
     ],
   },
 ];
@@ -56,8 +56,8 @@ export function SiteFooter() {
     <footer className="border-t border-white-800 bg-white-100">
       <div className="mx-auto max-w-[1180px] border-x border-white-800">
         <div className="px-5 pb-6 pt-12 md:px-8 md:pb-8 md:pt-16">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-[1.5fr_repeat(4,1fr)]">
-            <div className="col-span-2 md:col-span-1">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
+            <div className="col-span-2 sm:col-span-3 lg:col-span-1">
               <Logo />
               <p className="mt-3 max-w-[240px] text-black-700">Verified UK & EU mobiles, a browser dialler and a pipeline, in one place.</p>
               <p className="t-small mt-6 text-black-0">Talk to the founder</p>

@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils';
 import { CtaLink, TrackView } from '@/components/marketing/analytics';
 import { AsciiCanvas, HeroConsole, LivePill, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
 import { CompliancePills } from '@/components/marketing/compliance-pills';
-import { DemoButton } from '@/components/marketing/demo-dialog';
 import { EuFlag, UkFlag } from '@/components/marketing/flags';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
+import { LocalBusinessesSection } from '@/components/marketing/local-section';
 import { LogoMarquee } from '@/components/marketing/logo-marquee';
 import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
@@ -32,7 +32,7 @@ const FAQS: FaqItem[] = [
   },
   {
     question: 'Do I need my own Twilio?',
-    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Twilio account, and call minutes are billed through Decibel at cost plus 20%.',
+    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Twilio account. Calls from the browser dialler are unlimited, subject to fair use: 1,000 minutes per seat each month, then minutes at cost.',
   },
   {
     question: 'Can I bring my own list?',
@@ -140,7 +140,9 @@ export default function LandingPage() {
               <CtaLink location="hero" href="/signup" variant="primary" size="lg">
                 Start free trial
               </CtaLink>
-              <DemoButton />
+              <CtaLink location="hero_demo" href="/demo" size="lg">
+                Book a 15-min demo
+              </CtaLink>
             </div>
             <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · {TRIAL_CREDITS.toLocaleString('en-GB')} credits · no card</p>
           </Reveal>
@@ -173,7 +175,7 @@ export default function LandingPage() {
         <div className="grid border-t border-white-800 md:grid-cols-3 md:grid-rows-[auto_auto]">
           {PILLARS.map(([id, label, pitch, body], i) => (
             <Reveal key={id} delay={i * 110} className={cn('grid min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto] md:row-span-2 md:grid-rows-subgrid', i < 2 && 'border-b border-white-800 md:border-b-0 md:border-r')}>
-              <div id={id === 'data' ? 'data' : undefined} className="px-5 pb-6 pt-8 md:px-8">
+              <div id={id === 'data' ? 'data' : undefined} className="px-5 pb-8 pt-10 md:px-8 md:pb-10 md:pt-12">
                 <p className="eyebrow">[ {label} ]</p>
                 <h3 className="mt-3 text-lg font-medium leading-[25px] tracking-[-0.03em] text-black-400">{pitch}</h3>
                 <p className="mt-2 text-base leading-[23px] text-black-700">{body}</p>
@@ -200,10 +202,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* breathing room between the product, the checks and the local section */}
+      <div aria-hidden className="rail h-14 md:h-20" />
+
+      {/* the four compliance checks, right under the product */}
+      <section className="rail">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4">
+          {CHECKS.map(([tag, title, body], i) => (
+            <Reveal key={tag} delay={i * 90} className="border-b border-white-800 px-5 py-9 last:border-b-0 sm:border-r md:px-8 md:py-11 lg:border-b-0 lg:last:border-r-0">
+              <p className="tabular-nums text-xs tracking-[0.06em] text-success-500">✓ {tag}</p>
+              <h3 className="mt-3 text-md font-medium tracking-[-0.02em] text-black-400">{title}</h3>
+              <p className="mt-1.5 text-base leading-[22px] text-black-700">{body}</p>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <div aria-hidden className="rail h-14 md:h-20" />
+
+      {/* local businesses: map-style listings with ratings, hours and checked numbers */}
+      <LocalBusinessesSection />
+
+      <div aria-hidden className="rail h-14 md:h-20" />
+
       {/* how it works */}
       <section className="rail">
         <div className="px-5 py-14 md:px-10 md:py-20">
-          <Head eyebrow="How it works" title="Three steps, then repeat forty times a day." />
+          <Head eyebrow="How it works" title="Three steps, then repeat eighty times a day." />
         </div>
         {STEPS.map(([n, title, body], i) => (
           <Reveal key={n} delay={i * 100}>
@@ -244,15 +269,6 @@ export default function LandingPage() {
             <span className="absolute bottom-4 right-4 tabular-nums text-xs tracking-[0.06em] text-faint">[ 1 blocked / 20 ]</span>
           </div>
         </div>
-        <div className="grid border-t border-white-800 sm:grid-cols-2 lg:grid-cols-4">
-          {CHECKS.map(([tag, title, body], i) => (
-            <Reveal key={tag} delay={i * 90} className="border-b border-white-800 px-5 py-7 last:border-b-0 sm:border-r md:px-8 lg:border-b-0 lg:last:border-r-0">
-              <p className="tabular-nums text-xs tracking-[0.06em] text-success-500">✓ {tag}</p>
-              <h3 className="mt-3 text-md font-medium tracking-[-0.02em] text-black-400">{title}</h3>
-              <p className="mt-1.5 text-base leading-[22px] text-black-700">{body}</p>
-            </Reveal>
-          ))}
-        </div>
       </section>
 
       {/* pricing */}
@@ -283,8 +299,8 @@ export default function LandingPage() {
             <CtaLink location="final" href="/signup" variant="primary" size="lg">
               Start free trial
             </CtaLink>
-            <CtaLink location="final_login" href="/login" size="lg">
-              Log in
+            <CtaLink location="final_demo" href="/demo" size="lg">
+              Book a 15-min demo
             </CtaLink>
           </div>
         </Reveal>

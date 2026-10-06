@@ -19,7 +19,7 @@ export default function Article14Page() {
       <h2>Who holds your data</h2>
       <p>
         Decibel is the controller of the database. [Legal entity name, company number and registered address to be confirmed before publication.] Contact:{' '}
-        <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>.
+        <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a>.
       </p>
 
       <h2>What we hold</h2>
@@ -72,7 +72,7 @@ export default function Article14Page() {
       </ul>
       <p>
         To use any of these, go to the <Link href="/privacy/opt-out">opt-out page</Link> or email{' '}
-        <a href="mailto:privacy@decibel.io">privacy@decibel.io</a>. Registering your number with the TPS or CTPS also stops Decibel customers calling it
+        <a href="mailto:oliver@usedecibel.com">oliver@usedecibel.com</a>. Registering your number with the TPS or CTPS also stops Decibel customers calling it
         through our dialler.
       </p>
 

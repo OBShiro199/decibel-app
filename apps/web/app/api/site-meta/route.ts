@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     const res = await fetch(target.origin, {
       signal: AbortSignal.timeout(4000),
       redirect: 'follow',
-      headers: { 'user-agent': 'DecibelBot/1.0 (+https://decibel.io)', accept: 'text/html' },
+      headers: { 'user-agent': 'DecibelBot/1.0 (+https://www.usedecibel.com)', accept: 'text/html' },
     });
     if (!res.ok || !(res.headers.get('content-type') ?? '').includes('text/html')) {
       return NextResponse.json({ name: null, icon: null });

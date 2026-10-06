@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/display';
 import { cn } from '@/lib/utils';
 
 /** Long-form body styles: plain h2 / h3 / p / ul / ol / a / strong / code children are styled here. */
-const body = [
+export const proseBody = [
   'mt-10 text-md leading-6 tracking-[-0.16px] text-black-700',
   '[&_h2]:mt-12 [&_h2]:scroll-mt-24 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:leading-6 [&_h2]:tracking-[-0.4px] [&_h2]:text-black-0',
   '[&_h3]:mt-8 [&_h3]:text-md [&_h3]:font-semibold [&_h3]:leading-5 [&_h3]:text-black-0',
@@ -38,7 +38,7 @@ export function Prose({
       <h1 className={cn('t-h1 text-black-0', draft && 'mt-4')}>{title}</h1>
       {lead ? <p className="t-body-lg mt-4 text-black-700">{lead}</p> : null}
       {updated ? <p className="t-small mt-4 text-black-700">Last updated {updated}</p> : null}
-      <div className={body}>{children}</div>
+      <div className={proseBody}>{children}</div>
     </article>
   );
 }
