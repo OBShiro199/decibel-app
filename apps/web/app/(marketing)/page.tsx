@@ -282,7 +282,6 @@ export default function LandingPage() {
         <Corner className="right-5 top-5">[ 60 minutes ]</Corner>
         <Reveal>
           <p className="eyebrow">[ Start ]</p>
-          <h2 className="t-display mx-auto mt-4 max-w-[640px] text-black-400">Your first {TRIAL_CREDITS.toLocaleString('en-GB')} credits are on us.</h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <CtaLink location="final" href="/signup" variant="primary" size="lg">
               Start free trial
