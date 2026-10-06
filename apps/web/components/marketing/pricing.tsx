@@ -1,7 +1,7 @@
 'use client';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
-import { ANNUAL_DISCOUNT, PLANS } from '@/lib/constants';
+import { ANNUAL_DISCOUNT, PLANS, TRIAL_CREDITS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { CtaLink, trackMarketing } from './analytics';
 
@@ -111,7 +111,7 @@ export function Pricing() {
       <ul className="mx-auto mt-8 flex max-w-[720px] flex-col items-center gap-1 text-center text-black-700">
         <li>Credits = mobile reveals.</li>
         <li>Call minutes billed at cost + 20%.</li>
-        <li>14-day free trial, 1 seat, 50 credits, 60 minutes. No card needed.</li>
+        <li>14-day free trial, 1 seat, {TRIAL_CREDITS.toLocaleString('en-GB')} credits, 60 minutes. No card needed.</li>
         <li className="t-small">Prices exclude VAT.</li>
       </ul>
     </div>

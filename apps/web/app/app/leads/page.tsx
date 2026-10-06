@@ -81,6 +81,8 @@ function Leads() {
   const revealed = results.data?.revealed ?? {};
   const ids = [...selected];
   const unrevealed = ids.filter((id) => !revealed[id]);
+  // each contact not yet revealed costs 1 credit; already revealed ones are free
+  const costLabel = unrevealed.length ? ` (${unrevealed.length} credit${unrevealed.length === 1 ? '' : 's'})` : '';
   const allSelected = contacts.length > 0 && contacts.every((c) => selected.has(c.id));
   const strictMarket = (scoped.countries ?? []).some((c) => c === 'DE' || c === 'AT') && (active.countries ?? []).some((c) => c === 'DE' || c === 'AT');
 
@@ -351,10 +353,10 @@ function Leads() {
 
       <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
         <BulkAction disabled={!!busy} onClick={() => (targetList ? void addToList(targetList) : setPicker('add'))}>
-          <ListPlus size={16} strokeWidth={1.5} /> {targetList ? `Add to ${targetName ?? 'list'}` : 'Add to list'}
+          <ListPlus size={16} strokeWidth={1.5} /> {targetList ? `Add to ${targetName ?? 'list'}` : 'Add to list'}{costLabel}
         </BulkAction>
         <BulkAction disabled={!!busy} onClick={() => setPicker('create')}>
-          <Plus size={16} strokeWidth={1.5} /> Create new list
+          <Plus size={16} strokeWidth={1.5} /> Create new list{costLabel}
         </BulkAction>
         <BulkAction disabled={!!busy || !unrevealed.length} onClick={bulkReveal}>
           <Eye size={16} strokeWidth={1.5} /> Reveal mobiles ({unrevealed.length} credit{unrevealed.length === 1 ? '' : 's'})

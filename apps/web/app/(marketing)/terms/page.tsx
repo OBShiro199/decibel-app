@@ -21,7 +21,7 @@ export default function TermsPage() {
       <p>Decibel provides a B2B contact database, a browser-based dialler and a pipeline for managing outbound calling. Features may change as the product develops.</p>
 
       <h2>3. Free trial</h2>
-      <p>New workspaces get a 14-day trial with 1 seat, 50 credits and 60 call minutes. No payment card is needed. When the trial ends you need a paid plan to keep calling.</p>
+      <p>Each new account gets a 14-day trial with 1 seat, 5,000 credits (granted once per account, not per workspace) and 60 call minutes. A credit reveals one contact, and one that your workspace has already revealed is never charged again. Every credit movement is recorded in a permanent ledger that you can see under Billing. No payment card is needed. When the trial ends you need a paid plan to keep calling.</p>
 
       <h2>4. Plans, credits and billing</h2>
       <ul>

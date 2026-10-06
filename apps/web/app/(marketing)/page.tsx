@@ -10,7 +10,7 @@ import { LogoMarquee } from '@/components/marketing/logo-marquee';
 import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
-import { PLANS } from '@/lib/constants';
+import { PLANS, TRIAL_CREDITS } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: { absolute: SITE_TITLE },
@@ -138,7 +138,7 @@ export default function LandingPage() {
               </CtaLink>
               <DemoButton />
             </div>
-            <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 50 credits · no card</p>
+            <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · {TRIAL_CREDITS.toLocaleString('en-GB')} credits · no card</p>
           </Reveal>
         </div>
         <Reveal eager delay={200} className="relative mx-auto max-w-[980px] px-5 pb-16 md:pb-20">
@@ -278,11 +278,11 @@ export default function LandingPage() {
 
       {/* final cta */}
       <section className="rail dotgrid relative px-5 py-20 text-center md:py-28">
-        <Corner className="left-5 top-5">[ 50 credits ]</Corner>
+        <Corner className="left-5 top-5">[ {TRIAL_CREDITS.toLocaleString('en-GB')} credits ]</Corner>
         <Corner className="right-5 top-5">[ 60 minutes ]</Corner>
         <Reveal>
           <p className="eyebrow">[ Start ]</p>
-          <h2 className="t-display mx-auto mt-4 max-w-[640px] text-black-400">Your first 50 calls are on us.</h2>
+          <h2 className="t-display mx-auto mt-4 max-w-[640px] text-black-400">Your first {TRIAL_CREDITS.toLocaleString('en-GB')} credits are on us.</h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <CtaLink location="final" href="/signup" variant="primary" size="lg">
               Start free trial

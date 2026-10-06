@@ -3,7 +3,7 @@
 // procedural ASCII / ordered-dither canvas, marquee, live pill, console chrome,
 // the light "engine" and the single pricing card.
 import { useEffect, useRef, useState } from 'react';
-import { ANNUAL_DISCOUNT, PLANS } from '@/lib/constants';
+import { ANNUAL_DISCOUNT, PLANS, TRIAL_CREDITS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { CtaLink, trackMarketing } from './analytics';
 
@@ -498,7 +498,7 @@ export function PricingCard() {
               Talk to us
             </CtaLink>
           </div>
-          <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 1 seat · 50 credits · 60 minutes · no card</p>
+          <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 1 seat · {TRIAL_CREDITS.toLocaleString('en-GB')} credits · 60 minutes · no card</p>
         </div>
         <ul className="p-7 md:p-9">
           {INCLUDED[plan].map((item) => (

@@ -17,6 +17,7 @@ import { RevealOnce, useFirstReveal } from '@/components/ui/reveal';
 import { TodaySkeleton } from '@/components/app/skeletons';
 import { Badge, EmptyState, ErrorCard, Skeleton, StatTile, TableSkeleton } from '@/components/ui/display';
 import { useToast } from '@/components/ui/overlay';
+import { TRIAL_CREDITS } from '@/lib/constants';
 
 export default function TodayPage() {
   return (
@@ -39,7 +40,7 @@ function Today() {
   // first arrival from onboarding: an overlay toast, so nothing on the page moves
   useEffect(() => {
     if (params.get('welcome') !== '1') return;
-    toast('Start calling. Your first 50 credits are free.');
+    toast(`Start calling. Your first ${TRIAL_CREDITS.toLocaleString('en-GB')} credits are free.`);
     router.replace('/app');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

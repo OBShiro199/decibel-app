@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       'You are a few minutes from your first call',
       layout(
         'Pick up where you left off',
-        `Your workspace <b>${ws.name}</b> is nearly ready. Finish setup and make your first call. Your first 50 credits are free.`,
+        `Your workspace <b>${ws.name}</b> is nearly ready. Finish setup and make your first call. Your first 5,000 credits are free.`,
         { label: 'Finish setup', url: `${APP_URL}/onboarding` },
       ),
     );

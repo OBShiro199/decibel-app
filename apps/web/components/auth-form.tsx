@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client';
 import { isFreeMail } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Checkbox, Field, Input } from '@/components/ui/form';
+import { TRIAL_CREDITS } from '@/lib/constants';
 
 function GoogleIcon() {
   return (
@@ -141,7 +142,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
   return (
     <div className="card p-6">
       <h1 className="t-h3">{mode === 'signup' ? 'Start your free trial' : 'Log in to Decibel'}</h1>
-      <p className="mt-1 text-black-700">{mode === 'signup' ? '14 days, 50 credits, 60 minutes. No card needed.' : 'Welcome back.'}</p>
+      <p className="mt-1 text-black-700">{mode === 'signup' ? `14 days, ${TRIAL_CREDITS.toLocaleString('en-GB')} credits, 60 minutes. No card needed.` : 'Welcome back.'}</p>
 
       <Button className="mt-6 w-full" onClick={google} loading={busy === 'google'}>
         <GoogleIcon /> Continue with Google

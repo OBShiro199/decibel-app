@@ -98,6 +98,8 @@ export const PLANS = {
   starter: { name: 'Starter', monthly: 49, credits: 500, recordings: '90 days' },
   growth: { name: 'Growth', monthly: 89, credits: 2000, recordings: '1 year' },
 } as const;
+/** Welcome credits for every new account, granted once (enforced in the database, migration 0010). */
+export const TRIAL_CREDITS = 5000;
 export const ANNUAL_DISCOUNT = 0.2;
 export const CREDIT_PACKS = [
   { id: '500', credits: 500, price: 75 },

@@ -279,7 +279,7 @@ function Sidebar() {
           className="flex h-8 shrink-0 items-center gap-1.5 rounded-sm px-2 text-xs text-black-700 tabular-nums hover:bg-white-300 hover:text-black-400"
         >
           <Coins size={14} strokeWidth={1.5} />
-          <span className="min-w-[2ch] text-right max-[1100px]:hidden">{workspace.credit_balance}</span>
+          <span className="min-w-[2ch] text-right max-[1100px]:hidden">{workspace.credit_balance.toLocaleString('en-GB')}</span>
         </Link>
         <Link href="/app/settings" title="Settings" aria-label="Settings" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-black-700 hover:bg-white-300">
           <Settings size={16} strokeWidth={1.5} />

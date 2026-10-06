@@ -42,7 +42,7 @@ const SUB_STATUS: Record<Subscription['status'], { label: string; tone: Tone }> 
   incomplete: { label: 'Payment incomplete', tone: 'warning' },
 };
 const REASON: Record<string, string> = {
-  trial_grant: 'Trial credits',
+  trial_grant: 'Welcome credits',
   purchase: 'Credit pack',
   subscription_grant: 'Monthly plan credits',
   reveal: 'Contact reveal',
@@ -98,8 +98,8 @@ export default function BillingPage() {
         .from('credit_transactions')
         .select('id,user_id,delta,reason,note,created_at')
         .eq('workspace_id', workspace.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+        .order('id', { ascending: false })
+        .limit(100);
       if (err) throw err;
       return (data ?? []) as CreditTx[];
     },
@@ -209,13 +209,13 @@ export default function BillingPage() {
         {!isAdmin ? <AdminOnly className="mt-4">Only owners and admins can buy credits.</AdminOnly> : null}
       </Section>
 
-      <Section title="Recent credit activity" description="The last 20 changes to your credit balance.">
+      <Section title="Credit activity" description="Every change to your credit balance, newest first. Entries are permanent and cannot be edited or removed.">
         {ledger.isError ? (
           <ErrorCard message="Could not load credit activity." onRetry={() => ledger.refetch()} />
         ) : (
           <div className="card overflow-x-auto">
             {ledger.isLoading ? (
-              <TableSkeleton rows={5} cols={3} />
+              <TableSkeleton rows={5} cols={5} />
             ) : !ledger.data?.length ? (
               <p className="p-6 text-black-700">No credit activity yet.</p>
             ) : (
@@ -226,10 +226,11 @@ export default function BillingPage() {
                     <th>Reason</th>
                     <th>Member</th>
                     <th className="text-right">Credits</th>
+                    <th className="text-right">Balance</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ledger.data.map((t) => (
+                  {ledger.data.map((t, i) => (
                     <tr key={t.id}>
                       <td className="whitespace-nowrap text-black-700">{formatDate(t.created_at, true)}</td>
                       <td>
@@ -240,6 +241,10 @@ export default function BillingPage() {
                       <td className={cn('tabular text-right', t.delta > 0 && 'text-success-700')}>
                         {t.delta > 0 ? '+' : t.delta < 0 ? '−' : ''}
                         {Math.abs(t.delta).toLocaleString('en-GB')}
+                      </td>
+                      {/* the balance after this entry: today's balance minus everything newer */}
+                      <td className="tabular text-right text-black-700">
+                        {(workspace.credit_balance - ledger.data!.slice(0, i).reduce((s, x) => s + x.delta, 0)).toLocaleString('en-GB')}
                       </td>
                     </tr>
                   ))}

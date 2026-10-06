@@ -9,6 +9,7 @@
     "lint": "pnpm --filter @decibels/web lint",
     "typecheck": "pnpm --filter @decibels/web typecheck",
     "deploy:functions": "bash scripts/deploy-supabase.sh",
-    "test:isolation": "pnpm --filter @decibels/web test:isolation"
+    "test:isolation": "pnpm --filter @decibels/web test:isolation",
+    "test:credits": "pnpm --filter @decibels/web test:credits"
   }
 }

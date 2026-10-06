@@ -11,7 +11,8 @@
     "test:isolation": "node scripts/tenant-isolation.mjs",
     "preview": "NEXT_DIST_DIR=.next-preview-prod next build && NEXT_DIST_DIR=.next-preview-prod next start -p 3001",
     "perf": "node scripts/perf-probe.mjs",
-    "perf:ui": "node scripts/perf-ui.mjs"
+    "perf:ui": "node scripts/perf-ui.mjs",
+    "test:credits": "node scripts/credit-integrity.mjs"
   },
   "dependencies": {
     "@decibels/design-tokens": "workspace:*",
