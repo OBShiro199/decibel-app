@@ -4,6 +4,10 @@
 @tailwind utilities;
 
 @layer base {
+  /* website pages: no elastic bounce past the footer, so nothing but the page is ever visible */
+  html:has(.marketing-root) {
+    overscroll-behavior-y: none;
+  }
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

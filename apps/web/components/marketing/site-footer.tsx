@@ -45,6 +45,10 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   },
 ];
 
+// an eased (S-curve) fade: the picture is solid only at the very bottom and dissolves gradually upward
+const FADE =
+  'linear-gradient(to top, #000 0%, rgba(0,0,0,0.97) 8%, rgba(0,0,0,0.9) 18%, rgba(0,0,0,0.77) 30%, rgba(0,0,0,0.6) 42%, rgba(0,0,0,0.42) 54%, rgba(0,0,0,0.26) 66%, rgba(0,0,0,0.13) 78%, rgba(0,0,0,0.05) 90%, transparent 100%)';
+
 const linkClass = 'text-black-700 transition-colors hover:text-black-0';
 
 export function SiteFooter() {
@@ -102,12 +106,12 @@ export function SiteFooter() {
           <img
             src="/landing/footer-landscape.webp"
             alt=""
-            width={1698}
-            height={524}
+            width={2000}
+            height={500}
             loading="lazy"
             decoding="async"
             className="absolute inset-0 h-full w-full select-none object-cover object-bottom"
-            style={{ WebkitMaskImage: 'linear-gradient(to top, #000 28%, transparent 100%)', maskImage: 'linear-gradient(to top, #000 28%, transparent 100%)' }}
+            style={{ WebkitMaskImage: FADE, maskImage: FADE }}
             draggable={false}
           />
         </div>
