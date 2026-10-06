@@ -169,6 +169,19 @@ export const dashboardQuery = (workspaceId: string, start: string, end: string) 
     },
   });
 
+// ---- credits ------------------------------------------------------------------------
+/** Everything this workspace has ever received (welcome credits, purchases, refunds): the bar's denominator. */
+export const creditsGrantedQuery = (workspaceId: string) =>
+  queryOptions({
+    queryKey: ['credits-granted', workspaceId],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase().from('credit_transactions').select('delta').eq('workspace_id', workspaceId).gt('delta', 0);
+      if (error) throw error;
+      return (data ?? []).reduce((sum, r) => sum + (r.delta > 0 ? r.delta : 0), 0);
+    },
+  });
+
 // ---- leads search -----------------------------------------------------------------
 export const leadsQuery = (workspaceId: string, scoped: LeadFilters, page: number, pageSize: number) =>
   queryOptions({

@@ -111,7 +111,7 @@ export function SoftphoneToggle() {
   return (
     <Button size="compact" variant={phone.live || on ? 'primary' : 'outline'} onClick={sp.togglePanel} aria-pressed={on} aria-label="Toggle softphone" className="w-full">
       <Phone size={14} strokeWidth={1.5} />
-      <span className="max-[1100px]:hidden">{phone.live ? PHASE_LABEL[phone.phase] : on ? 'Close phone' : 'Open phone'}</span>
+      <span className="max-[1100px]:hidden">{phone.live ? PHASE_LABEL[phone.phase] : on ? 'Close dial pad' : 'Make a call'}</span>
     </Button>
   );
 }
