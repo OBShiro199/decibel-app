@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { CtaLink, TrackView } from '@/components/marketing/analytics';
-import { AsciiCanvas, Engine, HeroConsole, LivePill, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
+import { AsciiCanvas, HeroConsole, LivePill, PipelinePanel, PricingCard, Reveal, RevealPanel, Status } from '@/components/marketing/daygent';
 import { DemoButton } from '@/components/marketing/demo-dialog';
 import { EuFlag, UkFlag } from '@/components/marketing/flags';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
@@ -194,9 +194,6 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-
-      {/* the engine: light, contained, no scroll-jacking */}
-      <Engine />
 
       {/* how it works */}
       <section className="rail">

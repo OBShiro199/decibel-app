@@ -54,7 +54,7 @@ const hash = (x: number, y: number) => {
   return s - Math.floor(s);
 };
 
-export type Scene = 'signal' | 'radar' | 'bars' | 'engine';
+export type Scene = 'signal' | 'radar' | 'bars';
 
 /** Intensity 0..1 for a cell. u,v are centred coords (v scaled so cells read square). */
 function field(scene: Scene, u: number, v: number, t: number, col: number, row: number, cols: number, rows: number, p: number): number {
@@ -84,19 +84,7 @@ function field(scene: Scene, u: number, v: number, t: number, col: number, row: 
     const y = 1 - row / rows;
     return col % 2 === 0 && y < h ? 0.35 + 0.65 * (y / h) : 0;
   }
-  // engine: scroll progress p morphs noise (a raw list) -> rings (the call) -> ordered columns (the pipeline)
-  const noise = hash(col, row + Math.floor(t * 2)) > 0.9 ? 0.55 + 0.45 * hash(row, col) : 0;
-  const d = Math.hypot(u, v);
-  const rings = (0.5 + 0.5 * Math.sin(d * 16 - t * 2.6)) * Math.max(0, 1 - d * 0.9);
-  const stage = Math.floor((col / cols) * 5);
-  const fill = [0.9, 0.7, 0.52, 0.36, 0.22][stage] ?? 0.2;
-  const y = 1 - row / rows;
-  // dotted (every other cell) so the pipeline columns read light on white, not as solid blocks
-  const colsField = (row + col) % 2 === 0 && col % Math.max(2, Math.floor(cols / 5)) > 1 && y < fill + 0.03 * Math.sin(t + stage) ? 0.3 + 0.5 * (y / fill) : 0;
-  const a = Math.max(0, 1 - p * 3);
-  const b = Math.max(0, 1 - Math.abs(p - 0.5) * 3.2);
-  const c = Math.max(0, (p - 0.62) * 2.7);
-  return Math.min(1, noise * a + rings * b + colsField * c);
+  return 0;
 }
 
 export function AsciiCanvas({
@@ -337,85 +325,6 @@ export function PipelinePanel() {
       ))}
       <p className="text-faint">Outcomes move the stage automatically</p>
     </div>
-  );
-}
-
-// ------------------------------------------------------------------ engine --
-const PHASES = [
-  ['01', 'A raw list.', 'Filter over a million verified mobiles by title, seniority, size and country. Reveal only the ones you will call.'],
-  ['02', 'One click, one call.', 'The dialler screens TPS and your do-not-call list, then rings their mobile from your browser.'],
-  ['03', 'An ordered pipeline.', 'Pick an outcome. The record, the recording and the stage update before the next call connects.'],
-];
-
-/**
- * The engine, light version: a normal section (no scroll-jacking, no dark band).
- * Three phases on the left; a bordered ASCII panel on the right morphs from a raw
- * list to a call to an ordered pipeline as the phases cycle. Fixed height, so the
- * changing captions never move the page.
- */
-export function Engine() {
-  const progress = useRef(0);
-  const [phase, setPhase] = useState(0);
-  const [held, setHeld] = useState(false);
-  useEffect(() => {
-    if (held || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = setInterval(() => setPhase((p) => (p + 1) % PHASES.length), 4500);
-    return () => clearInterval(t);
-  }, [held]);
-  // ease the scene towards the active phase (0, 0.5, 1)
-  useEffect(() => {
-    const target = phase / (PHASES.length - 1);
-    let raf = 0;
-    const step = () => {
-      progress.current += (target - progress.current) * 0.06;
-      if (Math.abs(target - progress.current) > 0.002) raf = requestAnimationFrame(step);
-      else progress.current = target;
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [phase]);
-
-  return (
-    <section className="rail" aria-label="How a call moves through Decibel">
-      <div className="grid md:grid-cols-[1fr_1.1fr]">
-        <div className="flex flex-col justify-center border-b border-white-800 px-5 py-10 md:border-b-0 md:border-r md:px-10">
-          <p className="eyebrow">[ The engine ]</p>
-          <ol className="mt-6 flex flex-col">
-            {PHASES.map(([n, title, body], i) => (
-              <li key={n}>
-                <button
-                  onClick={() => {
-                    setPhase(i);
-                    setHeld(true);
-                  }}
-                  className={cn('group block w-full border-t border-white-800 py-5 text-left transition-colors', i === phase ? '' : 'opacity-50 hover:opacity-80')}
-                  aria-current={i === phase ? 'step' : undefined}
-                >
-                  <span className="flex items-baseline gap-4">
-                    <span className="w-8 text-xs tabular-nums text-white-900">{n}</span>
-                    <span className="text-lg font-medium tracking-[-0.03em] text-black-400">{title}</span>
-                  </span>
-                  {/* progress towards the next phase; a fixed 2px track, so nothing moves */}
-                  <span className="mt-3 block h-[2px] overflow-hidden bg-white-800 ml-12" aria-hidden>
-                    {i === phase ? (
-                      <span key={held ? 'held' : phase} className={cn('block h-full origin-left bg-black-400', held ? 'scale-x-100' : 'engine-progress')} />
-                    ) : null}
-                  </span>
-                  {/* every description keeps its space, so switching phase never changes height */}
-                  <span className={cn('mt-1.5 block pl-12 text-base leading-[24px] text-black-700 transition-opacity duration-300', i === phase ? 'opacity-100' : 'opacity-0')}>{body}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <div className="relative h-[340px] overflow-hidden bg-white-100 md:h-auto md:min-h-[440px]">
-          <div className="absolute inset-0">
-            <AsciiCanvas scene="engine" color="#c4c4bf" progress={progress} cell={12} intensity={0.55} />
-          </div>
-          <span className="absolute left-4 top-4 text-xs text-faint">[ {String(phase + 1).padStart(2, '0')} / 03 ]</span>
-        </div>
-      </div>
-    </section>
   );
 }
 
