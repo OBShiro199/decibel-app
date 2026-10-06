@@ -7,6 +7,7 @@ import { CompliancePills } from '@/components/marketing/compliance-pills';
 import { EuFlag, UkFlag } from '@/components/marketing/flags';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
 import { LocalBusinessesSection } from '@/components/marketing/local-section';
+import { FreeToolsSection } from '@/components/marketing/tools-section';
 import { LogoMarquee } from '@/components/marketing/logo-marquee';
 import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
@@ -222,6 +223,11 @@ export default function LandingPage() {
 
       {/* local businesses: map-style listings with ratings, hours and checked numbers */}
       <LocalBusinessesSection />
+
+      <div aria-hidden className="rail h-14 md:h-20" />
+
+      {/* free tools: TPS checker, email verifier, phone validator */}
+      <FreeToolsSection />
 
       <div aria-hidden className="rail h-14 md:h-20" />
 

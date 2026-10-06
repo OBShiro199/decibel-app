@@ -48,5 +48,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.demo-request]
 verify_jwt = false
+[functions.free-tools]
+verify_jwt = false
 [functions.nightly]
 verify_jwt = false

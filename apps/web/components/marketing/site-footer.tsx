@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { COMPARE_LINKS, INDUSTRY_LINKS, PRODUCT_LINKS } from '@/lib/marketing-pages';
+import { COMPARE_LINKS, INDUSTRY_LINKS, PRODUCT_LINKS, TOOL_LINKS } from '@/lib/marketing-pages';
 import { FOUNDER } from '@/lib/site';
 import { Logo } from './logo';
 
@@ -18,6 +18,10 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Compare',
     links: [...COMPARE_LINKS.map((l) => ({ href: l.href, label: l.label.replace('Decibel vs. ', 'vs. ') })), { href: '/vs', label: 'All comparisons' }],
+  },
+  {
+    title: 'Free tools',
+    links: [...TOOL_LINKS, { href: '/tools', label: 'All free tools' }],
   },
   {
     title: 'Company',
@@ -56,7 +60,7 @@ export function SiteFooter() {
     <footer className="border-t border-white-800 bg-white-100">
       <div className="mx-auto max-w-[1180px] border-x border-white-800">
         <div className="px-5 pb-6 pt-12 md:px-8 md:pb-8 md:pt-16">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-[1.3fr_repeat(6,1fr)]">
             <div className="col-span-2 sm:col-span-3 lg:col-span-1">
               <Logo />
               <p className="mt-3 max-w-[240px] text-black-700">Verified UK & EU mobiles, a browser dialler and a pipeline, in one place.</p>

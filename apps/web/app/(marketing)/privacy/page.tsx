@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       draft
       title="Privacy policy"
       lead="This policy explains what personal data Decibel handles, why, and what you can do about it."
-      updated="1 October 2026"
+      updated="7 October 2026"
     >
       <h2>1. Who we are</h2>
       <p>
@@ -50,7 +50,8 @@ export default function PrivacyPage() {
           ['Usage data: actions in the app, device and browser information', 'Security, support and improving the product', 'Legitimate interest'],
           ['Website analytics', 'Understanding which pages are useful', 'Consent'],
           ['Business contact data in the database: name, job title, employer, business phone or mobile, work location', 'Providing a B2B contact database to customers', 'Legitimate interest'],
-          ['Support correspondence', 'Answering your questions', 'Legitimate interest'],
+          ['Support correspondence and demo requests', 'Answering your questions and arranging demos', 'Legitimate interest'],
+          ['Free tools: the phone number or email you enter, and your IP address', 'Running the check you asked for and preventing abuse of the free tools', 'Legitimate interest'],
         ]}
       />
 
@@ -64,6 +65,12 @@ export default function PrivacyPage() {
       <p>
         We share data with the sub-processors listed in our <Link href="/dpa">DPA</Link> (Supabase, Twilio, Stripe, Vercel, Resend and PostHog) so they can
         provide their services to us. We do not sell personal data to advertisers. We may disclose data where the law requires it.
+      </p>
+      <p>
+        <strong>Free tools.</strong> When you use our free <Link href="/tools">tools</Link>, the number or email you enter is sent to the provider that runs
+        the check: TPS Services API (tpsapi.com) for TPS and CTPS checks, MillionVerifier for email checks and Twilio for phone checks. We do not keep the number
+        or email itself. We keep a one-way hashed copy, with the result, for up to 7 days (TPS), 14 days (email) or 30 days (phone) so repeat checks are
+        instant, and a hashed copy of your IP address for 30 days to enforce daily limits.
       </p>
 
       <h2>6. How long we keep it</h2>

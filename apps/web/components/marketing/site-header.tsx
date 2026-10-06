@@ -5,16 +5,15 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ButtonLink } from '@/components/ui/button';
 import { CRM_TOOLS } from '@/lib/integrations-data';
-import { INDUSTRY_LINKS, PRODUCT_LINKS, type MarketingLink } from '@/lib/marketing-pages';
+import { INDUSTRY_LINKS, PRODUCT_LINKS, TOOL_LINKS, type MarketingLink } from '@/lib/marketing-pages';
 import { cn } from '@/lib/utils';
 import { CtaLink } from './analytics';
 import { Logo } from './logo';
 
-type MenuId = 'product' | 'industries' | 'integrations';
+type MenuId = 'product' | 'industries' | 'integrations' | 'tools';
 
 const PLAIN = [
   { href: '/#pricing', label: 'Pricing' },
-  { href: '/careers', label: 'Careers' },
 ];
 
 const ASCII_FONT = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace";
@@ -95,6 +94,22 @@ function IntegrationsPanel({ onPick }: { onPick: () => void }) {
   );
 }
 
+function ToolsPanel({ onPick }: { onPick: () => void }) {
+  return (
+    <div className="w-[380px] p-3">
+      <p className="px-2 pb-2 pt-1 text-[13px] tracking-[-0.01em] text-faint">[ Free tools ]</p>
+      <div className="space-y-1">
+        {TOOL_LINKS.map((l) => (
+          <MenuLink key={l.href} link={l} onPick={onPick} />
+        ))}
+      </div>
+      <Link href="/tools" onClick={onPick} className="mx-2 mt-2 inline-flex text-[13px] text-black-700 hover:text-black-400">
+        All free tools →
+      </Link>
+    </div>
+  );
+}
+
 function IndustriesPanel({ onPick }: { onPick: () => void }) {
   return (
     <div className="w-[380px] p-3">
@@ -167,7 +182,15 @@ export function SiteHeader() {
       {menu === id ? (
         <div className="absolute left-0 top-full pt-3">
           <div className="nav-panel overflow-hidden rounded-[6px] border border-white-800 bg-white-100 shadow-[0_18px_48px_rgba(18,18,18,0.10)]">
-            {id === 'product' ? <ProductPanel onPick={() => setMenu(null)} /> : id === 'industries' ? <IndustriesPanel onPick={() => setMenu(null)} /> : <IntegrationsPanel onPick={() => setMenu(null)} />}
+            {id === 'product' ? (
+              <ProductPanel onPick={() => setMenu(null)} />
+            ) : id === 'industries' ? (
+              <IndustriesPanel onPick={() => setMenu(null)} />
+            ) : id === 'integrations' ? (
+              <IntegrationsPanel onPick={() => setMenu(null)} />
+            ) : (
+              <ToolsPanel onPick={() => setMenu(null)} />
+            )}
           </div>
         </div>
       ) : null}
@@ -195,6 +218,7 @@ export function SiteHeader() {
           {trigger('product', 'Product')}
           {trigger('industries', 'Industries')}
           {trigger('integrations', 'Integrations')}
+          {trigger('tools', 'Tools')}
           {PLAIN.map((item) => (
             <Link key={item.href} href={item.href} className="flex h-8 items-center px-2.5 text-[15px] tracking-[-0.01em] text-black-700 transition-colors hover:text-black-400">
               {item.label}
@@ -227,8 +251,9 @@ export function SiteHeader() {
         <nav aria-label="Mobile" className="mx-auto flex max-w-[1152px] flex-col px-4 pb-4">
           {mobileGroup('Product', [...PRODUCT_LINKS.filter((l) => l.href !== '/integrations'), { href: '/features', label: 'All features' }])}
           {mobileGroup('Integrations', [{ href: '/integrations', label: 'All integrations' }])}
+          {mobileGroup('Free tools', [...TOOL_LINKS, { href: '/tools', label: 'All free tools' }])}
           {mobileGroup('Industries', INDUSTRY_LINKS)}
-          {mobileGroup('More', [...PLAIN, { href: '/blog', label: 'Blog' }, { href: '/demo', label: 'Book a 15-min demo' }, { href: '/login', label: 'Log in' }])}
+          {mobileGroup('More', [...PLAIN, { href: '/blog', label: 'Blog' }, { href: '/careers', label: 'Careers' }, { href: '/demo', label: 'Book a 15-min demo' }, { href: '/login', label: 'Log in' }])}
         </nav>
       </div>
     </header>

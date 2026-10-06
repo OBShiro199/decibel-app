@@ -9,8 +9,10 @@
 --   4. Cache: the same number/email checked recently returns the stored result, free.
 --      Keys are salted SHA-256 hashes, so no raw phone numbers or emails are stored.
 --   5. Per-IP limits per tool: per minute (burst) and per day; signed-in users get more.
---   6. Global daily spend cap across all tools; when reached, tools pause until midnight.
---   7. A row lock per day keeps concurrent requests from overspending the cap.
+--   6. Per-tool cap on paid lookups per day (protects small prepaid credit balances), plus a
+--      global daily spend cap across all tools; when either is reached, that tool pauses
+--      until midnight (London).
+--   7. A transaction lock on the budget keeps concurrent requests from overspending.
 -- Nothing here is readable or writable by browsers: RLS on, no policies, privileges revoked.
 -- Costs are integer micro-pounds (1 GBP = 1,000,000) so maths stays exact.
 
@@ -21,13 +23,15 @@ create table public.free_tool_config (
   anon_per_day      integer not null default 5,                  -- per IP, signed out
   user_per_day      integer not null default 25,                 -- per signed-in user
   per_minute        integer not null default 3,                  -- burst limit per IP
+  max_paid_per_day  integer not null default 30,                 -- paid lookups per day, everyone together
   cache_days        integer not null default 7
 );
 
-insert into public.free_tool_config (tool, cost_micros, anon_per_day, user_per_day, per_minute, cache_days) values
-  ('phone', 7000, 5, 25, 3, 30),   -- live line check, ~0.7p
-  ('email', 3000, 5, 25, 3, 14),   -- mailbox verification, ~0.3p
-  ('tps',   4000, 5, 25, 3, 7)     -- TPS + CTPS lookup, ~0.4p; short cache because registers change
+-- costs are estimates for the spend cap; the per-day caps are what protect the prepaid balances
+insert into public.free_tool_config (tool, cost_micros, anon_per_day, user_per_day, per_minute, max_paid_per_day, cache_days) values
+  ('phone',  6500, 5, 20, 3, 40, 30),   -- Twilio Lookup line type, $0.008
+  ('email',  3000, 5, 20, 3, 40, 14),   -- MillionVerifier, one credit
+  ('tps',   16000, 3, 10, 3, 15, 7)     -- tpsapi.com, two credits (TPS + CTPS); short cache because registers change
 on conflict (tool) do nothing;
 
 create table public.free_tool_settings (
@@ -38,9 +42,11 @@ create table public.free_tool_settings (
 insert into public.free_tool_settings default values on conflict do nothing;
 
 create table public.free_tool_budget (
-  day           date primary key,
+  day           date not null,
+  tool          text not null,
   spent_micros  bigint not null default 0,
-  lookups       integer not null default 0
+  lookups       integer not null default 0,
+  primary key (day, tool)
 );
 
 create table public.free_tool_usage (
@@ -110,7 +116,8 @@ declare
   used_min int;
   limit_day int;
   hit      jsonb;
-  bud      public.free_tool_budget%rowtype;
+  spent    bigint;
+  paid     int;
   new_id   bigint;
 begin
   if p_ip_hash is null or length(p_ip_hash) < 16 or p_key_hash is null or length(p_key_hash) < 16 then
@@ -163,13 +170,16 @@ begin
     return query select true, 'cached'::text, new_id, hit; return;
   end if;
 
-  -- global spend cap, locked per day so concurrent lookups cannot overspend
-  insert into public.free_tool_budget (day) values (today) on conflict (day) do nothing;
-  select * into bud from public.free_tool_budget where day = today for update;
-  if bud.spent_micros + cfg.cost_micros > st.daily_cap_micros then
+  -- spend caps: one lock for the budget so concurrent lookups cannot overspend
+  perform pg_advisory_xact_lock(hashtextextended('free_tool_budget', 0));
+  select coalesce(sum(b.spent_micros), 0) into spent from public.free_tool_budget b where b.day = today;
+  select coalesce(max(b.lookups), 0) into paid from public.free_tool_budget b where b.day = today and b.tool = p_tool;
+  if paid >= cfg.max_paid_per_day or spent + cfg.cost_micros > st.daily_cap_micros then
     return query select false, 'budget'::text, null::bigint, null::jsonb; return;
   end if;
-  update public.free_tool_budget set spent_micros = spent_micros + cfg.cost_micros, lookups = lookups + 1 where day = today;
+  insert into public.free_tool_budget (day, tool, spent_micros, lookups) values (today, p_tool, cfg.cost_micros, 1)
+  on conflict (day, tool) do update set spent_micros = public.free_tool_budget.spent_micros + excluded.spent_micros,
+                                        lookups = public.free_tool_budget.lookups + 1;
 
   insert into public.free_tool_usage (tool, ip_hash, user_id, cached, cost_micros)
   values (p_tool, p_ip_hash, p_user_id, false, cfg.cost_micros) returning id into new_id;
@@ -203,7 +213,7 @@ begin
   if found and u.cost_micros > 0 then
     update public.free_tool_budget
        set spent_micros = greatest(0, spent_micros - u.cost_micros), lookups = greatest(0, lookups - 1)
-     where day = (u.created_at at time zone 'Europe/London')::date;
+     where day = (u.created_at at time zone 'Europe/London')::date and tool = u.tool;
   end if;
 end $$;
 

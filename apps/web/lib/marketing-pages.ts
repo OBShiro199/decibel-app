@@ -27,6 +27,13 @@ export const COMPARE_LINKS: MarketingLink[] = [
   { href: '/vs/kaspr', label: 'Decibel vs. Kaspr', blurb: 'EU data extension compared', glyph: 'vs' },
 ];
 
+/** Free public tools (pay-as-you-go lookups behind the free-tools Edge Function). */
+export const TOOL_LINKS: MarketingLink[] = [
+  { href: '/tools/tps-checker', label: 'TPS checker', blurb: 'Is a UK number on the TPS or CTPS?', glyph: '[x]' },
+  { href: '/tools/email-verifier', label: 'Email verifier', blurb: 'Will an email bounce before you send?', glyph: '@?' },
+  { href: '/tools/phone-validator', label: 'Phone validator', blurb: 'Valid number, line type and network', glyph: '#?' },
+];
+
 export const COMPANY_LINKS: { href: string; label: string }[] = [
   { href: '/blog', label: 'Blog' },
   { href: '/careers', label: 'Careers' },
@@ -43,6 +50,8 @@ export const PUBLIC_PAGES: { path: string; priority: number; changeFrequency: 'w
   ...INDUSTRY_LINKS.map((l) => ({ path: l.href, priority: 0.7, changeFrequency: 'monthly' as const })),
   { path: '/vs', priority: 0.7, changeFrequency: 'monthly' },
   ...COMPARE_LINKS.map((l) => ({ path: l.href, priority: 0.7, changeFrequency: 'monthly' as const })),
+  { path: '/tools', priority: 0.8, changeFrequency: 'monthly' },
+  ...TOOL_LINKS.map((l) => ({ path: l.href, priority: 0.8, changeFrequency: 'monthly' as const })),
   { path: '/blog', priority: 0.7, changeFrequency: 'weekly' },
   { path: '/careers', priority: 0.5, changeFrequency: 'monthly' },
   { path: '/demo', priority: 0.8, changeFrequency: 'monthly' },
