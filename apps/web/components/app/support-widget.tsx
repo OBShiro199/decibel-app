@@ -6,7 +6,6 @@ import { ArrowUp, X } from '@phosphor-icons/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { LogoMark } from '@/components/marketing/logo';
 import { useSoftphoneState } from '@/components/softphone/provider';
 import { useApp } from '@/lib/app-context';
 import { FOUNDER } from '@/lib/site';
@@ -41,20 +40,6 @@ function FounderFace({ size }: { size: number }) {
   return (
     <span className="flex shrink-0 items-center justify-center rounded-[4px] bg-white-300 font-medium text-black-400" style={{ width: size, height: size, fontSize: Math.round(size * 0.38) }}>
       OB
-    </span>
-  );
-}
-
-/** The ear logo tile with the founder's face beside it. */
-function Faces({ size }: { size: number }) {
-  return (
-    <span className="flex shrink-0 items-center">
-      <span className="flex items-center justify-center rounded-[4px] border border-white-800 bg-white-100" style={{ width: size, height: size }}>
-        <LogoMark size={Math.round(size * 0.58)} />
-      </span>
-      <span className="-ml-1.5 rounded-[5px] ring-2 ring-white-100">
-        <FounderFace size={size} />
-      </span>
     </span>
   );
 }
@@ -162,10 +147,10 @@ export function SupportWidget() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="support-launcher fixed bottom-16 right-5 z-menu flex h-10 items-center gap-2.5 rounded-md border border-white-800 bg-white-100 pl-1.5 pr-3.5 text-black-400 shadow-[0_6px_20px_rgba(18,18,18,0.07)] transition-[border-color,transform] duration-150 hover:-translate-y-px hover:border-white-900"
+        className="support-launcher fixed bottom-16 right-5 z-menu flex h-10 items-center gap-2.5 rounded-md border border-white-800 bg-white-100 pl-[5px] pr-3.5 text-black-400 shadow-[0_6px_20px_rgba(18,18,18,0.07)] transition-[border-color,transform] duration-150 hover:-translate-y-px hover:border-white-900"
         aria-label="Ask the founder a question"
       >
-        <Faces size={26} />
+        <FounderFace size={28} />
         <span className="font-medium">Ask any question</span>
         {unread ? <span className="h-2 w-2 rounded-full" style={{ background: '#5f86e0' }} aria-label="New reply" /> : null}
       </button>
@@ -178,7 +163,7 @@ export function SupportWidget() {
       className="support-panel fixed bottom-16 right-5 z-menu flex h-[min(540px,calc(100dvh-96px))] w-[360px] max-w-[calc(100vw-40px)] flex-col overflow-hidden rounded-md border border-white-800 bg-white-100 shadow-[0_16px_48px_rgba(18,18,18,0.12)]"
     >
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-white-800 px-3">
-        <Faces size={30} />
+        <FounderFace size={32} />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate font-medium text-black-400">{FOUNDER.name}, founder of Decibel</p>
           <p className="truncate text-black-700">Usually replies within a few hours</p>
