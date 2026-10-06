@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AppProvider, useApp, type AppContextValue } from '@/lib/app-context';
-import { supabase } from '@/lib/supabase/client';
+import { invoke, supabase } from '@/lib/supabase/client';
 import { destroyDevice } from '@/lib/twilio/device';
 import type { Person } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,6 @@ import { CreditsMeter } from '@/components/app/credits-meter';
 import { SoftphoneToggle } from '@/components/app/quick-dial';
 import { SoftphoneProvider } from '@/components/softphone/provider';
 import { SupportWidget } from '@/components/app/support-widget';
-import { invoke } from '@/lib/supabase/client';
 import { Avatar, CompanyLogo } from '@/components/ui/display';
 import { LogoMark } from '@/components/marketing/logo';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
@@ -81,6 +80,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   // sidebar still render on the server. Client-side navigation is unaffected.
   const hydrated = useHydrated();
   useWelcomeEmail(user.id);
+  useLastSeen();
   return (
     <div className={`app-shell`}>
       <SoftphoneProvider workspaceId={workspace.id} userId={user.id} recordingPolicy={workspace.recording_policy}>
@@ -94,6 +94,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <div id="app-portal" />
     </div>
   );
+}
+
+/** Records that this person is using Decibel (for the come-back email). The server
+ *  ignores touches less than 10 minutes apart, so this costs almost nothing. */
+function useLastSeen() {
+  useEffect(() => {
+    if (window.location.pathname.startsWith('/dev-preview')) return;
+    const touch = () => document.visibilityState === 'visible' && void supabase().rpc('touch_last_seen').then(() => {});
+    touch();
+    const t = window.setInterval(touch, 15 * 60_000);
+    document.addEventListener('visibilitychange', touch);
+    return () => {
+      window.clearInterval(t);
+      document.removeEventListener('visibilitychange', touch);
+    };
+  }, []);
 }
 
 /** Asks for the welcome email once per browser; the server sends it only once per account. */

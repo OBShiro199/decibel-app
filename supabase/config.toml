@@ -40,5 +40,9 @@ verify_jwt = false
 verify_jwt = false
 [functions.support]
 verify_jwt = false
+[functions.lifecycle-emails]
+verify_jwt = false
+[functions.unsubscribe]
+verify_jwt = false
 [functions.nightly]
 verify_jwt = false

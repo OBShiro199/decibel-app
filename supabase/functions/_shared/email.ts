@@ -4,7 +4,7 @@
 const SITE = 'https://www.usedecibel.com';
 export const FOUNDER_EMAIL = 'oliver@usedecibel.com';
 
-type SendOptions = { replyTo?: string };
+type SendOptions = { replyTo?: string; headers?: Record<string, string> };
 
 /** Sends a transactional email through Resend. Returns false when Resend is not configured. */
 export async function sendEmail(to: string | string[], subject: string, html: string, opts: SendOptions = {}): Promise<boolean> {
@@ -22,6 +22,7 @@ export async function sendEmail(to: string | string[], subject: string, html: st
       subject,
       html,
       ...(opts.replyTo ? { reply_to: opts.replyTo } : {}),
+      ...(opts.headers ? { headers: opts.headers } : {}),
     }),
   });
   if (!res.ok) console.error('resend error', res.status, await res.text());
@@ -59,7 +60,7 @@ export const details = (rows: [string, string][]) =>
     )
     .join('')}</table>`;
 
-export function layout(title: string, body: string, cta?: { label: string; url: string }, preheader = ''): string {
+export function layout(title: string, body: string, cta?: { label: string; url: string }, preheader = '', unsubscribeUrl?: string): string {
   const button = cta
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 8px"><tr><td style="border-radius:6px;background:${INK}"><a href="${cta.url}" style="display:inline-block;padding:11px 18px;font-family:${FONT};font-size:14px;font-weight:500;letter-spacing:-0.01em;color:#ffffff;text-decoration:none;border-radius:6px">${cta.label}</a></td></tr></table>`
     : '';
@@ -87,11 +88,42 @@ ${body}
 ${button}
 </td></tr>
 <tr><td style="padding:40px 0 0">
-<div style="border-top:1px solid ${LINE};padding-top:16px;font-size:12px;line-height:18px;color:${FAINT}">Decibel · Verified UK &amp; EU mobiles and the dialler to reach them.<br><a href="${SITE}" style="color:${FAINT};text-decoration:none">usedecibel.com</a></div>
+<div style="border-top:1px solid ${LINE};padding-top:16px;font-size:12px;line-height:18px;color:${FAINT}">Decibel · Verified UK &amp; EU mobiles and the dialler to reach them.<br><a href="${SITE}" style="color:${FAINT};text-decoration:none">usedecibel.com</a>${unsubscribeUrl ? `<br><br>Don&rsquo;t want these reminders? <a href="${unsubscribeUrl}" style="color:${FAINT};text-decoration:underline">Unsubscribe</a>.` : ''}</div>
 </td></tr>
 </table>
 </td></tr>
 </table>
 </body>
 </html>`;
+}
+
+// ---- unsubscribe links ------------------------------------------------------
+// A link carries the user id and an HMAC of it, so it works without signing in
+// and cannot be forged for someone else.
+
+async function unsubSig(userId: string): Promise<string> {
+  const secret = `unsubscribe|${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(userId));
+  return btoa(String.fromCharCode(...new Uint8Array(sig).slice(0, 18))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export async function validUnsubscribe(userId: string, token: string): Promise<boolean> {
+  if (!/^[0-9a-f-]{36}$/i.test(userId) || !token) return false;
+  const expected = await unsubSig(userId);
+  let diff = expected.length ^ token.length;
+  for (let i = 0; i < Math.min(expected.length, token.length); i++) diff |= expected.charCodeAt(i) ^ token.charCodeAt(i);
+  return diff === 0;
+}
+
+/** The page link for the email footer and the one-click link for mail clients (RFC 8058). */
+export async function unsubscribeLinks(userId: string, appUrl: string, functionsUrl: string) {
+  const q = `u=${userId}&t=${await unsubSig(userId)}`;
+  return {
+    page: `${appUrl}/unsubscribe?${q}`,
+    headers: {
+      'List-Unsubscribe': `<${functionsUrl}/unsubscribe?${q}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    },
+  };
 }
