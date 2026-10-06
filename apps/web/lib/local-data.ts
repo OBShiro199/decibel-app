@@ -1,4 +1,4 @@
-// Sample data for the Local tab: ten fictional local businesses laid out like Google Maps
+// Sample data for the Local businesses tab: twenty fictional local businesses laid out like Google Maps
 // listings. Every business, address and website is invented, and every number is from
 // Ofcom's reserved drama range (07700 900xxx mobiles), so none of it can reach a real person.
 export interface LocalBusiness {
@@ -27,4 +27,14 @@ export const LOCAL_BUSINESSES: LocalBusiness[] = [
   { id: 'l8', name: "Dave's Motor Repairs", category: 'Car repair', tone: 2, rating: 4.3, reviews: 129, mobile: '+447700900208', website: null, address: '7 Forge Lane, Birmingham', hours: { open: true, text: 'Open · closes 5:30pm' }, lastReview: '4 days ago' },
   { id: 'l9', name: 'The Copper Kettle Café', category: 'Café', tone: 0, rating: 4.6, reviews: 274, mobile: '+447700900209', website: 'copperkettlecafe.co.uk', address: '5 Grassmarket, Edinburgh', hours: { open: true, text: 'Open · closes 4pm' }, lastReview: '3 days ago' },
   { id: 'l10', name: 'Willowbrook Veterinary Clinic', category: 'Vet', tone: 5, rating: 4.9, reviews: 388, mobile: '+447700900210', website: 'willowbrookvets.co.uk', address: '31 Cathedral Road, Cardiff', hours: { open: true, text: 'Open · closes 7pm' }, lastReview: 'Yesterday' },
+  { id: 'l11', name: 'Petal & Stem Florist', category: 'Florist', tone: 6, rating: 4.8, reviews: 214, mobile: '+447700900211', website: 'petalandstem.co.uk', address: '12 Eastgate Row, Chester', hours: { open: true, text: 'Open · closes 5:30pm' }, lastReview: '6 days ago' },
+  { id: 'l12', name: 'The Anchor Inn', category: 'Pub', tone: 2, rating: 4.4, reviews: 642, mobile: '+447700900212', website: 'theanchorbrighton.co.uk', address: '8 The Lanes, Brighton', hours: { open: true, text: 'Open · closes 11pm' }, lastReview: 'Today' },
+  { id: 'l13', name: 'Brightwell Opticians', category: 'Optician', tone: 1, rating: 4.7, reviews: 118, mobile: '+447700900213', website: 'brightwelloptics.co.uk', address: '26 Granby Street, Leicester', hours: { open: false, text: 'Closed · opens 9am' }, lastReview: '2 weeks ago' },
+  { id: 'l14', name: 'Hartley & Moss Solicitors', category: 'Solicitor', tone: 7, rating: 4.1, reviews: 47, mobile: '+447700900214', website: 'hartleymoss.co.uk', address: '4 Tombland, Norwich', hours: { open: false, text: 'Closed · opens 9am' }, lastReview: '1 month ago' },
+  { id: 'l15', name: 'Spark Right Electrical', category: 'Electrician', tone: 3, rating: 4.9, reviews: 203, mobile: '+447700900215', website: null, address: '19 Sauchiehall Lane, Glasgow', hours: { open: true, text: 'Open 24 hours' }, lastReview: 'Yesterday' },
+  { id: 'l16', name: 'Meadowbank Physiotherapy', category: 'Physiotherapist', tone: 5, rating: 4.8, reviews: 175, mobile: '+447700900216', website: 'meadowbankphysio.co.uk', address: '11 Micklegate, York', hours: { open: true, text: 'Open · closes 7pm' }, lastReview: '3 days ago' },
+  { id: 'l17', name: 'Sunrise Dry Cleaners', category: 'Dry cleaner', tone: 4, rating: 4.2, reviews: 88, mobile: '+447700900217', website: null, address: '23 Mill Lane, Cambridge', hours: { open: true, text: 'Open · closes 6pm' }, lastReview: '2 weeks ago' },
+  { id: 'l18', name: 'Slate & Sons Roofing', category: 'Roofer', tone: 0, rating: 4.6, reviews: 134, mobile: '+447700900218', website: 'slateandsons.co.uk', address: '6 Fore Street, Exeter', hours: { open: true, text: 'Open · closes 5pm' }, lastReview: '5 days ago' },
+  { id: 'l19', name: 'Greenfingers Garden Centre', category: 'Garden centre', tone: 0, rating: 4.5, reviews: 462, mobile: '+447700900219', website: 'greenfingersgardens.co.uk', address: '15 Broad Walk, Oxford', hours: { open: true, text: 'Open · closes 5:30pm' }, lastReview: 'Yesterday' },
+  { id: 'l20', name: "Luca's Pizzeria", category: 'Restaurant', tone: 3, rating: 4.3, reviews: 756, mobile: '+447700900220', website: null, address: '37 Grey Street, Newcastle', hours: { open: true, text: 'Open · closes 10pm' }, lastReview: 'Today' },
 ];

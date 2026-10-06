@@ -1,13 +1,13 @@
 'use client';
-// Local: businesses found on Google Maps, with their mobile, rating, reviews and website.
+// Local businesses: businesses found on Google Maps, with their mobile, rating, reviews and website.
 // Works like Leads: stackable filter chips, row selection, a bulk bar. The listings are sample
-// data for now (lib/local-data.ts): ten fictional businesses. "Add to list" turns the selected
+// data for now (lib/local-data.ts): twenty fictional businesses. "Add to list" turns the selected
 // ones into People (mobile, category, town) so they can be called from the dialler.
 import { useQueryClient } from '@tanstack/react-query';
 import { Download, Globe, ListPlus, MapPin, Plus, Search, Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useApp } from '@/lib/app-context';
-import { useStages } from '@/lib/hooks';
+import { useFitRows, useStages } from '@/lib/hooks';
 import { applyLocalFilters, townOf, type LocalFilters } from '@/lib/local';
 import { LOCAL_BUSINESSES } from '@/lib/local-data';
 import { supabase } from '@/lib/supabase/client';
@@ -31,17 +31,27 @@ export default function LocalPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<null | 'add' | 'create'>(null);
 
-  const rows = useMemo(() => applyLocalFilters(LOCAL_BUSINESSES, filters, text), [filters, text]);
+  const [page, setPage] = useState(0);
+  // as many rows as fit the window, like Leads (remembered per window height)
+  const fit = useFitRows('local');
+  const PAGE = fit.rows || 8;
+
+  const matches = useMemo(() => applyLocalFilters(LOCAL_BUSINESSES, filters, text), [filters, text]);
+  const pages = Math.max(1, Math.ceil(matches.length / PAGE));
+  const current = Math.min(page, pages - 1);
+  const rows = matches.slice(current * PAGE, (current + 1) * PAGE);
   const allSelected = rows.length > 0 && rows.every((b) => selected.has(b.id));
   const chosen = LOCAL_BUSINESSES.filter((b) => selected.has(b.id));
   const patch = (p: Partial<LocalFilters>) => {
     setFilters((f) => ({ ...f, ...p }));
     setSelected(new Set());
+    setPage(0);
   };
   const clear = () => {
     setFilters({});
     setText('');
     setSelected(new Set());
+    setPage(0);
   };
 
   /** Saves the selected businesses as People (skipping any already saved) and files them in a list. */
@@ -124,6 +134,7 @@ export default function LocalPage() {
             onChange={(e) => {
               setText(e.target.value);
               setSelected(new Set());
+              setPage(0);
             }}
             placeholder="Search name, category or town"
             className="h-8 w-72 pl-8 max-sm:w-44"
@@ -131,7 +142,7 @@ export default function LocalPage() {
           />
         </div>
         <h1 className="shrink-0 text-black-700">
-          <span className="text-black-400">{rows.length}</span> {rows.length === 1 ? 'business' : 'businesses'}
+          <span className="text-black-400">{matches.length}</span> {matches.length === 1 ? 'business' : 'businesses'}
         </h1>
         <Tag color={7} className="shrink-0">
           Sample data
@@ -139,7 +150,7 @@ export default function LocalPage() {
       </div>
       <LocalFilterBar filters={filters} onChange={patch} onClear={clear} />
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div ref={fit.ref} className="min-h-0 flex-1 overflow-hidden">
         {rows.length ? (
           <RevealOnce id="local:table">
             <div className="tbl-wrap">
@@ -160,7 +171,7 @@ export default function LocalPage() {
                   <tr>
                     <th className="w-10">
                       <Checkbox
-                        aria-label="Select all"
+                        aria-label="Select all on this page"
                         checked={allSelected}
                         indeterminate={!allSelected && selected.size > 0}
                         onChange={(v) => setSelected(v ? new Set(rows.map((b) => b.id)) : new Set())}
@@ -240,6 +251,18 @@ export default function LocalPage() {
         ) : (
           <EmptyState shape="diamond" title="No results" description="Loosen a filter to see more businesses." action={<Button onClick={clear}>Clear filters</Button>} />
         )}
+      </div>
+
+      <div className="flex h-12 shrink-0 items-center justify-between border-t border-white-800 bg-panel px-4">
+        <span className="t-label">{`Page ${current + 1} / ${pages} · rows ${matches.length ? current * PAGE + 1 : 0}–${Math.min((current + 1) * PAGE, matches.length)}`}</span>
+        <div className="flex gap-2">
+          <Button size="compact" disabled={current === 0} onClick={() => setPage(current - 1)}>
+            Previous
+          </Button>
+          <Button size="compact" disabled={current >= pages - 1} onClick={() => setPage(current + 1)}>
+            Next
+          </Button>
+        </div>
       </div>
 
       <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
