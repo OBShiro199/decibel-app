@@ -4,13 +4,14 @@
 // adding to a list and exporting all go through reveal_leads, so every contact that leaves
 // Decibel has been paid for once (1 credit, free if this workspace already revealed it).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Download, Eye, Linkedin, ListPlus, Plus, Search, Trash2 } from 'lucide-react';
+import { Bookmark, Download, Eye, Linkedin, ListPlus, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
 import { prefetchPerson, savedSearchesQuery } from '@/lib/queries';
+import { diallerListName } from '@/lib/dialler';
 import { useDebounced, useLists } from '@/lib/hooks';
 import {
   COUNT_CAP,
@@ -80,6 +81,7 @@ function csvRow(lead: LeadRow | undefined, p: Person) {
 function Leads() {
   const { workspace, user, refreshWorkspace } = useApp();
   const params = useSearchParams();
+  const router = useRouter();
   const targetList = params.get('list');
   const qc = useQueryClient();
   const toast = useToast();
@@ -173,6 +175,37 @@ function Leads() {
       title: `Export ${label}`,
       body: `${fresh.toLocaleString('en-GB')} of these ${leads.length.toLocaleString('en-GB')} leads are not revealed yet, so exporting them uses ${cost(fresh)}. Leads you have already revealed are free. You have ${workspace.credit_balance.toLocaleString('en-GB')} credits.`,
       action: `Reveal and export (${cost(fresh)})`,
+      run,
+    });
+  };
+
+  /** Saves the selected leads that have a mobile as a new list and opens the dialler on it. */
+  const callable = rows.filter((r) => selected.has(r.lead_id) && r.has_mobile);
+  const startDialler = () => {
+    if (!callable.length) return void toast('None of the selected leads has a mobile number.');
+    const fresh = callable.filter((r) => !r.person_id).length;
+    const run = async () => {
+      setBusy('dial');
+      const { data: list, error } = await db.from('lists').insert({ workspace_id: workspace.id, name: diallerListName(), owner_id: user.id }).select('id').single();
+      if (error || !list) {
+        setBusy(null);
+        return void toast(`Could not create the list: ${error?.message ?? 'unknown error'}`);
+      }
+      const { people, ok } = await reveal(callable.map((r) => r.lead_id), list.id);
+      if (!ok || !people.length) {
+        await db.from('lists').delete().eq('id', list.id);
+        return;
+      }
+      track('dialler_list_created', { source: 'leads', count: people.length });
+      setSelected(new Set());
+      router.push(`/app/dialler?list=${list.id}&new=1`);
+    };
+    const skipped = selected.size - callable.length;
+    if (!fresh) return void run();
+    setConfirm({
+      title: `Start the dialler with ${callable.length.toLocaleString('en-GB')} ${callable.length === 1 ? 'lead' : 'leads'}`,
+      body: `${fresh.toLocaleString('en-GB')} of them ${fresh === 1 ? 'is' : 'are'} not revealed yet, so this uses ${cost(fresh)}. They are saved as a new list you can rename, then the dialler opens ready to start.${skipped ? ` ${skipped.toLocaleString('en-GB')} selected ${skipped === 1 ? 'lead has' : 'leads have'} no mobile and ${skipped === 1 ? 'is' : 'are'} left out.` : ''} You have ${workspace.credit_balance.toLocaleString('en-GB')} credits.`,
+      action: `Reveal and open dialler (${cost(fresh)})`,
       run,
     });
   };
@@ -495,6 +528,9 @@ function Leads() {
       </div>
 
       <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
+        <BulkAction disabled={!!busy || !callable.length} onClick={startDialler}>
+          <Phone size={16} strokeWidth={1.5} /> {busy === 'dial' ? 'Opening dialler…' : `Start dialler with ${callable.length.toLocaleString('en-GB')} ${callable.length === 1 ? 'lead' : 'leads'}`}
+        </BulkAction>
         <BulkAction disabled={!!busy} onClick={() => (targetList ? void addToList(targetList) : setPicker('add'))}>
           <ListPlus size={16} strokeWidth={1.5} /> {targetList ? `Add to ${targetName ?? 'list'}` : 'Add to list'}
           {costLabel}

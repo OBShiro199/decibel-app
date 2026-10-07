@@ -41,3 +41,10 @@ export function practiceLeads(number: string): DialLead[] {
 export function personLead(p: Person): DialLead {
   return { id: p.id, name: p.full_name, company: p.company?.name ?? '', title: p.job_title ?? '', number: p.mobile_e164 ?? '', practice: false, person: p };
 }
+
+/** Name for a list made to start the dialler, e.g. "Dialler list (7 Oct 2026, 14:32)". */
+export function diallerListName(d = new Date()): string {
+  const day = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `Dialler list (${day}, ${time})`;
+}

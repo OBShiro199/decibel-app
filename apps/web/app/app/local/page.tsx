@@ -4,10 +4,12 @@
 // information, so phones and emails show in full. "Add to list" saves the selected
 // businesses as People (deduplicated by phone) so they can be called from the dialler.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Download, Facebook, Globe, Instagram, Linkedin, ListPlus, MapPin, MessageCircle, Plus, Search, Star, Trash2 } from 'lucide-react';
+import { Bookmark, Download, Facebook, Globe, Instagram, Linkedin, ListPlus, MapPin, MessageCircle, Phone, Plus, Search, Star, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
+import { diallerListName } from '@/lib/dialler';
 import { useDebounced, useStages } from '@/lib/hooks';
 import {
   COUNT_CAP,
@@ -78,6 +80,7 @@ export default function LocalPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const db = supabase();
+  const router = useRouter();
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [text, setText] = useState('');
@@ -114,7 +117,7 @@ export default function LocalPage() {
   };
 
   /** Saves businesses as People (skipping numbers already saved) and files them in a list. */
-  const saveToList = async (businesses: LocalRow[], listId: string) => {
+  const saveToList = async (businesses: LocalRow[], listId: string, quiet = false): Promise<number> => {
     setBusy(true);
     try {
       const usable = businesses.map((b) => ({ b, e164: b.phone ? toE164(b.phone) : null })).filter((x) => x.e164) as { b: LocalRow; e164: string }[];
@@ -176,13 +179,34 @@ export default function LocalPage() {
 
       ['people', 'lists', 'list', 'today'].forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
       const skipped = businesses.length - usable.length;
-      toast(`${personIds.length} added to the list${skipped ? ` (${skipped} without a phone skipped)` : ''}`, { label: 'Open list', href: `/app/lists/${listId}` });
+      if (!quiet) toast(`${personIds.length} added to the list${skipped ? ` (${skipped} without a phone skipped)` : ''}`, { label: 'Open list', href: `/app/lists/${listId}` });
       setSelected(new Set());
+      return personIds.length;
     } catch (e) {
       toast(`Could not add to the list: ${(e as Error).message}`);
+      return 0;
     } finally {
       setBusy(false);
     }
+  };
+
+  /** Saves the selected businesses as a new list and opens the dialler on it, ready to start. */
+  const callable = chosen.filter((b) => !!b.phone);
+  const startDialler = async () => {
+    if (!callable.length) return void toast('None of the selected businesses has a phone number.');
+    setBusy(true);
+    const { data: list, error } = await db.from('lists').insert({ workspace_id: workspace.id, name: diallerListName(), owner_id: user.id }).select('id').single();
+    if (error || !list) {
+      setBusy(false);
+      return void toast(`Could not create the list: ${error?.message ?? 'unknown error'}`);
+    }
+    const added = await saveToList(callable, list.id, true);
+    if (!added) {
+      await db.from('lists').delete().eq('id', list.id);
+      return;
+    }
+    track('dialler_list_created', { source: 'local', count: added });
+    router.push(`/app/dialler?list=${list.id}&new=1`);
   };
 
   const download = (businesses: LocalRow[]) => {
@@ -474,6 +498,9 @@ export default function LocalPage() {
       </div>
 
       <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
+        <BulkAction disabled={busy || !callable.length} onClick={() => void startDialler()}>
+          <Phone size={16} strokeWidth={1.5} /> Start dialler with {callable.length.toLocaleString('en-GB')} {callable.length === 1 ? 'business' : 'businesses'}
+        </BulkAction>
         <BulkAction disabled={busy} onClick={() => setPicker('add')}>
           <ListPlus size={16} strokeWidth={1.5} /> Add to list
         </BulkAction>

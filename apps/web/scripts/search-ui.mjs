@@ -290,6 +290,41 @@ async function main() {
   const reloaded = await b.evaluate('__t.chips()');
   check('A saved search restores its filters', reloaded.some((c) => c.includes('7–15')) && reloaded.some((c) => c.startsWith('Has mobile')), reloaded.join(' | '));
 
+  // start the dialler from two selected leads
+  await b.evaluate(`__t.click('Clear all')`);
+  await sleep(300);
+  await b.evaluate(`__t.click('Add filter')`);
+  await sleep(300);
+  await b.evaluate(`__t.click('Has mobile')`);
+  await settle(b);
+  await b.evaluate(`(() => { const boxes = [...document.querySelectorAll('main tbody tr td:first-child button')]; boxes[2]?.click(); boxes[3]?.click(); return boxes.length; })()`);
+  await sleep(300);
+  const barLabel = await b.evaluate(`[...document.querySelectorAll('button')].find((x) => x.innerText.includes('Start dialler with'))?.innerText ?? ''`);
+  check('Selection bar offers Start dialler with the count', barLabel.includes('Start dialler with 2 leads'), barLabel);
+  await b.evaluate(`__t.clickIn('button', 'Start dialler with')`);
+  await sleep(600);
+  await b.evaluate(`__t.clickIn('[role=dialog] button', 'Reveal and open dialler')`);
+  const onDialler = await waitFor(b, `location.pathname === '/app/dialler' && location.search.includes('new=1')`, 20000);
+  await b.evaluate(HELPERS);
+  await waitFor(b, `!!document.querySelector('#dialler-list-name') && document.querySelector('#dialler-list-name').value.startsWith('Dialler list (')`, 20000);
+  await sleep(1500);
+  const listName = await b.evaluate(`document.querySelector('#dialler-list-name')?.value ?? ''`);
+  const leadCount = await b.evaluate(`document.querySelector('aside p')?.innerText ?? ''`);
+  const ready = await b.evaluate(`[...document.querySelectorAll('button')].some((x) => x.innerText.includes('Start dialling'))`);
+  check('Dialler opens on the new list, ready to start (not auto-started)', onDialler && listName.startsWith('Dialler list (') && leadCount.startsWith('2 leads') && ready, `${listName} · ${leadCount}`);
+  await b.shot('ui-dialler-new-list');
+  // type it like a person: focus, select all, real key input, Enter
+  await b.evaluate(`(() => { const i = document.querySelector('#dialler-list-name'); i.focus(); i.select(); return true; })()`);
+  await b.send('Input.insertText', { text: 'UI probe call list' });
+  await sleep(200);
+  await b.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await b.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await sleep(1500);
+  const listId = new URL(await b.evaluate('location.href')).searchParams.get('list');
+  const { data: renamed } = await admin.from('lists').select('name').eq('id', listId).single();
+  const { count: listCount } = await admin.from('list_members').select('person_id', { count: 'exact', head: true }).eq('list_id', listId);
+  check('The list can be renamed from the dialler and holds the leads', renamed?.name === 'UI probe call list' && listCount === 2, `${renamed?.name} · ${listCount} members`);
+
   // ---- Local businesses ------------------------------------------------------------
   await b.send('Page.navigate', { url: `${BASE}/app/local` });
   await waitFor(b, `document.readyState === 'complete'`);
@@ -317,6 +352,35 @@ async function main() {
   const ratings = await b.evaluate('__t.cells(2)');
   check('Rating stacks with mobile', ratings.length > 0 && ratings.every((t) => Number.parseFloat(t) >= 4.5), `${ratings.length} rows`);
   await b.shot('ui-local-filtered');
+
+  // start the dialler from two selected businesses
+  await b.evaluate(`(() => { const boxes = [...document.querySelectorAll('main tbody tr td:first-child button')]; boxes[0]?.click(); boxes[1]?.click(); return boxes.length; })()`);
+  await sleep(300);
+  await b.evaluate(`(() => { window.__msgs = []; new MutationObserver(() => { document.body.innerText.split('\\n').filter((l) => /could not|none of/i.test(l)).forEach((l) => !window.__msgs.includes(l) && window.__msgs.push(l)); }).observe(document.body, { childList: true, subtree: true, characterData: true }); return true; })()`);
+  await b.evaluate(`__t.clickIn('button', 'Start dialler with')`);
+  const onDialler2 = await waitFor(b, `location.pathname === '/app/dialler' && location.search.includes('new=1')`, 20000);
+  if (!onDialler2) console.log('  page said:', (await b.evaluate(`(window.__msgs ?? []).join(' | ')`)) || '(nothing)', '| bar:', await b.evaluate(`JSON.stringify([...document.querySelectorAll('button')].filter((x) => x.innerText.includes('Start dialler')).map((x) => ({ t: x.innerText, d: x.disabled })))`), '| selected rows:', await b.evaluate(`document.querySelectorAll('main tbody tr[data-selected=true]').length`));
+  await waitFor(b, `(document.querySelector('aside p')?.innerText ?? '').startsWith('2 ')`, 20000);
+  const lc2 = await b.evaluate(`document.querySelector('aside p')?.innerText ?? ''`);
+  check('Local businesses can start the dialler too', onDialler2 && lc2.startsWith('2 leads'), lc2);
+  await b.send('Page.navigate', { url: `${BASE}/app/local` });
+  await waitFor(b, `document.readyState === 'complete'`);
+  await b.evaluate(HELPERS);
+  await settle(b);
+  await b.evaluate(`__t.click('Add filter')`);
+  await sleep(300);
+  await b.evaluate(`__t.click('Mobile number')`);
+  await sleep(300);
+  await b.evaluate(`__t.click('Add filter')`);
+  await sleep(300);
+  await b.evaluate(`__t.type('input[aria-label="Find a filter"]', 'Rating')`);
+  await sleep(200);
+  await b.evaluate(`__t.click('Rating')`);
+  await sleep(400);
+  await b.evaluate(`__t.click('4.5 and above')`);
+  await sleep(300);
+  await b.evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await settle(b);
 
   // export the filtered list
   for (const f of readdirSync(downloads)) rmSync(join(downloads, f));

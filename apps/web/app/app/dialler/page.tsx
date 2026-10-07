@@ -5,7 +5,7 @@
 //
 // Layout regions all have fixed heights, so moving between up next, ringing, in call
 // and wrap-up swaps content in place without anything jumping.
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Mic, MicOff, Pause, Phone, PhoneOff, Play, SkipForward, Square, Zap } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -58,8 +58,11 @@ function Dialler() {
   const { data: lists } = useLists();
 
   // ---- lead source -----------------------------------------------------------
-  // /app/dialler?list=<id> (from a list's "Start power dialler") opens on that list
-  const urlList = useSearchParams().get('list');
+  // /app/dialler?list=<id> (from a list's "Start power dialler") opens on that list and starts;
+  // &new=1 (a list just made from selected leads) opens it ready, so the rep presses Start
+  const search = useSearchParams();
+  const urlList = search.get('list');
+  const freshList = search.get('new') === '1';
   const [source, setSource] = useState<string>(urlList ? `list:${urlList}` : 'practice');
   const [practiceNumber, setPracticeNumber] = useState(PRACTICE_DEFAULT_NUMBER);
   const [testCountry, setTestCountry] = useState<DialCountry>(DEFAULT_DIAL_COUNTRY);
@@ -385,11 +388,11 @@ function Dialler() {
   }, [workspace.id, user.id, urlList]);
   // opened from a list with nothing to resume: start calling straight away
   useEffect(() => {
-    if (!urlList || autoStarted.current || sessionLookup !== 'done' || resumable || mode !== 'setup' || leadsLoading || !previewLeads.length) return;
+    if (!urlList || freshList || autoStarted.current || sessionLookup !== 'done' || resumable || mode !== 'setup' || leadsLoading || !previewLeads.length) return;
     autoStarted.current = true;
     void start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlList, sessionLookup, resumable, mode, leadsLoading, previewLeads.length]);
+  }, [urlList, freshList, sessionLookup, resumable, mode, leadsLoading, previewLeads.length]);
 
   // keyboard: 1-9 outcome during wrap-up, N next now, P pause / resume
   useEffect(() => {
@@ -519,8 +522,8 @@ function Dialler() {
         {/* current call */}
         <section className="flex min-w-0 flex-1 justify-center overflow-y-auto px-6 py-10">
           <div className="w-full max-w-[600px]">
-            {/* who */}
-            <div className="flex h-[112px] items-center gap-4">
+            {/* who (taller in setup when the list name can be edited) */}
+            <div className={cn('flex items-center gap-4', stage === 'setup' && !previewingResume && listId ? 'min-h-[112px] pb-6' : 'h-[112px]')}>
               {stage === 'setup' || stage === 'finished' ? (
                 <div>
                   <h1 className="t-h3">{stage === 'setup' ? (previewingResume ? 'Welcome back' : 'Ready when you are') : 'Session complete'}</h1>
@@ -531,6 +534,7 @@ function Dialler() {
                       ? 'Calls each lead in turn. After every call you get 20 seconds for notes, then the next one dials.'
                       : `${done.length} calls · ${connects} connected · ${meetings} meetings booked`}
                   </p>
+                  {stage === 'setup' && !previewingResume && listId ? <ListNameField key={listId} listId={listId} /> : null}
                 </div>
               ) : (
                 <>
@@ -776,6 +780,52 @@ function ResumeCard({ session, busy, onResume, onStartOver }: { session: Dialler
           Start over
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** The list being called, renamable in place (saved on Enter or when the field loses focus). */
+function ListNameField({ listId }: { listId: string }) {
+  const { data: lists } = useLists();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const current = lists?.find((l) => l.id === listId)?.name ?? '';
+  const [name, setName] = useState(current);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => setName(current), [current]);
+  const save = async () => {
+    const next = name.trim();
+    if (!next || next === current) return setName(current);
+    const { error } = await supabase().from('lists').update({ name: next }).eq('id', listId);
+    if (error) {
+      toast(`Could not rename the list: ${error.message}`);
+      return setName(current);
+    }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1600);
+    void qc.invalidateQueries({ queryKey: ['lists'] });
+  };
+  return (
+    <div className="mt-4 max-w-[420px]">
+      <label htmlFor="dialler-list-name" className="t-label mb-1.5 block">
+        List name
+      </label>
+      <div className="flex items-center gap-2">
+        <Input
+          id="dialler-list-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => void save()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            if (e.key === 'Escape') setName(current);
+          }}
+          maxLength={120}
+          className="h-8"
+        />
+        <span className={cn('shrink-0 text-xs text-success-500 transition-opacity', saved ? 'opacity-100' : 'opacity-0')}>Saved</span>
+      </div>
+      <p className="mt-1.5 text-xs text-white-900">Saved with your lists, so you can come back to it.</p>
     </div>
   );
 }
