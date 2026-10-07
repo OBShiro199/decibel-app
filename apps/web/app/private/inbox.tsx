@@ -205,7 +205,7 @@ function Inbox({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   const unread = (threads ?? []).filter((t) => t.founder_unread).length;
 
   useEffect(() => {
-    document.title = unread ? `(${unread}) Inbox · Decibel` : 'Inbox · Decibel';
+    document.title = unread ? `(${unread}) Inbox | Decibel` : 'Inbox | Decibel';
   }, [unread]);
 
   const current = threads?.find((t) => t.id === selected) ?? null;
