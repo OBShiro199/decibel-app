@@ -1,31 +1,45 @@
 'use client';
+// Leads: the real lead database (data_list), searched on the server with stackable filters
+// (search_leads / count_leads). Mobiles and emails stay masked until revealed; revealing,
+// adding to a list and exporting all go through reveal_leads, so every contact that leaves
+// Decibel has been paid for once (1 credit, free if this workspace already revealed it).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Download, Eye, ListPlus, Plus, Search, Trash2 } from 'lucide-react';
+import { Bookmark, Download, Eye, Linkedin, ListPlus, Plus, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
-import { industriesQuery, leadsQuery, marketsQuery, prefetchPerson, savedSearchesQuery } from '@/lib/queries';
-import { COUNTRIES, countryName, MARKETS, SENIORITIES, seniorityLabel, SIZE_BANDS } from '@/lib/constants';
-import { useDebounced, useFitRows, useLists } from '@/lib/hooks';
-import { applyLeadFilters, EMPTY_FILTERS, type LeadFilters } from '@/lib/leads';
-import { revealContacts } from '@/lib/reveal';
+import { prefetchPerson, savedSearchesQuery } from '@/lib/queries';
+import { useDebounced, useLists } from '@/lib/hooks';
+import {
+  COUNT_CAP,
+  facetsQuery,
+  formatCount,
+  fromSaved,
+  LEAD_FILTERS,
+  leadCountQuery,
+  leadIdsForFilters,
+  leadSearchQuery,
+  PAGE_SIZE,
+  toServer,
+  type Filters,
+  type LeadRow,
+} from '@/lib/lead-search';
+import { revealLeads } from '@/lib/reveal';
 import { supabase } from '@/lib/supabase/client';
-import type { ContactPublic, Person } from '@/lib/types';
-import { cn, formatPhone, timeAgo, exportCsv as auditedCsv } from '@/lib/utils';
-import { LeadFilterBar } from '@/components/app/lead-filters';
+import type { Person } from '@/lib/types';
+import { cn, exportCsv, formatPhone } from '@/lib/utils';
+import { prettyValue, SmartFilterBar } from '@/components/app/smart-filters';
 import { LeadsSkeleton } from '@/components/app/skeletons';
-import { BulkAction, BulkBar, ListPickerDialog, PersonCell, TpsBadge } from '@/components/app/records';
-import { RevealOnce } from '@/components/ui/reveal';
+import { BulkAction, BulkBar, ListPickerDialog, PersonCell } from '@/components/app/records';
 import { Button } from '@/components/ui/button';
-import { Badge, EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
-import { Checkbox, ChipsInput, Input } from '@/components/ui/form';
+import { EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
+import { Checkbox, Input } from '@/components/ui/form';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 
-// PostgREST counts exactly up to its row limit (1,000) and estimates above it
-const APPROX_OVER = 1000;
-
+const DEFAULT_FILTERS: Filters = { hasMobile: true };
+const EXPORT_MAX = 500;
 
 export default function LeadsPage() {
   return (
@@ -33,6 +47,34 @@ export default function LeadsPage() {
       <Leads />
     </Suspense>
   );
+}
+
+const def = (key: string) => LEAD_FILTERS.find((d) => d.key === key)!;
+const dash = <span className="text-faint">–</span>;
+
+/** A CSV row for an exported lead: the workspace's revealed copy plus the company details. */
+function csvRow(lead: LeadRow | undefined, p: Person) {
+  return {
+    first_name: p.first_name,
+    last_name: p.last_name,
+    title: p.job_title ?? lead?.current_title ?? '',
+    seniority: lead?.seniority_level ?? '',
+    department: lead?.department ?? '',
+    company: lead?.company_name ?? '',
+    company_domain: lead?.company_domain ?? '',
+    industry: lead?.main_industry ?? lead?.company_industry ?? '',
+    company_size: lead?.employee_count_range ?? '',
+    employees: lead?.employee_count ?? '',
+    revenue: lead?.revenue_range ?? '',
+    city: lead?.contact_city ?? p.city ?? '',
+    country: lead?.contact_country ?? '',
+    mobile: p.mobile_e164 ?? '',
+    email: p.email ?? '',
+    email_status: lead?.email_status ?? '',
+    linkedin: p.linkedin_url ?? lead?.linkedin_url ?? '',
+    hiring: lead?.is_hiring ? 'yes' : '',
+    open_to_work: lead?.open_to_work ? 'yes' : '',
+  };
 }
 
 function Leads() {
@@ -44,99 +86,144 @@ function Leads() {
   const db = supabase();
   const { data: lists } = useLists();
 
-  const [filters, setFilters] = useState<LeadFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [text, setText] = useState('');
   const q = useDebounced(text, 300);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [picker, setPicker] = useState<null | 'add' | 'create'>(null);
+  const [picker, setPicker] = useState<null | 'add' | 'create' | 'save-filtered'>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const fit = useFitRows('leads');
-  const PAGE = fit.rows;
+  const [confirm, setConfirm] = useState<null | { title: string; body: string; action: string; run: () => Promise<void> }>(null);
 
-  const active: LeadFilters = useMemo(() => ({ ...filters, q }), [filters, q]);
-  const patch = (p: Partial<LeadFilters>) => {
-    setFilters((f) => ({ ...f, ...p }));
+  const server = useMemo(() => toServer(filters, q), [filters, q]);
+  const facets = useQuery(facetsQuery('leads'));
+  const results = useQuery({ ...leadSearchQuery(workspace.id, server, page), placeholderData: (prev) => prev });
+  const count = useQuery({ ...leadCountQuery(workspace.id, server), placeholderData: (prev) => prev });
+  const saved = useQuery(savedSearchesQuery(workspace.id));
+  const mySaved = (saved.data ?? []).filter((s) => (s.filters as Record<string, unknown> | null)?.source !== 'local');
+
+  useEffect(() => {
+    if (count.data !== undefined && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data, source: 'leads' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count.data, JSON.stringify(server)]);
+
+  const rows = results.data ?? [];
+  const byId = useMemo(() => new Map(rows.map((r) => [r.lead_id, r])), [rows]);
+  const ids = [...selected];
+  const unrevealed = ids.filter((id) => !byId.get(id)?.person_id);
+  const cost = (n: number) => `${n.toLocaleString('en-GB')} credit${n === 1 ? '' : 's'}`;
+  const costLabel = unrevealed.length ? ` (${cost(unrevealed.length)})` : '';
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.lead_id));
+  const total = count.data;
+  const pages = total === undefined || total === null ? 100 : Math.max(1, Math.ceil(Math.min(total, COUNT_CAP) / PAGE_SIZE));
+  const countries = (filters.countries as string[] | undefined) ?? [];
+  const strictMarket = countries.some((c) => c === 'Germany' || c === 'Austria');
+
+  const update = (next: Filters) => {
+    setFilters(next);
     setPage(0);
     setSelected(new Set());
   };
 
-  // Markets from onboarding step 2 limit which countries appear in search.
-  const { data: allowed } = useQuery(marketsQuery(workspace.id));
-  const { data: industries } = useQuery(industriesQuery());
-  const saved = useQuery(savedSearchesQuery(workspace.id));
-
-  const scoped: LeadFilters = useMemo(() => ({ ...active, countries: active.countries?.length ? active.countries : allowed }), [active, allowed]);
-
-  const results = useQuery({ ...leadsQuery(workspace.id, scoped, page, PAGE), enabled: !!allowed && PAGE > 0, placeholderData: (prev) => prev });
-
-  useEffect(() => {
-    if (results.data && !results.isPlaceholderData) track('search_run', { filters: scoped, result_count: results.data.count });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results.data?.count, JSON.stringify(scoped)]);
-
-  const contacts = results.data?.contacts ?? [];
-  const revealed = results.data?.revealed ?? {};
-  const ids = [...selected];
-  const unrevealed = ids.filter((id) => !revealed[id]);
-  // each contact not yet revealed costs 1 credit; already revealed ones are free
-  const costLabel = unrevealed.length ? ` (${unrevealed.length} credit${unrevealed.length === 1 ? '' : 's'})` : '';
-  const allSelected = contacts.length > 0 && contacts.every((c) => selected.has(c.id));
-  const strictMarket = (scoped.countries ?? []).some((c) => c === 'DE' || c === 'AT') && (active.countries ?? []).some((c) => c === 'DE' || c === 'AT');
-
   const after = () => {
     void refreshWorkspace();
-    ['leads', 'people', 'today', 'lists', 'list'].forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
+    ['lead-search', 'people', 'today', 'lists', 'list'].forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
   };
 
-  const reveal = async (contactIds: string[], listId?: string | null) => {
-    setBusy(contactIds.length === 1 ? contactIds[0] : 'bulk');
-    const { people, error } = await revealContacts(workspace.id, contactIds, { listId, from: listId ? 'list' : 'search' });
+  const reveal = async (leadIds: string[], listId?: string | null, from: 'search' | 'list' | 'export' = 'search') => {
+    setBusy(leadIds.length === 1 ? leadIds[0] : 'bulk');
+    const { people, error } = await revealLeads(workspace.id, leadIds, { listId, from: listId ? 'list' : from });
     setBusy(null);
     if (error) toast(error.message, error.href ? { label: error.label ?? 'Fix', href: error.href } : undefined);
     after();
-    return people;
+    return { people, ok: !error };
   };
 
-  const bulkReveal = async () => {
-    const people = await reveal(ids);
-    if (people.length) toast(`${people.length} added to People`);
-    setSelected(new Set());
-  };
   const addToList = async (listId: string) => {
-    const people = await reveal(ids, listId);
+    const { people } = await reveal(ids, listId);
     if (people.length) {
       track('person_added_to_list', { source: 'database', count: people.length });
       toast(`${people.length} added to the list`, { label: 'Open list', href: `/app/lists/${listId}` });
     }
     setSelected(new Set());
   };
-  const exportCsv = () => {
-    auditedCsv(workspace.id, 'leads',
-      'decibel-leads.csv',
-      contacts
-        .filter((c) => selected.has(c.id))
-        .map((c) => ({
-          name: c.full_name,
-          title: c.job_title,
-          company: c.company_name,
-          industry: c.industry,
-          city: c.city,
-          country: c.country_code,
-          email: revealed[c.id]?.email ?? (c.has_email ? 'reveal to see' : ''),
-          mobile: revealed[c.id]?.mobile_e164 ?? c.mobile_masked,
-          tps_status: c.tps_status,
-          last_verified: c.last_verified_at,
-        })),
-    );
+
+  const download = (leads: LeadRow[], people: Person[]) => {
+    const lookup = new Map(leads.map((l) => [l.lead_id, l]));
+    const name = `decibel-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    exportCsv(workspace.id, 'leads', name, people.map((p) => csvRow(lookup.get(p.source_lead_id ?? ''), p)));
+    toast(`Exported ${people.length.toLocaleString('en-GB')} leads`);
+  };
+
+  /** Export the given leads: reveal any not yet revealed (with a confirmation), then download. */
+  const exportLeads = (leads: LeadRow[], label: string) => {
+    const fresh = leads.filter((l) => !l.person_id).length;
+    const run = async () => {
+      const { people, ok } = await reveal(
+        leads.map((l) => l.lead_id),
+        null,
+        'export',
+      );
+      if (ok && people.length) download(leads, people);
+    };
+    if (!fresh) return void run();
+    setConfirm({
+      title: `Export ${label}`,
+      body: `${fresh.toLocaleString('en-GB')} of these ${leads.length.toLocaleString('en-GB')} leads are not revealed yet, so exporting them uses ${cost(fresh)}. Leads you have already revealed are free. You have ${workspace.credit_balance.toLocaleString('en-GB')} credits.`,
+      action: `Reveal and export (${cost(fresh)})`,
+      run,
+    });
+  };
+
+  const exportSelected = () => exportLeads(rows.filter((r) => selected.has(r.lead_id)), `${selected.size.toLocaleString('en-GB')} selected leads`);
+
+  const exportFiltered = async () => {
+    setBusy('filtered');
+    try {
+      const leads = await leadIdsForFilters(workspace.id, server, EXPORT_MAX);
+      if (!leads.length) return void toast('Nothing matches these filters.');
+      exportLeads(leads, `the first ${leads.length.toLocaleString('en-GB')} matching leads`);
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveFilteredToList = async (listId: string) => {
+    setBusy('filtered');
+    try {
+      const leads = await leadIdsForFilters(workspace.id, server, EXPORT_MAX);
+      const fresh = leads.filter((l) => !l.person_id).length;
+      const run = async () => {
+        const { people } = await reveal(
+          leads.map((l) => l.lead_id),
+          listId,
+        );
+        if (people.length) toast(`${people.length.toLocaleString('en-GB')} leads saved to the list`, { label: 'Open list', href: `/app/lists/${listId}` });
+      };
+      if (!fresh) await run();
+      else
+        setConfirm({
+          title: 'Save matching leads to a list',
+          body: `This adds the first ${leads.length.toLocaleString('en-GB')} matching leads to the list. ${fresh.toLocaleString('en-GB')} are not revealed yet, so it uses ${cost(fresh)}. You have ${workspace.credit_balance.toLocaleString('en-GB')} credits.`,
+          action: `Reveal and save (${cost(fresh)})`,
+          run,
+        });
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
   };
 
   const saveSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!saveName.trim()) return;
-    await db.from('saved_searches').insert({ workspace_id: workspace.id, user_id: user.id, name: saveName.trim(), filters: active });
+    const { error } = await db.from('saved_searches').insert({ workspace_id: workspace.id, user_id: user.id, name: saveName.trim(), filters: { v: 2, ...filters, q: text.trim() || undefined } });
+    if (error) return void toast(error.message);
     setSaveOpen(false);
     setSaveName('');
     toast('Search saved');
@@ -144,11 +231,6 @@ function Leads() {
   };
 
   const targetName = lists?.find((l) => l.id === targetList)?.name;
-  const pages = PAGE ? Math.ceil((results.data?.count ?? 0) / PAGE) : 0;
-  useEffect(() => {
-    if (pages && page > pages - 1) setPage(pages - 1);
-  }, [pages, page]);
-
 
   return (
     <div className="flex h-full">
@@ -156,21 +238,27 @@ function Leads() {
         <div className="flex h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-white-800 px-4 [scrollbar-width:none]">
           <div className="relative">
             <Search size={16} strokeWidth={1.5} className="pointer-events-none absolute left-2.5 top-2 text-white-900" />
-            <Input value={text} onChange={(e) => { setText(e.target.value); setPage(0); }} placeholder="Search name, company or title" className="h-8 w-72 pl-8 max-sm:w-44" aria-label="Search the database" />
+            <Input
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                setPage(0);
+              }}
+              placeholder="Search name, title or company"
+              className="h-8 w-72 pl-8 max-sm:w-44"
+              aria-label="Search the database"
+            />
           </div>
-          <h1 className="text-sm text-black-700">
-            {/* counts above 1,000 are the planner's estimate (count: 'estimated'), so say so */}
-            {results.data && results.data.count > APPROX_OVER ? 'About ' : ''}
-            <span className="text-black-400">{results.data ? results.data.count.toLocaleString('en-GB') : '…'}</span> contacts
+          <h1 className="whitespace-nowrap text-sm text-black-700">
+            <span className="text-black-400">{formatCount(total, page * PAGE_SIZE + rows.length)}</span> leads
           </h1>
-          <Tag color={7}>Sample data</Tag>
           {targetList ? (
-            <Link href={`/app/lists/${targetList}`} className="tag tag-1 max-w-[260px] truncate" title="Select contacts, then choose Add to list">
+            <Link href={`/app/lists/${targetList}`} className="tag tag-1 max-w-[260px] truncate" title="Select leads, then choose Add to list">
               Adding to {targetName ?? 'your list'} · back
             </Link>
           ) : null}
           {strictMarket ? (
-            <span className="tag tag-2" title="Germany and Austria treat B2B cold calls more strictly than the UK. Take local advice before calling.">
+            <span className="tag tag-2 whitespace-nowrap" title="Germany and Austria treat B2B cold calls more strictly than the UK. Take local advice before calling.">
               DE / AT: stricter calling rules
             </span>
           ) : null}
@@ -184,15 +272,14 @@ function Leads() {
               )}
             >
               {(close) =>
-                saved.data?.length ? (
-                  saved.data.map((s) => (
+                mySaved.length ? (
+                  mySaved.map((s) => (
                     <div key={s.id} className="flex items-center">
                       <MenuItem
                         onClick={() => {
-                          const f = (s.filters ?? {}) as LeadFilters;
-                          setFilters({ ...f, q: undefined });
-                          setText(f.q ?? '');
-                          setPage(0);
+                          const loaded = fromSaved((s.filters ?? {}) as Record<string, unknown>);
+                          update(loaded.filters);
+                          setText(loaded.q);
                           close();
                         }}
                       >
@@ -218,38 +305,75 @@ function Leads() {
             <Button size="compact" onClick={() => setSaveOpen(true)}>
               Save search
             </Button>
+            <Popover
+              align="right"
+              trigger={({ toggle }) => (
+                <Button size="compact" onClick={toggle} loading={busy === 'filtered'} disabled={!rows.length}>
+                  <Download size={16} strokeWidth={1.5} /> Export
+                </Button>
+              )}
+            >
+              {(close) => (
+                <div className="w-64">
+                  <MenuItem
+                    onClick={() => {
+                      close();
+                      void exportFiltered();
+                    }}
+                  >
+                    Export matching leads (up to {EXPORT_MAX})
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      close();
+                      setPicker('save-filtered');
+                    }}
+                  >
+                    Save matching leads to a list
+                  </MenuItem>
+                  <p className="border-t border-white-800 px-3 py-2 text-black-700">Unrevealed leads use 1 credit each. Revealed leads are free.</p>
+                </div>
+              )}
+            </Popover>
           </div>
         </div>
-        <LeadFilterBar
-          filters={filters}
-          onChange={patch}
-          onClear={() => {
-            setFilters({});
-            setText('');
-            setPage(0);
-          }}
-          countries={allowed ?? []}
-          industries={industries ?? []}
-        />
+        <SmartFilterBar defs={LEAD_FILTERS} filters={filters} onChange={update} facets={facets.data ?? {}} tone="tag-1" />
 
-
-        <div ref={fit.ref} className="min-h-0 flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-auto">
           {results.error ? (
             <div className="p-4">
               <ErrorCard message={(results.error as Error).message} onRetry={() => results.refetch()} />
             </div>
           ) : results.isLoading || !results.data ? (
-            <TableSkeleton rows={Math.max(8, PAGE)} cols={7} />
-          ) : !contacts.length ? (
-            <EmptyState shape="diamond" title="No results" description="Loosen a filter to see more contacts." action={<Button onClick={() => { setFilters({}); setText(''); }}>Clear filters</Button>} />
+            <TableSkeleton rows={12} cols={8} />
+          ) : !rows.length ? (
+            <EmptyState shape="diamond" title="No leads match" description="Remove a filter or two to widen the search." action={<Button onClick={() => update({})}>Clear filters</Button>} />
           ) : (
-            <RevealOnce id="leads">
-            <div className="tbl-wrap">
-              <table className="tbl tbl-fixed"><colgroup><col style={{ width: 44 }} /><col style={{ width: 220 }} /><col style={{ width: 220 }} /><col style={{ width: 150 }} /><col style={{ width: 240 }} /><col style={{ width: 200 }} /><col style={{ width: 110 }} /><col style={{ width: 190 }} /><col style={{ width: 260 }} /><col style={{ width: 250 }} /><col style={{ width: 120 }} /><col style={{ width: 130 }} /></colgroup>
+            <div className={cn('tbl-wrap transition-opacity', results.isPlaceholderData && 'opacity-60')}>
+              <table className="tbl tbl-fixed">
+                <colgroup>
+                  <col style={{ width: 44 }} />
+                  <col style={{ width: 210 }} />
+                  <col style={{ width: 240 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 210 }} />
+                  <col style={{ width: 200 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 190 }} />
+                  <col style={{ width: 230 }} />
+                  <col style={{ width: 240 }} />
+                  <col style={{ width: 170 }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th className="w-10">
-                      <Checkbox aria-label="Select all on this page" checked={allSelected} indeterminate={!allSelected && selected.size > 0} onChange={(v) => setSelected(v ? new Set(contacts.map((c) => c.id)) : new Set())} />
+                      <Checkbox
+                        aria-label="Select all on this page"
+                        checked={allSelected}
+                        indeterminate={!allSelected && selected.size > 0}
+                        onChange={(v) => setSelected(v ? new Set(rows.map((r) => r.lead_id)) : new Set())}
+                      />
                     </th>
                     <th>Name</th>
                     <th>Title</th>
@@ -257,112 +381,139 @@ function Leads() {
                     <th>Company</th>
                     <th>Industry</th>
                     <th>Size</th>
+                    <th>Revenue</th>
                     <th>Location</th>
                     <th>Mobile</th>
                     <th>Email</th>
-                    <th>TPS</th>
-                    <th>Verified</th>
+                    <th>Signals</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {contacts.map((c) => {
-                    const mine = revealed[c.id];
+                  {rows.map((r) => {
+                    const mine = !!r.person_id;
+                    const name = r.full_name || [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Unknown';
                     return (
-                      <tr key={c.id} data-selected={selected.has(c.id)} className="group">
+                      <tr key={r.lead_id} data-selected={selected.has(r.lead_id)} className="group">
                         <td>
                           <Checkbox
-                            aria-label={`Select ${c.full_name}`}
-                            checked={selected.has(c.id)}
+                            aria-label={`Select ${name}`}
+                            checked={selected.has(r.lead_id)}
                             onChange={(on) =>
                               setSelected((s) => {
                                 const n = new Set(s);
-                                if (on) n.add(c.id);
-                                else n.delete(c.id);
+                                if (on) n.add(r.lead_id);
+                                else n.delete(r.lead_id);
                                 return n;
                               })
                             }
                           />
                         </td>
                         <td>
-                          {mine ? (
-                            <Link href={`/app/people/${mine.id}`} onMouseEnter={() => prefetchPerson(qc, mine.id)} className="hover:underline">
-                              <PersonCell name={c.full_name} />
-                            </Link>
-                          ) : (
-                            <PersonCell name={c.full_name} />
-                          )}
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            {mine ? (
+                              <Link href={`/app/people/${r.person_id}`} onMouseEnter={() => prefetchPerson(qc, r.person_id!)} className="min-w-0 hover:underline">
+                                <PersonCell name={name} />
+                              </Link>
+                            ) : (
+                              <PersonCell name={name} />
+                            )}
+                            {r.linkedin_url ? (
+                              <a href={r.linkedin_url.startsWith('http') ? r.linkedin_url : `https://${r.linkedin_url}`} target="_blank" rel="noreferrer" aria-label={`${name} on LinkedIn`} className="shrink-0 text-white-900 hover:text-black-400">
+                                <Linkedin size={13} strokeWidth={1.5} />
+                              </a>
+                            ) : null}
+                          </span>
                         </td>
-                        <td className="max-w-[230px] truncate text-black-500">{c.job_title ?? <span className="text-faint">–</span>}</td>
-                        <td>{c.seniority ? <Tag>{seniorityLabel(c.seniority)}</Tag> : <span className="text-faint">–</span>}</td>
+                        <td className="truncate text-black-500" title={r.current_title ?? undefined}>
+                          {r.current_title ?? dash}
+                        </td>
+                        <td>{r.seniority_level ? <Tag color={1}>{prettyValue(def('seniorities'), r.seniority_level)}</Tag> : dash}</td>
                         <td>
-                          <span className="block truncate text-black-400">{c.company_name ?? '–'}</span>
+                          <span className="block truncate text-black-400">{r.company_name ?? '–'}</span>
+                          {r.company_domain ? <span className="block truncate text-xs text-white-900">{r.company_domain}</span> : null}
                         </td>
-                        <td>{c.industry ? <Tag>{c.industry}</Tag> : <span className="text-faint">–</span>}</td>
-                        <td>{c.company_size_band ? <Tag color={7}>{c.company_size_band}</Tag> : <span className="text-faint">–</span>}</td>
-                        <td className="text-black-700">{[c.city, c.country_code].filter(Boolean).join(', ')}</td>
+                        <td className="truncate text-black-700" title={r.main_industry ?? r.company_industry ?? undefined}>
+                          {r.main_industry ?? r.company_industry ?? dash}
+                        </td>
+                        <td className="whitespace-nowrap text-black-700">{r.employee_count_range ? r.employee_count_range.replace(' to ', '–') : dash}</td>
+                        <td className="whitespace-nowrap text-black-700">{r.revenue_range ?? dash}</td>
+                        <td className="truncate text-black-700" title={r.contact_location ?? undefined}>
+                          {[r.contact_city, r.contact_country].filter(Boolean).join(', ') || dash}
+                        </td>
                         <td>
                           <span className="flex items-center gap-2">
-                            <span className={cn('tabular-nums text-xs', !mine && 'text-black-700')}>{mine?.mobile_e164 ? formatPhone(mine.mobile_e164) : (c.mobile_masked ?? '–')}</span>
+                            <span className={cn('tabular-nums text-xs', !mine && 'text-black-700')}>{r.mobile ? (mine ? formatPhone(r.mobile) : r.mobile) : '–'}</span>
                             {mine ? (
                               <Tag color={1}>Revealed</Tag>
-                            ) : c.has_mobile ? (
+                            ) : r.has_mobile ? (
                               <button
                                 disabled={!!busy}
-                                onClick={() => reveal([c.id])}
-                                className="flex h-[22px] items-center gap-1 border border-btnborder bg-white-100 px-1.5 tabular-nums text-xs tracking-[0.06em] text-black-700 hover:border-black-0 hover:text-black-400 disabled:opacity-50"
+                                onClick={() => void reveal([r.lead_id])}
+                                className="flex h-[22px] items-center gap-1 rounded-[4px] border border-btnborder bg-white-100 px-1.5 text-xs text-black-700 hover:border-black-0 hover:text-black-400 disabled:opacity-50"
                               >
-                                <Eye size={12} strokeWidth={1.5} /> {busy === c.id ? 'Revealing' : 'Reveal · 1'}
+                                <Eye size={12} strokeWidth={1.5} /> {busy === r.lead_id ? 'Revealing' : 'Reveal · 1'}
                               </button>
                             ) : null}
                           </span>
                         </td>
-                        <td className="text-black-700">
-                          {mine?.email ?? (c.has_email ? <span className="tabular-nums text-xs">•••@{c.company_domain ?? '•••'}</span> : <span className="text-faint">–</span>)}
+                        <td>
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className={cn('truncate text-xs', mine ? 'text-black-400' : 'text-black-700')}>{r.email ?? '–'}</span>
+                            {r.email_status === 'CATCH_ALL' ? <span className="tag tag-2 shrink-0">Accept-all</span> : null}
+                          </span>
                         </td>
                         <td>
-                          <TpsBadge status={c.tps_status} />
+                          <span className="flex flex-wrap gap-1">
+                            {r.is_hiring ? <span className="tag tag-3">Hiring</span> : null}
+                            {r.open_to_work ? <span className="tag tag-5">Open to work</span> : null}
+                            {r.last_funding_type ? <span className="tag tag-7 max-w-[120px] truncate">{r.last_funding_type}</span> : null}
+                            {!r.is_hiring && !r.open_to_work && !r.last_funding_type ? dash : null}
+                          </span>
                         </td>
-                        <td className="tabular-nums text-xs text-white-900">{timeAgo(c.last_verified_at)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-            </RevealOnce>
           )}
-
         </div>
 
-        {
-          <div className="flex h-12 shrink-0 items-center justify-between border-t border-white-800 bg-panel px-4">
-            <span className="t-label">
-              {results.data ? `Page ${page + 1} / ${Math.max(1, pages)} · rows ${results.data.count ? page * PAGE + 1 : 0}–${Math.min((page + 1) * PAGE, results.data.count)}` : 'Loading'}
-            </span>
-            <div className="flex gap-2">
-              <Button size="compact" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                Previous
-              </Button>
-              <Button size="compact" disabled={page >= pages - 1} onClick={() => setPage((p) => p + 1)}>
-                Next
-              </Button>
-            </div>
+        <div className="flex h-12 shrink-0 items-center justify-between border-t border-white-800 bg-panel px-4">
+          <span className="t-label">
+            {rows.length ? `Leads ${(page * PAGE_SIZE + 1).toLocaleString('en-GB')}–${(page * PAGE_SIZE + rows.length).toLocaleString('en-GB')} of ${formatCount(total, page * PAGE_SIZE + rows.length)}` : results.isLoading ? 'Loading' : 'No leads'}
+          </span>
+          <div className="flex gap-2">
+            <Button size="compact" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
+            <Button size="compact" disabled={rows.length < PAGE_SIZE || page >= pages - 1 || page >= 99} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </Button>
           </div>
-        }
+        </div>
       </div>
 
       <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
         <BulkAction disabled={!!busy} onClick={() => (targetList ? void addToList(targetList) : setPicker('add'))}>
-          <ListPlus size={16} strokeWidth={1.5} /> {targetList ? `Add to ${targetName ?? 'list'}` : 'Add to list'}{costLabel}
+          <ListPlus size={16} strokeWidth={1.5} /> {targetList ? `Add to ${targetName ?? 'list'}` : 'Add to list'}
+          {costLabel}
         </BulkAction>
         <BulkAction disabled={!!busy} onClick={() => setPicker('create')}>
           <Plus size={16} strokeWidth={1.5} /> Create new list{costLabel}
         </BulkAction>
-        <BulkAction disabled={!!busy || !unrevealed.length} onClick={bulkReveal}>
-          <Eye size={16} strokeWidth={1.5} /> Reveal mobiles ({unrevealed.length} credit{unrevealed.length === 1 ? '' : 's'})
+        <BulkAction
+          disabled={!!busy || !unrevealed.length}
+          onClick={async () => {
+            const { people } = await reveal(unrevealed);
+            if (people.length) toast(`${people.length} revealed and added to People`);
+            setSelected(new Set());
+          }}
+        >
+          <Eye size={16} strokeWidth={1.5} /> Reveal ({cost(unrevealed.length)})
         </BulkAction>
-        <BulkAction onClick={exportCsv}>
-          <Download size={16} strokeWidth={1.5} /> Export CSV
+        <BulkAction disabled={!!busy} onClick={exportSelected}>
+          <Download size={16} strokeWidth={1.5} /> Export CSV{costLabel}
         </BulkAction>
       </BulkBar>
 
@@ -370,13 +521,36 @@ function Leads() {
         open={!!picker}
         createOnly={picker === 'create'}
         onClose={() => setPicker(null)}
-        onPick={addToList}
-        title={`Add ${ids.length} to list${unrevealed.length ? ` (${unrevealed.length} credit${unrevealed.length === 1 ? '' : 's'})` : ''}`}
+        onPick={async (listId) => {
+          if (picker === 'save-filtered') {
+            setPicker(null);
+            await saveFilteredToList(listId);
+          } else await addToList(listId);
+        }}
+        title={picker === 'save-filtered' ? 'Save matching leads to a list' : `Add ${ids.length} to list${costLabel}`}
         busyLabel="Revealing…"
       />
+      <Dialog open={!!confirm} onClose={() => setConfirm(null)} title={confirm?.title ?? ''}>
+        <p className="text-black-700">{confirm?.body}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button onClick={() => setConfirm(null)}>Cancel</Button>
+          <Button
+            variant="primary"
+            loading={busy === 'bulk'}
+            onClick={async () => {
+              const c = confirm;
+              setConfirm(null);
+              await c?.run();
+              setSelected(new Set());
+            }}
+          >
+            {confirm?.action}
+          </Button>
+        </div>
+      </Dialog>
       <Dialog open={saveOpen} onClose={() => setSaveOpen(false)} title="Save search">
         <form onSubmit={saveSearch} className="flex flex-col gap-4">
-          <Input autoFocus value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="Manchester SaaS founders" aria-label="Search name" />
+          <Input autoFocus value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="UK IT directors with mobiles" aria-label="Search name" />
           <div className="flex justify-end gap-2">
             <Button onClick={() => setSaveOpen(false)}>Cancel</Button>
             <Button type="submit" variant="primary" disabled={!saveName.trim()}>

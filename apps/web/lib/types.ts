@@ -150,6 +150,7 @@ export interface Person {
   id: string;
   workspace_id: string;
   source_contact_id: string | null;
+  source_lead_id?: string | null;
   tenant_company_id: string | null;
   first_name: string;
   last_name: string;

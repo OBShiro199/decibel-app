@@ -1,12 +1,12 @@
 'use client';
 // Shared query definitions. Pages and the hover/idle prefetcher use the same
 // keys and fetchers, so a prefetched tab opens with its data already in cache.
+import { facetsQuery, leadCountQuery, leadSearchQuery, localCountQuery, localSearchQuery, toServer } from '@/lib/lead-search';
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { COUNTRIES, MARKETS } from '@/lib/constants';
 import { dashboardRanges, thisWeek } from '@/lib/dashboard';
-import { knownFitRows } from '@/lib/fit-rows';
-import { applyLeadFilters, EMPTY_FILTERS, type LeadFilters } from '@/lib/leads';
+import { applyLeadFilters, type LeadFilters } from '@/lib/leads';
 import type { Activity, Call, ContactPublic, List, Note, Person, PhoneNumber, Recording, Task, TenantCompany } from '@/lib/types';
 
 export const PERSON_SELECT = '*, company:tenant_companies(id,name,domain)';
@@ -258,14 +258,16 @@ export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string
     void qc.prefetchQuery(todayStatsQuery(workspaceId, userId));
     void qc.prefetchQuery(numbersQuery(workspaceId));
   } else if (href === '/app/leads') {
-    void qc.prefetchQuery(industriesQuery());
+    // the default first page and count of the lead database (filters: has mobile)
+    void qc.prefetchQuery(facetsQuery('leads'));
     void qc.prefetchQuery(savedSearchesQuery(workspaceId));
     void qc.prefetchQuery(listsQuery(workspaceId, userId));
-    // the first page of results, once the markets are known and the table's size is remembered
-    void qc.fetchQuery(marketsQuery(workspaceId)).then((allowed) => {
-      const pageSize = knownFitRows('leads');
-      if (pageSize) void qc.prefetchQuery(leadsQuery(workspaceId, { ...EMPTY_FILTERS, q: '', countries: allowed }, 0, pageSize));
-    }).catch(() => {});
+    void qc.prefetchQuery(leadSearchQuery(workspaceId, toServer({ hasMobile: true }, ''), 0));
+    void qc.prefetchQuery(leadCountQuery(workspaceId, toServer({ hasMobile: true }, '')));
+  } else if (href === '/app/local') {
+    void qc.prefetchQuery(facetsQuery('local'));
+    void qc.prefetchQuery(localSearchQuery(workspaceId, toServer({ hasPhone: true }, ''), 0));
+    void qc.prefetchQuery(localCountQuery(workspaceId, toServer({ hasPhone: true }, '')));
   } else if (href === '/app/companies') void qc.prefetchQuery(companiesQuery(workspaceId));
   else if (href === '/app/lists' || href === '/app/dialler') void qc.prefetchQuery(listsQuery(workspaceId, userId));
   else if (href === '/app/calls') {
@@ -277,4 +279,4 @@ export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string
 }
 
 /** Every main tab plus the dashboard: run once at idle after the first page has its data. */
-export const PREFETCH_ROUTES = ['/app', '/app/leads', '/app/lists', '/app/calls', '/app/dialler', '/app/dashboard'];
+export const PREFETCH_ROUTES = ['/app', '/app/leads', '/app/local', '/app/lists', '/app/calls', '/app/dialler', '/app/dashboard'];

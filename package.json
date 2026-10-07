@@ -10,6 +10,7 @@
     "typecheck": "pnpm --filter @decibels/web typecheck",
     "deploy:functions": "bash scripts/deploy-supabase.sh",
     "test:isolation": "pnpm --filter @decibels/web test:isolation",
-    "test:credits": "pnpm --filter @decibels/web test:credits"
+    "test:credits": "pnpm --filter @decibels/web test:credits",
+    "test:search": "pnpm --filter @decibels/web test:search"
   }
 }

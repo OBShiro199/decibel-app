@@ -11,6 +11,7 @@ export const REVEAL_ERRORS: Record<string, { message: string; href?: string; lab
   forbidden: { message: 'You are not a member of this workspace.' },
   'list not found': { message: 'That list is no longer available.' },
   'contact not found': { message: 'One of those contacts is no longer in the database.' },
+  'lead not found': { message: 'One of those leads is no longer in the database.' },
 };
 
 /** Turns a database error into something a person can act on, including the numbers. */
@@ -47,5 +48,25 @@ export async function revealContacts(
     people.push(...((data ?? []) as Person[]));
   }
   track('contacts_revealed', { from: opts.from, count: people.length });
+  return { people, error: null };
+}
+
+/**
+ * Reveals leads from the lead database (data_list) into People, optionally into a list:
+ * 1 credit per newly revealed lead, nothing for ones this workspace already revealed.
+ */
+export async function revealLeads(
+  workspaceId: string,
+  leadIds: string[],
+  opts: { listId?: string | null; from: 'search' | 'list' | 'export' } = { from: 'search' },
+): Promise<{ people: Person[]; error: ReturnType<typeof revealError> | null }> {
+  const people: Person[] = [];
+  const CHUNK = 500;
+  for (let i = 0; i < leadIds.length; i += CHUNK) {
+    const { data, error } = await supabase().rpc('reveal_leads', { p_workspace_id: workspaceId, p_lead_ids: leadIds.slice(i, i + CHUNK), p_list_id: opts.listId ?? null });
+    if (error) return { people, error: revealError(error.message) };
+    people.push(...((data ?? []) as Person[]));
+  }
+  track('contacts_revealed', { from: opts.from, count: people.length, source: 'leads' });
   return { people, error: null };
 }
