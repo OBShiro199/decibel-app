@@ -196,7 +196,8 @@ export function AsciiBox({ lines, className, double }: { lines: string[]; classN
   const [tl, tr, bl, br, h, v] = double ? ['╔', '╗', '╚', '╝', '═', '║'] : ['┌', '┐', '└', '┘', '─', '│'];
   const art = [tl + h.repeat(width) + tr, ...lines.map((l) => `${v}  ${l.padEnd(width - 2)}${v}`), bl + h.repeat(width) + br].join('\n');
   return (
-    <pre aria-hidden className={cn('inline-block select-none whitespace-pre text-left text-[12px] leading-[17px] text-white-900', className)} style={{ fontFamily: ASCII_FONT }}>
+    // decorative: hidden on phones, where a fixed-width box would not fit
+    <pre aria-hidden className={cn('inline-block select-none whitespace-pre text-left text-[12px] leading-[17px] text-white-900 max-sm:hidden', className)} style={{ fontFamily: ASCII_FONT }}>
       {art}
     </pre>
   );

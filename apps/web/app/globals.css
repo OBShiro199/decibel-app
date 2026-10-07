@@ -8,6 +8,22 @@
   html:has(.marketing-root) {
     overscroll-behavior-y: none;
   }
+  /* Grid and flex children default to "as wide as their content", so one wide table or
+     unbreakable line could stretch a column past the screen on phones. Let them shrink;
+     wide content (tables, ASCII art) scrolls inside its own box instead. */
+  .marketing-root .grid > *,
+  .marketing-root .flex > * {
+    min-width: 0;
+  }
+  /* safety net: the page itself never scrolls sideways (clip, unlike hidden, keeps sticky headers working) */
+  .marketing-root {
+    overflow-x: clip;
+  }
+  /* ASCII art and code never push past their column */
+  .marketing-root pre {
+    max-width: 100%;
+    overflow: hidden;
+  }
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
