@@ -20,7 +20,7 @@ import { PRO } from '@/lib/constants';
 const PATH = '/vs';
 
 export const metadata: Metadata = {
-  title: 'Decibel vs. Cognism, Lusha and Kaspr (2026): compared',
+  title: { absolute: 'Decibel vs Cognism, Lusha and Kaspr (2026)' },
   description:
     'Compare Decibel with Cognism, Lusha and Kaspr on pricing, mobiles included, dialler, pipeline and free trials, with sources, and see which tool suits your team.',
   alternates: { canonical: PATH },

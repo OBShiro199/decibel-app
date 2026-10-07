@@ -7,7 +7,7 @@ import { Faq, type FaqItem } from '@/components/marketing/faq';
 import { FAIR_USE_NOTE, PRO } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Decibel for B2B sales teams',
+  title: 'Power dialler and mobile data for B2B sales',
   description: 'For SDR and AE teams: build lists by title, seniority and company size, call down them with a power dialler, and let every outcome update your pipeline.',
   alternates: { canonical: '/industries/b2b-sales' },
 };

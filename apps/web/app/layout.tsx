@@ -12,21 +12,15 @@ const sans = Geist({ subsets: ['latin'], variable: '--font-sans', display: 'swap
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: SITE_TITLE, template: '%s · Decibel' },
+  title: { default: SITE_TITLE, template: '%s | Decibel' },
   description: SITE_DESCRIPTION,
   applicationName: 'Decibel',
   keywords: ['B2B data', 'UK mobile numbers', 'EU mobile numbers', 'verified mobiles', 'cold calling software', 'power dialler', 'browser dialler', 'sales dialler UK', 'TPS screening', 'CTPS', 'outbound sales', 'lead database', 'call recording', 'sales pipeline'],
   category: 'business',
-  alternates: { canonical: '/' },
-  openGraph: {
-    title: SITE_TITLE,
-    description: SITE_DESCRIPTION,
-    url: '/',
-    siteName: 'Decibel',
-    type: 'website',
-    locale: 'en_GB',
-  },
-  twitter: { card: 'summary_large_image', title: SITE_TITLE, description: SITE_DESCRIPTION },
+  // no site-wide og:title/og:url: each page's own <title> and canonical are used, so a shared
+  // link to any page shows that page rather than the homepage
+  openGraph: { siteName: 'Decibel', type: 'website', locale: 'en_GB' },
+  twitter: { card: 'summary_large_image' },
   robots: { index: true, follow: true },
   // favicon.io export, copied into public/brand
   // ?v= busts browsers' separate favicon cache; bump it whenever the icons change

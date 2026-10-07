@@ -11,8 +11,9 @@ export const FOUNDER = {
   photo: '/brand/founder.webp' as string | null,
 } as const;
 
-export const SITE_TITLE = 'Decibel · 1 million verified mobiles & the dialler to reach them all';
+// Under 60 characters so Google shows it in full; no figures that need a footnote.
+export const SITE_TITLE = 'Decibel: verified UK & EU mobiles and a power dialler';
 export const SITE_DESCRIPTION =
-  'Search UK and EU decision makers, reveal a direct mobile for one credit and call it from your browser. TPS screening, call recording and a self-updating pipeline built in.';
+  'Find UK and EU decision makers, reveal their verified mobile numbers and call them from your browser with a built-in power dialler. Free 14-day trial.';
 
 // The public page list (for the sitemap) lives in lib/marketing-pages.ts.

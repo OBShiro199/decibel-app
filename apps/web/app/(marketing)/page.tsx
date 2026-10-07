@@ -16,8 +16,10 @@ import { PRO, TRIAL_CREDITS } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: { absolute: SITE_TITLE },
+  description: SITE_DESCRIPTION,
   alternates: { canonical: '/' },
-  description: 'Search UK and EU decision makers, reveal a direct mobile for one credit and call it from your browser. TPS screening, call recording and a self-updating pipeline built in.',
+  openGraph: { title: SITE_TITLE, description: SITE_DESCRIPTION, url: '/' },
+  twitter: { title: SITE_TITLE, description: SITE_DESCRIPTION },
 };
 
 const FAQS: FaqItem[] = [

@@ -56,7 +56,7 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'tps-ctps-cold-calling-uk',
     title: 'TPS and CTPS: the UK cold calling rules, explained',
-    description: 'What PECR, the Telephone Preference Service and the Corporate TPS mean for B2B cold calling in the UK: who is covered, how often to screen and what happens if you get it wrong.',
+    description: 'What the TPS and CTPS mean for B2B cold calling in the UK: who is covered, how often to screen and what happens if you get it wrong.',
     date: '2026-10-06',
     readMinutes: 8,
     tag: 'Compliance',
@@ -74,7 +74,7 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'spin-selling-cold-calling',
     title: 'SPIN selling for cold calls: a field guide',
-    description: 'How to use Situation, Problem, Implication and Need-payoff questions on a short cold call, with example questions, a two-minute call structure and a way to practise.',
+    description: 'Use Situation, Problem, Implication and Need-payoff questions on a cold call, with example questions and a two-minute call structure.',
     date: '2026-10-06',
     readMinutes: 8,
     tag: 'Playbooks',

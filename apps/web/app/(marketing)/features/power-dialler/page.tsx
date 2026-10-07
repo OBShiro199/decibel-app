@@ -7,7 +7,7 @@ import { FAIR_USE_MINUTES, FAIR_USE_NOTE, OUTCOMES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Power dialler for UK outbound teams',
+  title: 'Power dialler for UK sales teams',
   description:
     'Call down a list from your browser with a UK number per seat, TPS and CTPS screening on every dial, autosaved notes and outcomes on keys 1–9.',
   alternates: { canonical: '/features/power-dialler' },

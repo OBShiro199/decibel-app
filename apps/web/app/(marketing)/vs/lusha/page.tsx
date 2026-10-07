@@ -20,7 +20,7 @@ import { PRO, TRIAL_CREDITS } from '@/lib/constants';
 const PATH = '/vs/lusha';
 
 export const metadata: Metadata = {
-  title: 'Decibel vs. Lusha (2026): pricing, data and dialler compared',
+  title: { absolute: 'Decibel vs Lusha: pricing and features (2026)' },
   description:
     'Decibel vs. Lusha compared on pricing, credits per phone number, data, dialler, workflow and compliance, with sources, to help you choose the right one.',
   alternates: { canonical: PATH },

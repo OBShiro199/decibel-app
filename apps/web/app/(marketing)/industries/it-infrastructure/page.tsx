@@ -7,7 +7,7 @@ import { Faq, type FaqItem } from '@/components/marketing/faq';
 import { FAIR_USE_NOTE, PRO } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Decibel for IT and infrastructure sellers',
+  title: 'Outbound calling for IT and MSP sales teams',
   description: 'For MSPs, IT resellers and cloud, telecoms and cyber partners: find IT managers and CTOs by title and company size, list local SMBs and call from the browser.',
   alternates: { canonical: '/industries/it-infrastructure' },
 };

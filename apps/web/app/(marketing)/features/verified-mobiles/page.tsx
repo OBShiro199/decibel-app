@@ -20,7 +20,7 @@ import { COUNTRIES, PRO, TRIAL_CREDITS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Verified UK and EU mobile numbers for decision makers',
+  title: 'Verified UK and EU mobile numbers',
   description:
     'Search UK and EU decision makers by title, seniority, company size, industry and country, then reveal the mobile for one credit. Revealed contacts stay free.',
   alternates: { canonical: '/features/verified-mobiles' },

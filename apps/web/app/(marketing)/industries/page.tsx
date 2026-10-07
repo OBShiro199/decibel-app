@@ -8,7 +8,7 @@ import { INDUSTRY_LINKS } from '@/lib/marketing-pages';
 import { SITE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'Industries',
+  title: 'Outbound calling software by industry',
   description: 'How B2B sales teams, IT and infrastructure partners and recruitment agencies use Decibel to find decision makers, call them from the browser and book meetings.',
   alternates: { canonical: '/industries' },
 };

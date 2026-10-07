@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ToolPage } from '@/components/marketing/tool-page';
 
 export const metadata: Metadata = {
-  title: 'Free phone number validator',
+  title: 'Free phone number validator (UK and EU)',
   description: 'Check if a phone number is valid and see whether it is a mobile or landline, plus its network and correct format. Free for UK and EU numbers.',
   alternates: { canonical: '/tools/phone-validator' },
 };

@@ -9,10 +9,10 @@ const DESCRIPTION =
   'Practical guides for UK and EU outbound teams: TPS and CTPS screening, GDPR for B2B calling, and cold call playbooks you can use on your next dial.';
 
 export const metadata: Metadata = {
-  title: 'Blog',
+  title: 'Cold calling and compliance guides',
   description: DESCRIPTION,
   alternates: { canonical: '/blog' },
-  openGraph: { type: 'website', title: 'Blog · Decibel', description: DESCRIPTION, url: '/blog', siteName: 'Decibel', locale: 'en_GB' },
+  openGraph: { type: 'website', title: 'Cold calling and compliance guides | Decibel', description: DESCRIPTION, url: '/blog', siteName: 'Decibel', locale: 'en_GB' },
 };
 
 const TOPICS = [

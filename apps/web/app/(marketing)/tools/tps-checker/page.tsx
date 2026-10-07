@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ToolPage } from '@/components/marketing/tool-page';
 
 export const metadata: Metadata = {
-  title: 'Free TPS and CTPS checker',
+  title: 'Free TPS checker: TPS and CTPS lookup',
   description: 'Check a UK phone number against the Telephone Preference Service and Corporate TPS registers for free, before you make a sales call.',
   alternates: { canonical: '/tools/tps-checker' },
 };

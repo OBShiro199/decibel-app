@@ -20,7 +20,7 @@ import { PRO, TRIAL_CREDITS } from '@/lib/constants';
 const PATH = '/vs/kaspr';
 
 export const metadata: Metadata = {
-  title: 'Decibel vs. Kaspr (2026): pricing, data and dialler compared',
+  title: { absolute: 'Decibel vs Kaspr: pricing and features (2026)' },
   description:
     'Decibel vs. Kaspr compared on pricing, phone credits, European data, dialler, LinkedIn workflow and compliance, with sources, so you can choose the right fit.',
   alternates: { canonical: PATH },

@@ -20,7 +20,7 @@ import { PRO, TRIAL_CREDITS } from '@/lib/constants';
 const PATH = '/vs/cognism';
 
 export const metadata: Metadata = {
-  title: 'Decibel vs. Cognism (2026): pricing, data and dialler compared',
+  title: { absolute: 'Decibel vs Cognism: pricing and features (2026)' },
   description:
     'Decibel vs. Cognism compared on pricing, data coverage, dialler, workflow and TPS compliance, with sources, so you can pick the right fit for your sales team.',
   alternates: { canonical: PATH },

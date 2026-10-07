@@ -81,6 +81,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
   useWelcomeEmail(user.id);
   useLastSeen();
+  useAppTitle();
   return (
     <div className={`app-shell`}>
       <SoftphoneProvider workspaceId={workspace.id} userId={user.id} recordingPolicy={workspace.recording_policy}>
@@ -110,6 +111,23 @@ function useLastSeen() {
       document.removeEventListener('visibilitychange', touch);
     };
   }, []);
+}
+
+/** The browser tab title for signed-in pages, e.g. "Leads | Decibel". */
+function useAppTitle() {
+  const pathname = usePathname().replace(/^\/dev-preview(?=\/|$)/, '/app');
+  useEffect(() => {
+    const items = NAV_GROUPS.flatMap((g) => g.items);
+    const hit = items.find((i) => (i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(`${i.href}/`)));
+    const extra: [string, string][] = [
+      ['/app/settings', 'Settings'],
+      ['/app/people', 'Contact'],
+      ['/app/companies', 'Companies'],
+      ['/app/dashboard', 'Dashboard'],
+    ];
+    const label = hit?.label ?? extra.find(([p]) => pathname.startsWith(p))?.[1];
+    document.title = label ? `${label} | Decibel` : 'Decibel';
+  }, [pathname]);
 }
 
 /** Asks for the welcome email once per browser; the server sends it only once per account. */

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 
 // The share card for links to usedecibel.com (LinkedIn, Slack, X, iMessage, Google).
-export const alt = 'Decibel: 1 million verified mobiles and the dialler to reach them all';
+export const alt = 'Decibel: verified UK and EU mobiles and a power dialler';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -32,7 +32,7 @@ export default async function OpengraphImage() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
           <div style={{ display: 'flex', fontSize: 74, fontWeight: 500, lineHeight: 1.04, letterSpacing: '-0.045em', color: '#08090a', maxWidth: 960 }}>
-            1 million verified mobiles &amp; the dialler to reach them all.
+            Verified UK &amp; EU mobiles and a power dialler.
           </div>
           <div style={{ display: 'flex', fontSize: 30, fontWeight: 400, lineHeight: 1.35, letterSpacing: '-0.015em', color: '#62666d', maxWidth: 900 }}>
             Search UK and EU decision makers, reveal a direct mobile and call it from your browser.
@@ -41,7 +41,7 @@ export default async function OpengraphImage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 24, color: '#62666d', letterSpacing: '-0.01em' }}>
           <span>usedecibel.com</span>
           <span style={{ color: '#c9cbd0' }}>·</span>
-          <span>TPS screened · call recording · built-in pipeline</span>
+          <span>Power dialler · call recording · built-in pipeline</span>
         </div>
       </div>
     ),

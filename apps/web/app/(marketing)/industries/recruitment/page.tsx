@@ -7,7 +7,7 @@ import { Faq, type FaqItem } from '@/components/marketing/faq';
 import { FAIR_USE_NOTE, PRO } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Decibel for recruitment agencies',
+  title: 'Cold calling software for recruitment agencies',
   description: 'For recruitment consultants doing business development: find hiring managers by title and company size, call from the browser and record calls for training.',
   alternates: { canonical: '/industries/recruitment' },
 };

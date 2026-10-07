@@ -5,7 +5,7 @@ import { Reveal } from '@/components/marketing/daygent';
 import { SITE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'Careers',
+  title: 'Careers: account manager jobs',
   description: 'Decibel is hiring an enterprise account manager (£50,000–£70,000) and an SME account manager (£30,000–£50,000) in the UK. Early-stage and founder-led.',
   alternates: { canonical: '/careers' },
 };

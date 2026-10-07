@@ -8,7 +8,7 @@ import { SITE_URL } from '@/lib/site';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Integrations',
+  title: 'CRM integrations and CSV export',
   description: 'Native integrations with Salesforce, HubSpot, Pipedrive and 13 more CRMs are coming soon. Until then, export your contacts and call history from Decibel by CSV.',
   alternates: { canonical: '/integrations' },
 };

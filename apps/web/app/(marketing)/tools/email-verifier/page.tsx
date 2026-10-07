@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ToolPage } from '@/components/marketing/tool-page';
 
 export const metadata: Metadata = {
-  title: 'Free email verifier',
+  title: 'Free email verifier: check an email exists',
   description: 'Check whether an email address exists and will accept mail before you send. Free email verification for sales and outbound teams.',
   alternates: { canonical: '/tools/email-verifier' },
 };
