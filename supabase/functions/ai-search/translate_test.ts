@@ -47,11 +47,28 @@ Deno.test('long lists and long values are capped', () => {
   assertEquals((filters.companies as string[])[0].length, 80);
 });
 
-Deno.test('schema covers every filter key, all required (strict output)', () => {
-  const l = OUTPUT_SCHEMA.properties.leads as { required: string[] };
-  const g = OUTPUT_SCHEMA.properties.local as { required: string[] };
-  assertEquals(l.required.sort(), Object.keys(LEAD_FIELDS).sort());
-  assertEquals(g.required.sort(), Object.keys(LOCAL_FIELDS).sort());
+Deno.test('schema offers every filter key and no nullable unions (structured output limits)', () => {
+  const field = (m: 'leads' | 'local') => (OUTPUT_SCHEMA.properties[m] as { items: { properties: { field: { enum: string[] } } } }).items.properties.field.enum;
+  assertEquals([...field('leads')].sort(), Object.keys(LEAD_FIELDS).sort());
+  assertEquals([...field('local')].sort(), Object.keys(LOCAL_FIELDS).sort());
+  assert(!JSON.stringify(OUTPUT_SCHEMA).includes('null'));
+});
+
+Deno.test('the model\'s { field, values } list becomes typed filters', () => {
+  const { filters } = sanitize('leads', [
+    { field: 'titles', values: ['CEO', 'Chief Executive'] },
+    { field: 'titles', values: ['Founder'] },
+    { field: 'hasMobile', values: ['yes'] },
+    { field: 'hasEmail', values: ['maybe'] },
+    { field: 'employeesMin', values: ['50'] },
+    { field: 'employeesMax', values: ['1,000'] },
+    { field: 'foundedMin', values: ['soon'] },
+    { field: '__proto__', values: ['x'] },
+    { field: 'dropTable', values: ['x'] },
+    'junk',
+  ], leads);
+  assertEquals(filters, { titles: ['CEO', 'Chief Executive', 'Founder'], hasMobile: true, employeesMin: 50, employeesMax: 1000 });
+  assertEquals(sanitize('local', [{ field: 'hasWebsite', values: ['no'] }, { field: 'minRating', values: ['4.5'] }], local).filters, { hasWebsite: false, minRating: 4.5 });
 });
 
 Deno.test('system prompt contains the real vocabulary and stays a sensible size', () => {

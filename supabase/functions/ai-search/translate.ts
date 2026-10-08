@@ -31,9 +31,9 @@ export const LEAD_FIELDS: Record<string, Field> = {
   companies: { kind: 'text', describe: 'Company names (or parts of names) to include.' },
   companiesNot: { kind: 'text', describe: 'Company names to exclude.' },
   domains: { kind: 'text', describe: 'Company website domains or parts, e.g. ".co.uk".' },
-  hasMobile: { kind: 'bool', describe: 'true when the user wants people with a mobile number ("with a mobile", "who I can call").' },
+  hasMobile: { kind: 'bool', describe: 'Yes when the user wants people with a mobile number ("with a mobile", "who I can call").' },
   mobileCodes: { kind: 'enum', facet: 'mobile_code', describe: 'Mobile dial codes, e.g. "+44" for UK mobiles.' },
-  hasEmail: { kind: 'bool', describe: 'true when the user wants a work email.' },
+  hasEmail: { kind: 'bool', describe: 'Yes when the user wants a work email.' },
   emailStatus: { kind: 'enum', facet: 'email_status', describe: 'Email verification status.' },
   hasPersonalEmail: { kind: 'bool', describe: 'Has a personal email.' },
   hasLinkedin: { kind: 'bool', describe: 'Has a LinkedIn profile.' },
@@ -61,10 +61,10 @@ export const LOCAL_FIELDS: Record<string, Field> = {
   minRating: { kind: 'num', min: 0, max: 5, describe: 'Minimum Google rating, 0–5 ("well reviewed" → 4.5).' },
   maxRating: { kind: 'num', min: 0, max: 5, describe: 'Maximum Google rating ("poorly rated" → 3.5).' },
   hasRating: { kind: 'bool', describe: 'Has a Google rating.' },
-  hasPhone: { kind: 'bool', describe: 'true when the user wants businesses they can call.' },
-  mobileOnly: { kind: 'bool', describe: 'true when the user wants a UK mobile number (+44 7).' },
+  hasPhone: { kind: 'bool', describe: 'Yes when the user wants businesses they can call.' },
+  mobileOnly: { kind: 'bool', describe: 'Yes when the user wants a UK mobile number (+44 7).' },
   hasEmail: { kind: 'bool', describe: 'Has an email address.' },
-  hasWebsite: { kind: 'bool', describe: 'false for "no website" (e.g. selling web design), true for "has a website".' },
+  hasWebsite: { kind: 'bool', describe: 'No for "no website" (e.g. selling web design), yes for "has a website".' },
   hasWhatsapp: { kind: 'bool', describe: 'On WhatsApp.' },
   hasFacebook: { kind: 'bool', describe: 'Has a Facebook page.' },
   hasInstagram: { kind: 'bool', describe: 'Has an Instagram account.' },
@@ -76,13 +76,47 @@ export const LOCAL_FIELDS: Record<string, Field> = {
 const fieldsFor = (m: Mode) => (m === 'leads' ? LEAD_FIELDS : LOCAL_FIELDS);
 
 // ---- output schema --------------------------------------------------------------
+// Each mode is a list of { field, values } pairs rather than one property per filter: a
+// property per filter (55 of them) compiles to a grammar too large for structured outputs.
+// Lists use every value; yes/no filters use "yes" or "no"; numbers use one numeric string.
+// The field meanings live in the system prompt (cached), and fromEntries/sanitize check it all.
 function filterSchema(fields: Record<string, Field>) {
-  const properties: Record<string, unknown> = {};
-  for (const [k, f] of Object.entries(fields)) {
-    const t = f.kind === 'text' || f.kind === 'enum' ? { type: ['array', 'null'], items: { type: 'string' } } : f.kind === 'bool' ? { type: ['boolean', 'null'] } : f.kind === 'int' ? { type: ['integer', 'null'] } : { type: ['number', 'null'] };
-    properties[k] = { ...t, description: f.describe };
+  return {
+    type: 'array',
+    items: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['field', 'values'],
+      properties: {
+        field: { type: 'string', enum: Object.keys(fields) },
+        values: { type: 'array', items: { type: 'string' } },
+      },
+    },
+  };
+}
+
+/** Turns the model's [{ field, values }] list into the filter object sanitize expects. */
+export function fromEntries(mode: Mode, raw: unknown): Record<string, unknown> {
+  if (!Array.isArray(raw)) return raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const fields = fieldsFor(mode);
+  const out: Record<string, unknown> = {};
+  for (const e of raw.slice(0, 60)) {
+    if (!e || typeof e !== 'object') continue;
+    const { field, values } = e as { field?: unknown; values?: unknown };
+    const f = typeof field === 'string' && Object.hasOwn(fields, field) ? fields[field] : undefined;
+    if (!f || !Array.isArray(values) || !values.length) continue;
+    const first = String(values[0]).trim().toLowerCase();
+    if (f.kind === 'bool') {
+      if (first === 'yes' || first === 'true') out[field as string] = true;
+      else if (first === 'no' || first === 'false') out[field as string] = false;
+    } else if (f.kind === 'int' || f.kind === 'num') {
+      const n = Number(first.replace(/[,£$€+]/g, ''));
+      if (first && Number.isFinite(n)) out[field as string] = n;
+    } else {
+      out[field as string] = [...((out[field as string] as unknown[]) ?? []), ...values];
+    }
   }
-  return { type: 'object', additionalProperties: false, required: Object.keys(fields), properties };
+  return out;
 }
 
 export const OUTPUT_SCHEMA = {
@@ -103,7 +137,10 @@ export const OUTPUT_SCHEMA = {
 // ---- system prompt (stable per facet snapshot, so it caches) --------------------------
 const list = (v: string[] | undefined, n: number) => (v ?? []).slice(0, n).map((x) => `- ${x}`).join('\n');
 
-export function systemPrompt(facets: { leads: Facets; local: Facets }): string {
+const KIND_LABEL: Record<Kind, string> = { text: 'list, free text', enum: 'list, allowed values below', bool: 'yes/no', int: 'number', num: 'number' };
+const fieldList = (fields: Record<string, Field>) => Object.entries(fields).map(([k, f]) => `- ${k} (${KIND_LABEL[f.kind]}): ${f.describe}`).join('\n');
+
+export function systemPrompt(facets: { leads: Facets; local: Facets }, gaps: string[] = []): string {
   const L = facets.leads;
   const G = facets.local;
   return `You turn a sales rep's request into search filters for Decibel, a UK and EU outbound sales tool. You never answer in prose: you only return the JSON object described by the schema.
@@ -117,7 +154,7 @@ How to choose suggested_mode:
 - Requests about trades, shops, venues, local services, high-street or map-style businesses (plumbers, cafés, dentists, salons, garages, electricians, gyms, estate agents in a town) → "local".
 - If both could work, prefer the mode the user selected.
 
-Fill filters for the selected mode, always. If suggested_mode differs from the selected mode, ALSO fill the other mode's filters so the user can switch without asking again. Leave every filter you do not need as null. Never invent filters the request did not ask for, except: when the user asks for people "with a mobile" or "to call", set hasMobile true (leads) or hasPhone true (local).
+Fill filters for the selected mode, always. If suggested_mode differs from the selected mode, ALSO fill the other mode's filters so the user can switch without asking again. Each filter is one { field, values } entry; leave out every filter you do not need. List filters take every value; yes/no filters take ["yes"] or ["no"]; number filters take one number, e.g. ["50"]. Never invent filters the request did not ask for, except: when the user asks for people "with a mobile" or "to call", set hasMobile "yes" (leads) or hasPhone "yes" (local).
 
 Rules for leads:
 - Job titles: put the role words in titles, with common variants and abbreviations (CEO → "CEO", "Chief Executive"; founder → "Founder", "Co-Founder", "Owner"; MD → "Managing Director"; IT manager → "IT Manager", "Head of IT", "IT Director"). Use seniorities as well only when the request is about a level ("directors", "C-level", "senior people") rather than a specific role.
@@ -129,9 +166,16 @@ Rules for leads:
 Rules for local:
 - Trades and business types go in categories as simple singular words ("plumbing companies" → "plumber"; "coffee shops" → "cafe", "coffee shop").
 - Towns and areas go in cities; postcode areas go in postcodes. "UK" means countries ["GB"].
-- "No website" → hasWebsite false. "Mobile number" → mobileOnly true. "Good reviews" / "well rated" → minRating 4.5.
+- "No website" → hasWebsite "no". "Mobile number" → mobileOnly "yes". "Good reviews" / "well rated" → minRating 4.5.
 
 Write title and summary in plain British English, sentence case, no emoji.
+${gaps.length ? `\nLimits of the data right now:\n${gaps.map((g) => `- ${g}`).join('\n')}\n` : ''}
+
+Lead filter fields:
+${fieldList(LEAD_FIELDS)}
+
+Local filter fields:
+${fieldList(LOCAL_FIELDS)}
 
 Allowed values for leads:
 seniorities:
@@ -175,7 +219,7 @@ export function sanitize(mode: Mode, raw: unknown, facets: Facets): { filters: F
   const out: Filters = {};
   const dropped: string[] = [];
   if (!raw || typeof raw !== 'object') return { filters: out, dropped };
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+  for (const [k, v] of Object.entries(fromEntries(mode, raw))) {
     const f = fields[k];
     if (!f || v === null || v === undefined) continue;
     if (f.kind === 'bool') {

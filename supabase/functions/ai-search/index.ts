@@ -22,14 +22,36 @@ let cached: { at: number; prompt: string; facets: { leads: Facets; local: Facets
 /** Facet values for both databases, refreshed every 10 minutes per function instance. */
 async function vocabulary() {
   if (cached && Date.now() - cached.at < 10 * 60_000) return cached;
-  const { data, error } = await admin().from('search_facets').select('source,facet,value,n').order('n', { ascending: false }).limit(5000);
-  if (error) throw new Error(error.message);
+  // PostgREST returns at most 1,000 rows per request, so page through (about 2,800 rows)
+  const rows: { source: string; facet: string; value: string }[] = [];
+  for (let from = 0; from < 20_000; from += 1000) {
+    const { data, error } = await admin().from('search_facets').select('source,facet,value,n').order('n', { ascending: false }).order('value').range(from, from + 999);
+    if (error) throw new Error(error.message);
+    rows.push(...(data ?? []));
+    if ((data?.length ?? 0) < 1000) break;
+  }
   const facets: { leads: Facets; local: Facets } = { leads: {}, local: {} };
-  for (const r of data ?? []) {
+  for (const r of rows) {
     const bucket = facets[r.source as Mode];
     (bucket[r.facet] ??= []).push(r.value);
   }
-  cached = { at: Date.now(), prompt: systemPrompt(facets), facets };
+  // Yes/no filters that cannot match anything in the data right now (e.g. every local listing
+  // has a website), so the AI explains that in a note instead of building an empty search.
+  // Each probe uses a partial index from 0021, so these are instant.
+  const probes = [
+    { table: 'local_search', column: 'has_website', gap: 'Every local listing has a website, so "no website" cannot be searched. Do not use hasWebsite "no"; add a note saying so.' },
+    { table: 'local_search', column: 'has_phone', gap: 'Every local listing has a phone number, so "no phone" cannot be searched. Do not use hasPhone "no"; add a note saying so.' },
+    { table: 'lead_search', column: 'has_email', gap: 'Every lead has a work email, so "no email" cannot be searched. Do not use hasEmail "no"; add a note saying so.' },
+  ];
+  const gaps = (
+    await Promise.all(
+      probes.map(async (p) => {
+        const { data, error } = await admin().from(p.table).select(p.column).eq(p.column, false).limit(1);
+        return !error && (data ?? []).length === 0 ? p.gap : null;
+      }),
+    )
+  ).filter((g): g is string => !!g);
+  cached = { at: Date.now(), prompt: systemPrompt(facets, gaps), facets };
   return cached;
 }
 

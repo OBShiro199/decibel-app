@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Browser test for Search with AI. Signs a throwaway user in (cookie set directly), then drives
-// /app/ai in headless Chrome: mode pills, examples, the real function (expects "not switched on"
-// until ANTHROPIC_API_KEY is set, unless LIVE=1), and, with the AI answer intercepted, the
+// /app/ai in headless Chrome: mode pills, examples and, with the AI answer intercepted, the
 // loading view, the mode-mismatch prompt, results with editable chips, and Edit prompt.
+// NO_KEY=1 also checks the "not switched on" message (only when ANTHROPIC_API_KEY is unset).
 // With LIVE=1 it uses the real AI end to end instead of intercepting.
 //
 //   SUPABASE_SERVICE_ROLE_KEY=... node scripts/ai-ui.mjs http://localhost:3005
@@ -232,8 +232,8 @@ async function main() {
   check('An example card fills the prompt', filled.startsWith('CEOs of software'));
   await b.shot('ai-2-leads-mode');
 
-  // real call: without a key the function answers "not switched on"
-  if (!LIVE) {
+  // real call with the key unset (NO_KEY=1): the function answers "not switched on"
+  if (!LIVE && process.env.NO_KEY === '1') {
     await b.send('Fetch.disable');
     await b.evaluate(`document.querySelector('button[aria-label="Build the list"]').click()`);
     await waitFor(b, `document.body.innerText.includes('not switched on') || document.body.innerText.includes('not set up')`, 30000);
@@ -263,7 +263,8 @@ async function main() {
   const sizes = await b.evaluate('__t.cells(6)');
   check('Results open with the AI filters as editable chips', ['Job title', 'Industry', 'Exact employee count', 'Has mobile'].every((c) => chips.some((x) => x.startsWith(c))), chips.join(' | '));
   check('Every result matches the prompt (CEO title)', titles.length > 0 && titles.every((t) => /ceo|chief executive/i.test(t)), `${titles.length} rows`);
-  check('The banner shows the list name and prompt', await b.evaluate(`document.body.innerText.includes('Software CEOs, 50–100 staff')`));
+  // live answers word the name their own way, so only the canned run checks the exact text
+  check('The banner shows the list name and prompt', await b.evaluate(LIVE ? `document.body.innerText.includes('CEOs of software')` : `document.body.innerText.includes('Software CEOs, 50–100 staff')`));
   check('The usual selection actions are there (dialler, lists, export)', await b.evaluate(`(() => { const box = document.querySelector('main tbody tr td:first-child button'); box?.click(); return true; })()`) && (await sleep(400), await b.evaluate(`[...document.querySelectorAll('button')].some((x) => x.innerText.includes('Start dialler with')) && [...document.querySelectorAll('button')].some((x) => x.innerText.includes('Export CSV'))`)));
   await b.shot('ai-4-results');
 
@@ -286,7 +287,7 @@ async function main() {
   });
   await b.evaluate(`document.querySelector('button[aria-label="Build the list"]').click()`);
   await waitFor(b, `document.body.innerText.includes('This sounds like a local businesses search')`, 20000);
-  check('A mismatched prompt suggests the better search type', await b.evaluate(`document.body.innerText.includes('Plumbing firms are local trades')`));
+  check('A mismatched prompt suggests the better search type', await b.evaluate(LIVE ? `!!document.querySelector('[role=dialog]')?.innerText.match(/local/i)` : `document.body.innerText.includes('Plumbing firms are local trades')`));
   await b.shot('ai-5-mismatch');
   await b.evaluate(`[...document.querySelectorAll('[role=dialog] button')].find((x) => x.innerText.includes('Search local businesses')).click()`);
   await waitFor(b, `!!document.querySelector('[aria-label=Filters]') && document.querySelectorAll('main tbody tr').length > 0`, 40000);
