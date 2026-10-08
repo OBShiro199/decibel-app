@@ -50,5 +50,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.free-tools]
 verify_jwt = false
+[functions.ai-search]
+verify_jwt = false
 [functions.nightly]
 verify_jwt = false

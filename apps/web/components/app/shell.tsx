@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
 import { Check, ChevronsUpDown, Coins, LogOut, Mail, Phone, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
 import { FOUNDER } from '@/lib/site';
-import { AddressBook, Lightning, ListBullets, PhoneCall, PlugsConnected, SunDim } from '@phosphor-icons/react';
+import { AddressBook, Lightning, ListBullets, PhoneCall, PlugsConnected, Sparkle, SunDim } from '@phosphor-icons/react';
 import { GoogleIcon } from '@/components/ui/google-icon';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -34,6 +34,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     label: null,
     items: [
       { href: '/app', label: 'Today', icon: SunDim, exact: true },
+      { href: '/app/ai', label: 'Search with AI', icon: Sparkle },
       { href: '/app/leads', label: 'Leads', icon: AddressBook },
       { href: '/app/local', label: 'Local businesses', icon: GoogleNavIcon },
       // Companies is hidden for now: the page still exists at /app/companies. To bring the tab back,
