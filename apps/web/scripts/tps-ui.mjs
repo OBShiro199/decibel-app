@@ -236,8 +236,8 @@ async function main() {
 
   // ---- batch 1: 5 numbers -----------------------------------------------------
   await upload(b, batch1);
-  await waitFor(b, `!!document.querySelector('select[aria-label="Phone number column"]')`, 10000);
-  const picked = await b.evaluate(`(() => { const s = document.querySelector('select[aria-label="Phone number column"]'); return s.options[s.selectedIndex].text; })()`);
+  await waitFor(b, `!!document.querySelector('button[aria-label="Phone number column"]')`, 10000);
+  const picked = await b.evaluate(`document.querySelector('button[aria-label="Phone number column"]').innerText.trim()`);
   check('The phone column is found automatically', picked === 'mobile', picked);
   await waitFor(b, `__t.text().includes('UK numbers to check')`, 10000);
   const quoteText = await b.evaluate('__t.text()');
@@ -249,11 +249,13 @@ async function main() {
   await waitFor(b, `!!document.querySelector('[data-testid=tps-job]')`, 10000);
   check('Starting a check opens the live view', await b.evaluate(`!!document.querySelector('[data-testid=tps-job]')`));
   check('The URL keeps the check, so a refresh comes back to it', await b.evaluate(`location.search.startsWith('?job=')`));
-  await sleep(250);
+  await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 5 || !!document.querySelector('[role=radiogroup][aria-label="Show rows"]')`, 10000);
   await b.shot('tps-3-live');
-  const sawLive = await b.evaluate(`__t.text().includes('Checked') || __t.text().includes('Checking')`);
-  await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 5 && !document.querySelector('[data-testid=tps-results] .skeleton')`, 60000);
-  check('The check runs live and finishes on its own', sawLive && (await b.evaluate(`__t.results().length`)) === 5, `${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  const liveView = await b.evaluate(`({ bars: document.querySelectorAll('[data-testid=tps-job] [role=progressbar]').length, rows: document.querySelectorAll('[data-testid=tps-results] tbody tr').length, tiles: __t.text().includes('Invalid or blank') })`);
+  check('While checking, the uploaded rows show in the table under a single progress bar', liveView.bars === 1 && liveView.rows === 5 && !liveView.tiles, JSON.stringify(liveView));
+  await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 5 && !!document.querySelector('[role=radiogroup][aria-label="Show rows"]')`, 60000);
+  check('The check finishes on its own and switches to the results', (await b.evaluate(`__t.results().length`)) === 5, `${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  check('Confetti when it finishes', (await b.evaluate(`window.__tpsConfetti ?? 0`)) >= 1);
   const res1 = await b.evaluate('__t.results()');
   check('Each row shows its status: UK numbers valid or DNC, others not UK', res1.every((r, i) => (mobiles[i].startsWith('+44') ? /^(Valid|DNC)/.test(r[2]) : r[2] === 'Not UK')), res1.map((r) => r[2]).join(', '));
   check('Row numbers match the spreadsheet', res1[0][0] === '2' && res1[4][0] === '6');
@@ -268,22 +270,31 @@ async function main() {
   await b.evaluate(`__t.click('All rows')`);
   await sleep(300);
 
-  // downloads
-  let before = readdirSync(downloads);
-  await b.evaluate(`[...document.querySelectorAll('[data-testid=tps-job] button')].find((x) => x.innerText.trim() === 'CSV').click()`);
-  const csvPath = await newDownload(downloads, before, '.csv');
-  const csv = csvPath ? parseCsv(readFileSync(csvPath, 'utf8').replace(/^﻿/, '')) : [];
-  check('CSV download is the original file plus TPS columns', csv[0]?.slice(-4).join('|') === 'TPS status|TPS registered|CTPS registered|Checked on' && csv[0]?.[0] === 'first_name' && csv.length === 6, csvPath ?? 'no file');
+  // exports: one menu, four formats
+  const exportAs = async (label, ext) => {
+    const before = readdirSync(downloads);
+    await b.evaluate(`[...document.querySelectorAll('[data-testid=tps-job] button')].find((x) => x.innerText.trim().startsWith('Export')).click()`);
+    await sleep(250);
+    await b.evaluate(`__t.click(${JSON.stringify(label)})`);
+    return newDownload(downloads, before, ext);
+  };
+  const csvPath = await exportAs('Export as CSV', '.csv');
+  const csv = csvPath ? parseCsv(readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '')) : [];
+  check('CSV export is the original file plus TPS columns', csv[0]?.slice(-4).join('|') === 'TPS status|TPS registered|CTPS registered|Checked on' && csv[0]?.[0] === 'first_name' && csv.length === 6, csvPath ?? 'no file');
   check('…with VALID / DNC / NOT UK values in the status column', csv.slice(1).every((r, i) => (mobiles[i].startsWith('+44') ? /^(VALID|DNC)/.test(r.at(-4)) : r.at(-4) === 'NOT UK (NOT CHECKED)')), csv.slice(1).map((r) => r.at(-4)).join(', '));
-  before = readdirSync(downloads);
-  await b.evaluate(`[...document.querySelectorAll('[data-testid=tps-job] button')].find((x) => x.innerText.trim() === 'Excel').click()`);
-  const xlsxPath = await newDownload(downloads, before, '.xlsx');
+  const xlsxPath = await exportAs('Export as XLSX', '.xlsx');
   let sheet = [];
   if (xlsxPath) {
     const { readSheet } = await import('read-excel-file/node');
     sheet = await readSheet(xlsxPath);
   }
-  check('Excel download opens with the same rows and status column', sheet.length === 6 && sheet[0].includes('TPS status') && sheet[1][sheet[0].indexOf('TPS status')] === csv[1].at(-4), xlsxPath ?? 'no file');
+  check('XLSX export opens with the same rows and status column', sheet.length === 6 && sheet[0].includes('TPS status') && sheet[1][sheet[0].indexOf('TPS status')] === csv[1].at(-4), xlsxPath ?? 'no file');
+  const mdPath = await exportAs('Export as Markdown', '.md');
+  const md = mdPath ? readFileSync(mdPath, 'utf8').trim().split('\n') : [];
+  check('Markdown export is a table with a header, divider and 5 rows', md.length === 7 && md[0].includes('| TPS status |') && md[1].startsWith('| --- |'), mdPath ?? 'no file');
+  const jsonPath = await exportAs('Export as JSON', '.json');
+  const json = jsonPath ? JSON.parse(readFileSync(jsonPath, 'utf8')) : [];
+  check('JSON export has one object per row with the TPS status', json.length === 5 && json[0].first_name === csv[1][0] && json[0]['TPS status'] === csv[1].at(-4), jsonPath ?? 'no file');
 
   // ---- batch 2: 5 UK mobiles ----------------------------------------------------
   await b.evaluate(`__t.click('Check another file')`);
@@ -292,7 +303,7 @@ async function main() {
   await waitFor(b, `__t.text().includes('Check 5 numbers')`, 10000);
   check('Batch 2 quotes 5 numbers', await b.evaluate(`__t.text().includes('Check 5 numbers')`));
   await b.evaluate(`__t.click('Check 5 numbers')`);
-  await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 5 && !document.querySelector('[data-testid=tps-results] .skeleton')`, 60000);
+  await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 5 && !!document.querySelector('[role=radiogroup][aria-label="Show rows"]')`, 60000);
   check('Batch 2 checks all 5 mobiles', (await b.evaluate('__t.results()')).every((r) => /^(Valid|DNC)/.test(r[2])));
   check('History lists both checks, newest first', (await b.evaluate('__t.history()')).length === 2 && (await b.evaluate('__t.history()'))[0].startsWith('batch-2.csv'));
 
@@ -304,7 +315,7 @@ async function main() {
   check('Re-checking numbers from the last 28 days is free', await b.evaluate(`__t.text().includes('Checked in the last 28 days (free)') && __t.text().includes('Get results (free)')`));
   const creditsBefore = await b.evaluate('__t.credits()');
   await b.evaluate(`__t.click('Get results (free)')`);
-  await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 10`, 20000);
+  await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 10 && !!document.querySelector('[role=radiogroup][aria-label="Show rows"]')`, 20000);
   check('…and finishes instantly without using credits', (await b.evaluate('__t.results()')).length === 10 && (await b.evaluate('__t.credits()')) === creditsBefore);
   await b.shot('tps-5-history');
 

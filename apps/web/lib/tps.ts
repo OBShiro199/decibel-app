@@ -99,32 +99,25 @@ export const tpsJobQuery = (jobId: string) =>
     },
   });
 
-export interface LatestCheck {
+export interface LiveNumber {
   e164: string;
   status: string;
   on_tps: boolean | null;
   on_ctps: boolean | null;
-  reused: boolean;
   checked_at: string | null;
 }
-/** The most recent answers on a running check, for the live feed. */
-export const tpsLatestQuery = (jobId: string) =>
+/** Every number's state on a running check (small: e164 and flags), merged into the rows live. */
+export const tpsLiveQuery = (jobId: string) =>
   queryOptions({
-    queryKey: ['tps-latest', jobId],
+    queryKey: ['tps-live', jobId],
     queryFn: async () => {
-      const { data, error } = await supabase()
-        .from('tps_job_numbers')
-        .select('e164,status,on_tps,on_ctps,reused,checked_at')
-        .eq('job_id', jobId)
-        .in('status', ['done', 'invalid'])
-        .order('checked_at', { ascending: false })
-        .limit(6);
+      const { data, error } = await supabase().from('tps_job_numbers').select('e164,status,on_tps,on_ctps,checked_at').eq('job_id', jobId);
       if (error) throw new Error(error.message);
-      return (data ?? []) as LatestCheck[];
+      return (data ?? []) as LiveNumber[];
     },
   });
-export const latestOutcome = (n: LatestCheck): Outcome =>
-  n.status === 'invalid' ? 'invalid' : n.on_tps && n.on_ctps ? 'both' : n.on_tps ? 'tps' : n.on_ctps ? 'ctps' : 'valid';
+export const numberOutcome = (n: LiveNumber): Outcome =>
+  n.status === 'done' ? (n.on_tps && n.on_ctps ? 'both' : n.on_tps ? 'tps' : n.on_ctps ? 'ctps' : 'valid') : n.status === 'invalid' ? 'invalid' : n.status === 'error' || n.status === 'skipped' ? 'unchecked' : 'pending';
 
 export interface ResultRow {
   row_no: number;
@@ -281,7 +274,9 @@ function table(job: TpsJob, rows: ResultRow[], filter: RowFilter): string[][] {
   return [headers, ...body];
 }
 
-export function outputName(job: TpsJob, filter: RowFilter, ext: 'csv' | 'xlsx') {
+export type ExportFormat = 'csv' | 'xlsx' | 'md' | 'json';
+
+export function outputName(job: TpsJob, filter: RowFilter, ext: ExportFormat) {
   const base = job.file_name.replace(/\.(csv|tsv|txt|xlsx)$/i, '');
   const tag = filter === 'all' ? 'checked' : filter === 'callable' ? 'callable' : filter === 'dnc' ? 'do-not-call' : 'other';
   return `${base}-tps-${tag}.${ext}`;
@@ -298,8 +293,27 @@ function save(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function downloadChecked(job: TpsJob, rows: ResultRow[], filter: RowFilter, ext: 'csv' | 'xlsx') {
+export async function downloadChecked(job: TpsJob, rows: ResultRow[], filter: RowFilter, ext: ExportFormat) {
   const t = table(job, rows, filter);
+  if (ext === 'json') {
+    // keys follow the header row; a repeated header gets a number so nothing is overwritten
+    const count = new Map<string, number>();
+    const keys = t[0].map((h) => {
+      const n = (count.get(h) ?? 0) + 1;
+      count.set(h, n);
+      return n === 1 ? h : `${h} (${n})`;
+    });
+    const objects = t.slice(1).map((r) => Object.fromEntries(keys.map((k, i) => [k, r[i] ?? ''])));
+    save(new Blob([JSON.stringify(objects, null, 2)], { type: 'application/json' }), outputName(job, filter, 'json'));
+    return;
+  }
+  if (ext === 'md') {
+    const cell = (v: string) => v.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+    const line = (r: string[]) => `| ${r.map(cell).join(' | ')} |`;
+    const md = [line(t[0]), `| ${t[0].map(() => '---').join(' | ')} |`, ...t.slice(1).map(line)].join('\n') + '\n';
+    save(new Blob([md], { type: 'text/markdown;charset=utf-8' }), outputName(job, filter, 'md'));
+    return;
+  }
   if (ext === 'csv') {
     const Papa = (await import('papaparse')).default;
     // BOM so Excel opens UTF-8 names correctly

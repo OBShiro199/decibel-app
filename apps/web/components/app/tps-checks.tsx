@@ -5,14 +5,19 @@
 // parses the file, shows the exact cost, follows the check live and offers the downloads.
 import {
   ArrowCounterClockwise,
+  BracketsCurly,
+  CaretDown,
   CaretLeft,
   CaretRight,
+  Check,
   Coins,
   DotsThree,
   DownloadSimple,
   FileCsv,
+  FileText,
   FileXls,
   Info,
+  Phone,
   ShieldCheck,
   Trash,
   UploadSimple,
@@ -26,27 +31,26 @@ import { track } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase/client';
 import {
   ACCEPT,
-  BAR_ORDER,
   creditsUsed,
   detectPhoneColumn,
   downloadChecked,
   explainError,
   fetchQuote,
   isLive,
-  latestOutcome,
+  numberOutcome,
   matchesFilter,
   MAX_ROWS,
   OUTCOMES,
-  prettyUk,
   readFile,
   rowCounts,
   TOP_UP_MESSAGE,
   tpsCreditsQuery,
   tpsJobQuery,
   tpsJobsQuery,
-  tpsLatestQuery,
+  tpsLiveQuery,
   tpsResultsQuery,
   WELCOME_TPS_CREDITS,
+  type ExportFormat,
   type Outcome,
   type ParsedFile,
   type RowFilter,
@@ -56,6 +60,7 @@ import { cn, timeAgo } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { openSupport } from '@/components/app/support-widget';
+import { confetti } from '@/components/ui/confetti';
 
 const BLUE = '#5f86e0';
 const n = (v: number) => v.toLocaleString('en-GB');
@@ -73,34 +78,6 @@ function OutcomeTag({ outcome }: { outcome: Outcome }) {
 
 function Dot({ outcome }: { outcome: Outcome }) {
   return <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: OUTCOMES[outcome].bar }} aria-hidden />;
-}
-
-/** The pastel segmented bar: one segment per outcome, with the unchecked part striped and moving. */
-function ResultBar({ job, height = 10 }: { job: TpsJob; height?: number }) {
-  const counts = rowCounts(job);
-  const live = isLive(job);
-  return (
-    <div
-      className="flex w-full gap-[2px] overflow-hidden rounded-full bg-white-300"
-      style={{ height }}
-      role="progressbar"
-      aria-label="Check progress"
-      aria-valuemin={0}
-      aria-valuemax={job.total_rows}
-      aria-valuenow={job.total_rows - counts.pending}
-    >
-      {BAR_ORDER.map((o) =>
-        counts[o] ? (
-          <span key={o} title={`${OUTCOMES[o].label}: ${n(counts[o])}`} className="h-full transition-[flex-grow] duration-500 ease-[cubic-bezier(0.2,0,0,1)]" style={{ flexGrow: counts[o], flexBasis: 0, background: OUTCOMES[o].bar }} />
-        ) : null,
-      )}
-      {counts.pending ? (
-        <span className="relative h-full overflow-hidden transition-[flex-grow] duration-500" style={{ flexGrow: counts.pending, flexBasis: 0 }}>
-          {live ? <span className="tps-stripes" /> : <span className="absolute inset-0 bg-white-300" />}
-        </span>
-      ) : null}
-    </div>
-  );
 }
 
 function StatusTag({ job }: { job: TpsJob }) {
@@ -266,25 +243,17 @@ function Prepare({ file, onCancel, onStarted }: { file: ParsedFile; onCancel: ()
 
       <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 border-white-800 p-4 md:border-r">
-          <label className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-black-700">Phone numbers are in</span>
-            <select
+            <ColumnPicker
+              file={file}
               value={column}
-              onChange={(e) => {
-                setColumn(Number(e.target.value));
+              onChange={(i) => {
+                setColumn(i);
                 setError(null);
               }}
-              aria-label="Phone number column"
-              className="h-8 max-w-[260px] rounded-sm border border-btnborder bg-white-100 px-2 font-medium text-black-400 hover:border-white-900 focus:border-[#9db4ec] focus:outline-none"
-            >
-              {column < 0 ? <option value={-1}>Choose a column</option> : null}
-              {file.headers.map((h, i) => (
-                <option key={i} value={i}>
-                  {h}
-                </option>
-              ))}
-            </select>
-          </label>
+            />
+          </div>
 
           <div className="mt-4 overflow-x-auto rounded-md border border-white-800">
             <table className="w-full min-w-[480px] table-fixed border-collapse">
@@ -374,6 +343,56 @@ function Prepare({ file, onCancel, onStarted }: { file: ParsedFile; onCancel: ()
   );
 }
 
+/** Which column holds the phone numbers: a quiet button and a menu with a sample from each column. */
+function ColumnPicker({ file, value, onChange }: { file: ParsedFile; value: number; onChange: (i: number) => void }) {
+  const sample = (i: number) => file.rows.find((r) => r[i]?.trim())?.[i]?.trim() ?? 'Empty';
+  return (
+    <Popover
+      trigger={({ open, toggle }) => (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label="Phone number column"
+          className={cn(
+            'inline-flex h-8 max-w-[280px] items-center gap-2 rounded-sm border bg-white-100 pl-2.5 pr-2 text-black-400 transition-colors',
+            open ? 'border-white-900' : 'border-btnborder hover:border-white-900',
+          )}
+        >
+          <Phone size={14} className="shrink-0 text-black-700" />
+          <span className="truncate font-medium">{value >= 0 ? file.headers[value] : 'Choose a column'}</span>
+          <CaretDown size={11} weight="bold" className={cn('shrink-0 text-black-700 transition-transform duration-150', open && 'rotate-180')} />
+        </button>
+      )}
+    >
+      {(close) => (
+        <div role="listbox" aria-label="Columns" className="max-h-[320px] w-[300px] overflow-y-auto p-1">
+          {file.headers.map((h, i) => (
+            <button
+              key={i}
+              type="button"
+              role="option"
+              aria-selected={i === value}
+              onClick={() => {
+                onChange(i);
+                close();
+              }}
+              className={cn('flex w-full items-center gap-2.5 rounded-sm px-2 py-1.5 text-left hover:bg-white-300', i === value && 'bg-[#f5f8fe]')}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-black-400">{h}</span>
+                <span className="block truncate tabular-nums text-black-700">{sample(i)}</span>
+              </span>
+              {i === value ? <Check size={14} weight="bold" className="shrink-0" style={{ color: BLUE }} /> : null}
+            </button>
+          ))}
+        </div>
+      )}
+    </Popover>
+  );
+}
+
 function QuoteLine({ dot, label, value, strong }: { dot: string; label: string; value: number; strong?: boolean }) {
   return (
     <li className="flex items-center gap-2">
@@ -381,6 +400,39 @@ function QuoteLine({ dot, label, value, strong }: { dot: string; label: string; 
       <span className={cn('flex-1', strong ? 'text-black-400' : 'text-black-700')}>{label}</span>
       <span className={cn('tabular-nums', strong ? 'font-medium text-black-400' : 'text-black-700')}>{n(value)}</span>
     </li>
+  );
+}
+
+// ---- export ------------------------------------------------------------------------------------
+const FORMATS: { ext: ExportFormat; label: string; icon: typeof FileCsv }[] = [
+  { ext: 'csv', label: 'Export as CSV', icon: FileCsv },
+  { ext: 'xlsx', label: 'Export as XLSX', icon: FileXls },
+  { ext: 'md', label: 'Export as Markdown', icon: FileText },
+  { ext: 'json', label: 'Export as JSON', icon: BracketsCurly },
+];
+
+function ExportMenu({ note, disabled, onExport }: { note: string; disabled?: boolean; onExport: (ext: ExportFormat) => void }) {
+  return (
+    <Popover
+      align="right"
+      trigger={({ open, toggle }) => (
+        <Button size="compact" onClick={toggle} disabled={disabled} aria-haspopup="menu" aria-expanded={open}>
+          <DownloadSimple size={14} /> Export
+          <CaretDown size={11} weight="bold" className={cn('text-black-700 transition-transform duration-150', open && 'rotate-180')} />
+        </Button>
+      )}
+    >
+      {(close) => (
+        <div className="w-[220px] p-1">
+          <p className="truncate px-2 pb-1 pt-1.5 text-black-700">{note}</p>
+          {FORMATS.map((f) => (
+            <MenuItem key={f.ext} onClick={() => (close(), onExport(f.ext))}>
+              <f.icon size={15} className="text-black-700" /> {f.label}
+            </MenuItem>
+          ))}
+        </div>
+      )}
+    </Popover>
   );
 }
 
@@ -394,11 +446,13 @@ function eta(job: TpsJob): string {
   const left = job.numbers_total - job.numbers_done;
   const elapsed = (Date.now() - new Date(job.created_at).getTime()) / 1000;
   const live = Math.max(job.numbers_done - job.numbers_reused, 0);
-  if (!left) return 'Finishing…';
-  if (live < 3 || elapsed < 2) return 'Working out the time left…';
+  if (!left) return 'finishing';
+  if (live < 3 || elapsed < 2) return 'working out the time left';
   const secs = Math.ceil((left / live) * elapsed);
-  return secs < 60 ? `About ${secs}s left` : `About ${Math.ceil(secs / 60)} min left`;
+  return secs < 60 ? `about ${secs}s left` : `about ${Math.ceil(secs / 60)} min left`;
 }
+
+const FILTER_NOTE: Record<RowFilter, string> = { all: 'All rows', callable: 'Valid rows', dnc: 'Do-not-call rows', other: 'Other rows' };
 
 function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
   const { workspace } = useApp();
@@ -407,22 +461,26 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
   const job = useQuery({ ...tpsJobQuery(jobId), refetchInterval: (q) => (q.state.data && !q.state.data.finished_at ? 700 : false) });
   const j = job.data;
   const live = isLive(j);
-  const latest = useQuery({ ...tpsLatestQuery(jobId), enabled: live, refetchInterval: live ? 900 : false });
-  const results = useQuery({ ...tpsResultsQuery(jobId), enabled: !!j?.finished_at });
+  // the uploaded rows load once; while the check runs, only each number's state is polled and merged in
+  const results = useQuery({ ...tpsResultsQuery(jobId), enabled: !!j });
+  const numbers = useQuery({ ...tpsLiveQuery(jobId), enabled: live, refetchInterval: live ? 800 : false });
   const [filter, setFilter] = useState<RowFilter>('all');
   const [page, setPage] = useState(0);
   const [, tick] = useState(0);
+  const tableRef = useRef<HTMLDivElement>(null);
 
-  // settle: refresh credits and history the moment a check finishes
-  const wasLive = useRef(live);
+  // the moment a check finishes: reload the final rows, credits and history
+  const wasLive = useRef<boolean | null>(null);
   useEffect(() => {
-    if (wasLive.current && j?.finished_at) {
+    if (!j) return;
+    if (wasLive.current === true && j.finished_at) {
+      void qc.invalidateQueries({ queryKey: ['tps-results', jobId] });
       void qc.invalidateQueries({ queryKey: ['tps-credits', workspace.id] });
       void qc.invalidateQueries({ queryKey: ['tps-jobs', workspace.id] });
       track('tps_check_finished', { status: j.status, rows: j.total_rows });
     }
-    wasLive.current = live;
-  }, [live, j?.finished_at, j?.status, j?.total_rows, qc, workspace.id]);
+    wasLive.current = !j.finished_at;
+  }, [j, jobId, qc, workspace.id]);
   // keep the time-left estimate moving between polls
   useEffect(() => {
     if (!live) return;
@@ -438,6 +496,31 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['tps-job', jobId] }),
     onError: () => toast('That check could not be cancelled. Try again.'),
   });
+
+  const rows = useMemo(() => {
+    const base = results.data ?? [];
+    if (!numbers.data) return base;
+    const state = new Map(numbers.data.map((x) => [x.e164, x]));
+    return base.map((r) => {
+      const s = r.e164 ? state.get(r.e164) : undefined;
+      return s && r.outcome === 'pending' ? { ...r, outcome: numberOutcome(s), checked_at: s.checked_at } : r;
+    });
+  }, [results.data, numbers.data, live]);
+
+  // results show once the check has finished and every row has its final answer
+  const ready = !!j?.finished_at && !!results.data && !results.isFetching && !rows.some((r) => r.outcome === 'pending');
+
+  const wasReady = useRef<boolean | null>(null);
+  useEffect(() => {
+    const fresh = wasReady.current === false || (wasReady.current === null && !!j?.finished_at && Date.now() - new Date(j.finished_at).getTime() < 4000);
+    if (ready && fresh && j?.status === 'done') {
+      const r = tableRef.current?.getBoundingClientRect();
+      confetti(r ? { x: r.left + r.width / 2, y: r.top + 24 } : undefined);
+      const w = window as unknown as { __tpsConfetti?: number };
+      w.__tpsConfetti = (w.__tpsConfetti ?? 0) + 1;
+    }
+    if (j) wasReady.current = ready;
+  }, [ready, j]);
 
   if (job.isLoading) {
     return (
@@ -460,8 +543,7 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
 
   const counts = rowCounts(j);
   const dnc = counts.tps + counts.ctps + counts.both;
-  const rows = results.data ?? [];
-  const shown = rows.filter((r) => matchesFilter(r.outcome, filter));
+  const shown = ready ? rows.filter((r) => matchesFilter(r.outcome, filter)) : rows;
   const PAGE = 50;
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
   const slice = shown.slice(page * PAGE, page * PAGE + PAGE);
@@ -472,25 +554,19 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
     { id: 'dnc', label: 'Do not call', count: dnc },
     { id: 'other', label: 'Other', count: j.total_rows - counts.valid - dnc },
   ];
-  const tiles: { o: Outcome; count: number; label?: string }[] = [
-    { o: 'valid', count: counts.valid },
-    { o: 'tps', count: counts.tps },
-    { o: 'ctps', count: counts.ctps },
-    { o: 'both', count: counts.both },
-    { o: 'not_uk', count: counts.not_uk },
-    { o: 'invalid', count: counts.invalid + counts.missing + counts.unchecked, label: 'Invalid or blank' },
-  ];
+  const pct = j.numbers_total ? Math.max(4, Math.round((j.numbers_done / j.numbers_total) * 100)) : 100;
 
-  async function download(ext: 'csv' | 'xlsx') {
+  async function exportAs(ext: ExportFormat) {
     if (!j) return;
-    const data = rows.length ? rows : await qc.fetchQuery(tpsResultsQuery(j.id));
+    const data = results.data?.length ? rows : await qc.fetchQuery(tpsResultsQuery(j.id));
+    if (!data.filter((r) => matchesFilter(r.outcome, filter)).length) return toast('No rows to export with this filter.');
     await downloadChecked(j, data, filter, ext);
     track('tps_download', { ext, filter });
   }
 
   return (
     <section className="ai-pop overflow-hidden rounded-md border border-white-800" aria-label={live ? 'Check in progress' : 'Check results'} data-testid="tps-job">
-      <header className="flex flex-wrap items-center gap-3 px-5 pb-1 pt-4">
+      <header className="flex flex-wrap items-center gap-3 px-5 py-4">
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2">
             <span className="truncate font-medium text-black-400">{j.file_name}</span>
@@ -500,156 +576,133 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
             {live
               ? j.status === 'cancelled'
                 ? 'Stopping after the numbers already in progress…'
-                : `Checked ${n(j.numbers_done)} of ${plural(j.numbers_total, 'number')} · ${eta(j)}`
+                : `Checking ${n(j.numbers_done)} of ${plural(j.numbers_total, 'number')}, ${eta(j)}`
               : j.status === 'failed'
                 ? failureText(j)
-                : `${plural(j.total_rows, 'row')} · ${plural(j.numbers_total, 'unique UK number')} · ${plural(creditsUsed(j), 'credit')} used${j.numbers_reused ? ` · ${n(j.numbers_reused)} reused free` : ''}${j.credits_refunded ? ` · ${n(j.credits_refunded)} refunded` : ''} · ${timeAgo(j.finished_at)}`}
+                : `${plural(j.total_rows, 'row')} · ${plural(j.numbers_total, 'unique UK number')} · ${plural(creditsUsed(j), 'credit')} used${j.numbers_reused ? ` · ${n(j.numbers_reused)} reused free` : ''}${j.credits_refunded ? ` · ${n(j.credits_refunded)} refunded` : ''}`}
           </p>
         </div>
         {live && j.status === 'running' ? (
           <Button variant="ghost" size="compact" loading={cancel.isPending} onClick={() => cancel.mutate()}>
             <X size={14} /> Cancel
           </Button>
-        ) : !live ? (
-          <Button size="compact" onClick={onClose}>
-            <UploadSimple size={14} /> Check another file
-          </Button>
+        ) : ready ? (
+          <div className="ai-pop flex items-center gap-2">
+            <ExportMenu note={`${FILTER_NOTE[filter]} · ${plural(filters.find((f) => f.id === filter)?.count ?? 0, 'row')}`} disabled={!results.data} onExport={(ext) => void exportAs(ext)} />
+            <Button size="compact" onClick={onClose}>
+              <UploadSimple size={14} /> Check another file
+            </Button>
+          </div>
         ) : null}
       </header>
 
-      <div className="px-5 pb-5 pt-3">
-        <ResultBar job={j} height={12} />
-        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-white-800 bg-white-800 sm:grid-cols-3 lg:grid-cols-6">
-          {tiles.map((t) => (
-            <div key={t.o} className="bg-white-100 px-3.5 py-3" title={OUTCOMES[t.o].hint}>
-              <p className="flex items-center gap-1.5 text-black-700">
-                <Dot outcome={t.o} />
-                <span className="truncate">{t.label ?? OUTCOMES[t.o].label}</span>
-              </p>
-              <p className="t-h3 mt-1 tabular-nums">{n(t.count)}</p>
-              <p className="tabular-nums text-black-700">{j.total_rows ? `${Math.round((t.count / j.total_rows) * 100)}%` : '0%'}</p>
-            </div>
+      {ready ? (
+        <div className="ai-pop flex flex-wrap gap-1.5 px-5 pb-3" role="radiogroup" aria-label="Show rows">
+          {filters.map((f) => (
+            <button
+              key={f.id}
+              role="radio"
+              aria-checked={filter === f.id}
+              onClick={() => {
+                setFilter(f.id);
+                setPage(0);
+              }}
+              className={cn(
+                'flex h-7 items-center gap-1.5 rounded-sm border px-2.5 transition-colors',
+                filter === f.id ? 'border-[#c4d1f2] bg-[#f2f5fe] text-[#3653a3]' : 'border-white-800 text-black-700 hover:border-white-900 hover:text-black-400',
+              )}
+            >
+              {f.label} <span className="tabular-nums opacity-70">{n(f.count)}</span>
+            </button>
           ))}
         </div>
+      ) : null}
 
-        {live ? (
-          <div className="mt-4">
-            <p className="text-black-700">Latest answers</p>
-            <ul className="mt-2 divide-y divide-white-800 rounded-md border border-white-800" aria-live="polite">
-              {(latest.data ?? []).length === 0 ? (
-                <li className="flex h-9 items-center gap-2 px-3 text-black-700">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white-800" style={{ borderTopColor: BLUE }} /> Asking the TPS and CTPS registers…
-                </li>
-              ) : (
-                (latest.data ?? []).map((x) => (
-                  <li key={x.e164} className="tps-in flex h-9 items-center gap-3 px-3">
-                    <span className="w-[130px] tabular-nums text-black-400">{prettyUk(x.e164)}</span>
-                    <OutcomeTag outcome={latestOutcome(x)} />
-                    {x.reused ? <span className="text-black-700">checked recently, free</span> : null}
-                    <span className="ml-auto tabular-nums text-black-700">{x.checked_at ? new Date(x.checked_at).toLocaleTimeString('en-GB') : ''}</span>
-                  </li>
-                ))
-              )}
-            </ul>
+      <div ref={tableRef} className="relative border-t border-white-800">
+        {/* the one progress bar, along the top of the table */}
+        <div
+          className={cn('absolute inset-x-0 top-0 z-[1] h-[3px] overflow-hidden bg-[#edf2fd] transition-opacity duration-500', !ready ? 'opacity-100' : 'pointer-events-none opacity-0')}
+          role="progressbar"
+          aria-label="Check progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={live ? pct : 100}
+        >
+          <div className="relative h-full overflow-hidden rounded-r-full transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)]" style={{ width: `${live ? pct : 100}%` }}>
+            <span className="tps-stripes-fill" />
           </div>
-        ) : (
-          <div className="mt-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Show rows">
-                {filters.map((f) => (
-                  <button
-                    key={f.id}
-                    role="radio"
-                    aria-checked={filter === f.id}
-                    onClick={() => {
-                      setFilter(f.id);
-                      setPage(0);
-                    }}
-                    className={cn(
-                      'flex h-7 items-center gap-1.5 rounded-sm border px-2.5 transition-colors',
-                      filter === f.id ? 'border-[#c4d1f2] bg-[#f2f5fe] text-[#3653a3]' : 'border-white-800 text-black-700 hover:border-white-900 hover:text-black-400',
-                    )}
-                  >
-                    {f.label} <span className="tabular-nums opacity-70">{n(f.count)}</span>
-                  </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] table-fixed border-collapse" data-testid="tps-results">
+            <thead>
+              <tr className="border-b border-white-800 text-left text-black-700">
+                <th className="w-14 px-5 py-2 font-normal">Row</th>
+                <th className="w-[150px] px-3 py-2 font-normal">{j.headers[j.phone_column]}</th>
+                <th className="w-[150px] px-3 py-2 font-normal">TPS status</th>
+                <th className="w-[110px] px-3 py-2 font-normal">Checked on</th>
+                {others.map((c) => (
+                  <th key={c.i} className="truncate px-3 py-2 font-normal">
+                    {c.h}
+                  </th>
                 ))}
-              </div>
-              <div className="ml-auto flex gap-2">
-                <Button size="compact" onClick={() => void download('csv')} disabled={!shown.length && !!results.data}>
-                  <DownloadSimple size={14} /> CSV
-                </Button>
-                <Button size="compact" onClick={() => void download('xlsx')} disabled={!shown.length && !!results.data}>
-                  <DownloadSimple size={14} /> Excel
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-3 overflow-x-auto rounded-md border border-white-800">
-              <table className="w-full min-w-[760px] table-fixed border-collapse" data-testid="tps-results">
-                <thead>
-                  <tr className="border-b border-white-800 text-left text-black-700">
-                    <th className="w-12 px-3 py-2 font-normal">Row</th>
-                    <th className="w-[150px] px-3 py-2 font-normal">{j.headers[j.phone_column]}</th>
-                    <th className="w-[150px] px-3 py-2 font-normal">TPS status</th>
-                    <th className="w-[110px] px-3 py-2 font-normal">Checked on</th>
-                    {others.map((c) => (
-                      <th key={c.i} className="truncate px-3 py-2 font-normal">
-                        {c.h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {results.isLoading
-                    ? Array.from({ length: 5 }, (_, i) => (
-                        <tr key={i} className="border-b border-white-800">
-                          <td colSpan={4 + others.length} className="px-3 py-2.5">
-                            <span className="skeleton block h-3.5 w-2/3" />
-                          </td>
-                        </tr>
-                      ))
-                    : slice.map((r) => (
-                        <tr key={r.row_no} className="border-b border-white-800 last:border-0">
-                          <td className="px-3 py-2 tabular-nums text-black-700">{r.row_no + 2}</td>
-                          <td className="truncate px-3 py-2 tabular-nums text-black-400">{r.phone_raw || <span className="text-white-900">Blank</span>}</td>
-                          <td className="px-3 py-2">
-                            <OutcomeTag outcome={r.outcome} />
-                          </td>
-                          <td className="px-3 py-2 tabular-nums text-black-700">{r.checked_at ? new Date(r.checked_at).toLocaleDateString('en-GB') : ''}</td>
-                          {others.map((c) => (
-                            <td key={c.i} className="truncate px-3 py-2 text-black-700">
-                              {r.cells[c.i]}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                  {results.data && !shown.length ? (
-                    <tr>
-                      <td colSpan={4 + others.length} className="px-3 py-6 text-center text-black-700">
-                        {rows.length ? 'No rows match this filter.' : 'The uploaded rows for this check have been deleted (files are kept for 90 days).'}
+              </tr>
+            </thead>
+            <tbody>
+              {results.isLoading
+                ? Array.from({ length: 5 }, (_, i) => (
+                    <tr key={i} className="border-b border-white-800">
+                      <td colSpan={4 + others.length} className="px-5 py-2.5">
+                        <span className="skeleton block h-3.5 w-2/3" />
                       </td>
                     </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-            {pages > 1 ? (
-              <div className="mt-2 flex items-center justify-end gap-2 text-black-700">
-                <span className="tabular-nums">
-                  {n(page * PAGE + 1)}–{n(Math.min((page + 1) * PAGE, shown.length))} of {n(shown.length)}
-                </span>
-                <Button variant="ghost" size="icon-compact" aria-label="Previous page" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                  <CaretLeft size={14} />
-                </Button>
-                <Button variant="ghost" size="icon-compact" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage((p) => p + 1)}>
-                  <CaretRight size={14} />
-                </Button>
-              </div>
-            ) : null}
-            <p className="mt-2 text-black-700">Row numbers match your spreadsheet (row 1 is the header). Downloads add TPS status, TPS registered, CTPS registered and Checked on columns to your original file.</p>
-          </div>
-        )}
+                  ))
+                : slice.map((r) => (
+                    <tr key={r.row_no} className="border-b border-white-800 last:border-0">
+                      <td className="px-5 py-2 tabular-nums text-black-700">{r.row_no + 2}</td>
+                      <td className="truncate px-3 py-2 tabular-nums text-black-400">{r.phone_raw || <span className="text-white-900">Blank</span>}</td>
+                      <td className="px-3 py-2">
+                        {r.outcome === 'pending' ? (
+                          <span className="tag tag-1">
+                            <span className="tps-pulse h-1.5 w-1.5 rounded-full" style={{ background: BLUE }} /> Checking
+                          </span>
+                        ) : (
+                          <span key={r.outcome} className="tps-in inline-flex">
+                            <OutcomeTag outcome={r.outcome} />
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 tabular-nums text-black-700">{r.checked_at ? new Date(r.checked_at).toLocaleDateString('en-GB') : ''}</td>
+                      {others.map((c) => (
+                        <td key={c.i} className="truncate px-3 py-2 text-black-700">
+                          {r.cells[c.i]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+              {results.data && !shown.length ? (
+                <tr>
+                  <td colSpan={4 + others.length} className="px-5 py-6 text-center text-black-700">
+                    {rows.length ? 'No rows match this filter.' : 'The uploaded rows for this check have been deleted (files are kept for 90 days).'}
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </div>
+      {pages > 1 ? (
+        <div className="flex items-center justify-end gap-2 border-t border-white-800 px-5 py-2 text-black-700">
+          <span className="tabular-nums">
+            {n(page * PAGE + 1)}–{n(Math.min((page + 1) * PAGE, shown.length))} of {n(shown.length)}
+          </span>
+          <Button variant="ghost" size="icon-compact" aria-label="Previous page" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+            <CaretLeft size={14} />
+          </Button>
+          <Button variant="ghost" size="icon-compact" aria-label="Next page" disabled={page >= pages - 1} onClick={() => setPage((p) => p + 1)}>
+            <CaretRight size={14} />
+          </Button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -660,7 +713,7 @@ function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string 
   const qc = useQueryClient();
   const toast = useToast();
 
-  async function quick(job: TpsJob, filter: RowFilter, ext: 'csv' | 'xlsx') {
+  async function quick(job: TpsJob, filter: RowFilter, ext: ExportFormat) {
     try {
       const rows = await qc.fetchQuery(tpsResultsQuery(job.id));
       if (!rows.length) return toast('The rows for this check have been deleted.');
@@ -688,7 +741,7 @@ function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string 
               <tr className="border-b border-white-800 text-left text-black-700">
                 <th className="px-4 py-2 font-normal">File</th>
                 <th className="w-[110px] px-3 py-2 font-normal">Checked</th>
-                <th className="w-[260px] px-3 py-2 font-normal">Result</th>
+                <th className="w-[300px] px-3 py-2 font-normal">Result</th>
                 <th className="w-[80px] px-3 py-2 text-right font-normal">Credits</th>
                 <th className="w-[120px] px-3 py-2 font-normal">Status</th>
                 <th className="w-12 px-2 py-2" />
@@ -710,11 +763,23 @@ function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string 
                     </td>
                     <td className="px-3 py-2.5 text-black-700">{timeAgo(job.created_at)}</td>
                     <td className="px-3 py-2.5">
-                      <ResultBar job={job} height={6} />
-                      <p className="mt-1 truncate tabular-nums text-black-700">
-                        {n(c.valid)} valid · {n(dnc)} do not call
-                        {c.not_uk + c.invalid + c.missing + c.unchecked ? ` · ${n(c.not_uk + c.invalid + c.missing + c.unchecked)} other` : ''}
-                      </p>
+                      {isLive(job) ? (
+                        <span className="text-black-700">Checking…</span>
+                      ) : (
+                        <p className="flex items-center gap-3 truncate tabular-nums text-black-700">
+                          <span className="flex items-center gap-1.5">
+                            <Dot outcome="valid" /> {n(c.valid)} valid
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <Dot outcome="tps" /> {n(dnc)} do not call
+                          </span>
+                          {c.not_uk + c.invalid + c.missing + c.unchecked ? (
+                            <span className="flex items-center gap-1.5">
+                              <Dot outcome="invalid" /> {n(c.not_uk + c.invalid + c.missing + c.unchecked)} other
+                            </span>
+                          ) : null}
+                        </p>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-black-700">{n(isLive(job) ? job.credits_reserved : creditsUsed(job))}</td>
                     <td className="px-3 py-2.5">
@@ -733,17 +798,17 @@ function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string 
                           <div className="w-[230px] p-1">
                             {job.finished_at ? (
                               <>
-                                <MenuItem onClick={() => (close(), void quick(job, 'all', 'csv'))}>
-                                  <FileCsv size={15} /> Checked file (CSV)
-                                </MenuItem>
-                                <MenuItem onClick={() => (close(), void quick(job, 'all', 'xlsx'))}>
-                                  <FileXls size={15} /> Checked file (Excel)
-                                </MenuItem>
+                                {FORMATS.map((f) => (
+                                  <MenuItem key={f.ext} onClick={() => (close(), void quick(job, 'all', f.ext))}>
+                                    <f.icon size={15} className="text-black-700" /> {f.label}
+                                  </MenuItem>
+                                ))}
+                                <div className="my-1 border-t border-white-800" />
                                 <MenuItem onClick={() => (close(), void quick(job, 'callable', 'csv'))}>
-                                  <DownloadSimple size={15} /> Valid numbers only
+                                  <DownloadSimple size={15} className="text-black-700" /> Valid rows only (CSV)
                                 </MenuItem>
                                 <MenuItem onClick={() => (close(), void quick(job, 'dnc', 'csv'))}>
-                                  <DownloadSimple size={15} /> Do-not-call numbers only
+                                  <DownloadSimple size={15} className="text-black-700" /> Do-not-call rows only (CSV)
                                 </MenuItem>
                                 <div className="my-1 border-t border-white-800" />
                                 <MenuItem danger onClick={() => (close(), void remove(job))}>

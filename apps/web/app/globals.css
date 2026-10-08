@@ -655,3 +655,5 @@ html:has([data-page-scroll]) {
 @keyframes tps-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 .tps-pulse { animation: tps-pulse 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .tps-stripes, .tps-in, .tps-pulse { animation: none; } }
+.tps-stripes-fill { position: absolute; inset: 0 auto 0 -18px; width: calc(100% + 18px); background-image: repeating-linear-gradient(-45deg, #9db6ef 0 6px, #b9cbf5 6px 12.7px); animation: tps-stripes 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .tps-stripes-fill { animation: none; } }
