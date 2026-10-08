@@ -13,7 +13,9 @@
     "perf": "node scripts/perf-probe.mjs",
     "perf:ui": "node scripts/perf-ui.mjs",
     "test:credits": "node scripts/credit-integrity.mjs",
-    "test:search": "node scripts/lead-search.mjs"
+    "test:search": "node scripts/lead-search.mjs",
+    "test:tps": "node scripts/tps-checks.mjs",
+    "test:tps-ui": "node scripts/tps-ui.mjs"
   },
   "dependencies": {
     "@decibels/design-tokens": "workspace:*",
@@ -29,7 +31,9 @@
     "papaparse": "^5.5.3",
     "posthog-js": "^1.270.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "read-excel-file": "9.3.10",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

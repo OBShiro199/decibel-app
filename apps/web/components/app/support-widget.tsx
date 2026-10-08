@@ -52,6 +52,12 @@ const timeOf = (iso: string) => {
     : d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
+const OPEN_EVENT = 'decibel:support';
+/** Opens the founder chat; with a message, sends it straight away (e.g. a top-up request). */
+export function openSupport(message?: string) {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { message } }));
+}
+
 export function SupportWidget() {
   const { user } = useApp();
   const pathname = usePathname();
@@ -118,27 +124,41 @@ export function SupportWidget() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  async function send() {
-    const body = draft.trim();
-    if (!body || sending) return;
+  async function send(text?: string) {
+    const fromDraft = text === undefined;
+    const body = (fromDraft ? draft : text).trim();
+    if (!body || (fromDraft && sending)) return;
     setSending(true);
     setError('');
     const temp: Msg = { id: `tmp-${Date.now()}`, sender: 'user', body, created_at: new Date().toISOString(), pending: true };
     qc.setQueryData<Conversation>(key(user.id), (c) => ({ threadId: c?.threadId ?? null, unread: false, messages: [...(c?.messages ?? []), temp] }));
-    setDraft('');
+    if (fromDraft) setDraft('');
     try {
       const { message } = await invoke<{ message: Msg }>('support', { action: 'send', body });
       qc.setQueryData<Conversation>(key(user.id), (c) => (c ? { ...c, messages: c.messages.map((m) => (m.id === temp.id ? message : m)) } : c));
       void qc.invalidateQueries({ queryKey: key(user.id) });
     } catch (e) {
       qc.setQueryData<Conversation>(key(user.id), (c) => (c ? { ...c, messages: c.messages.filter((m) => m.id !== temp.id) } : c));
-      setDraft(body);
+      if (fromDraft) setDraft(body);
       const msg = (e as Error).message;
       setError(msg === 'slow_down' ? 'You have sent a lot of messages. Try again in a little while.' : 'Your message did not send. Try again.');
     } finally {
       setSending(false);
     }
   }
+
+  // openSupport(message) from anywhere in the app opens the chat and sends that message
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const message = (e as CustomEvent<{ message?: string }>).detail?.message;
+      setOpen(true);
+      if (message) void sendRef.current(message);
+    };
+    window.addEventListener(OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_EVENT, onOpen);
+  }, []);
 
   // the dialler and an open softphone own the bottom right corner
   if (pathname?.endsWith('/dialler') || softphone.open) return null;

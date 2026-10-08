@@ -8,6 +8,7 @@ packages/design-tokens/   CSS variables + Tailwind preset (PRD section 12)
 supabase/migrations/      0001 schema, 0002 seed, 0003 app support
 supabase/functions/       Edge Functions (Twilio, Stripe, email, import, nightly)
 scripts/                  deploy-supabase.sh
+docs/                     feature docs (tps-checks.md: TPS/CTPS list checks)
 ```
 
 ## Run it locally

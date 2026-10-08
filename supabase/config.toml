@@ -54,3 +54,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.nightly]
 verify_jwt = false
+[functions.tps-check]
+verify_jwt = false

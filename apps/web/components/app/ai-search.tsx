@@ -4,7 +4,7 @@
 // the same filters Leads and Local businesses use. Results open in the normal search
 // workspace (LeadsView / LocalView), so saving, exporting and the dialler work as usual and
 // every filter the AI chose can be edited as a chip.
-import { ArrowUp, Buildings, Check, ClockCounterClockwise, PencilSimple, Plus, Sparkle, X } from '@phosphor-icons/react';
+import { ArrowUp, Buildings, Check, ClockCounterClockwise, Globe, PencilSimple, Plus, X } from '@phosphor-icons/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -146,7 +146,7 @@ function Working({
         <div className="px-6 pb-5 pt-6">
           <div className="flex items-center gap-3">
             <span className="ai-orb relative flex h-9 w-9 items-center justify-center rounded-md" style={{ background: '#f1f5fd' }}>
-              <Sparkle size={18} weight="duotone" style={{ color: BLUE }} />
+              <Globe size={18} weight="duotone" style={{ color: BLUE }} />
             </span>
             <div className="min-w-0">
               <p className="font-medium text-black-400">{mismatch ? 'One quick check' : stage >= 4 ? 'Your list is ready' : 'Building your search'}</p>
@@ -212,7 +212,7 @@ function Banner({ shown, onEdit, onNew }: { shown: Shown; onEdit: () => void; on
   return (
     <div className="flex shrink-0 items-start gap-3 border-b border-white-800 px-4 py-2.5" style={{ background: 'linear-gradient(90deg, #f5f8fe, #ffffff 60%)' }}>
       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px]" style={{ background: '#e8eefc' }}>
-        <Sparkle size={13} weight="duotone" style={{ color: BLUE }} />
+        <Globe size={13} weight="duotone" style={{ color: BLUE }} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate">
@@ -335,7 +335,7 @@ export function AiSearch() {
       <div className="mx-auto w-full max-w-[720px] px-6 pb-16 pt-[9vh]">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: '#f1f5fd' }}>
-            <Sparkle size={17} weight="duotone" style={{ color: BLUE }} />
+            <Globe size={17} weight="duotone" style={{ color: BLUE }} />
           </span>
           <h1 className="t-h2">Search with AI</h1>
         </div>
@@ -430,7 +430,7 @@ export function AiSearch() {
                   }}
                   className="group flex items-start gap-2.5 rounded-md border border-white-800 bg-white-100 px-3.5 py-3 text-left transition-colors hover:border-white-900 hover:bg-white-200"
                 >
-                  <Sparkle size={14} weight="duotone" className="mt-[3px] shrink-0 opacity-60 transition-opacity group-hover:opacity-100" style={{ color: BLUE }} />
+                  <Globe size={14} weight="duotone" className="mt-[3px] shrink-0 opacity-60 transition-opacity group-hover:opacity-100" style={{ color: BLUE }} />
                   <span className="text-black-400">{ex}</span>
                 </button>
               ))}
