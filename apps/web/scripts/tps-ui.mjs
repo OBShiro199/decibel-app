@@ -152,6 +152,7 @@ window.__t = {
   text: () => document.querySelector('main')?.innerText ?? '',
   click: (text, root = document) => { const el = [...root.querySelectorAll('button, [role=menuitem], [role=radio], a')].find((b) => b.innerText.trim() === text || b.innerText.trim().startsWith(text)); if (!el) return false; el.click(); return true; },
   results: () => [...document.querySelectorAll('[data-testid=tps-results] tbody tr')].map((tr) => [...tr.children].map((td) => td.innerText.trim())),
+  openHistory: () => { const t = document.querySelector('[aria-label="Recent checks"] > button'); const was = t?.getAttribute('aria-expanded'); if (t && was !== 'true') t.click(); return was; },
   history: () => [...document.querySelectorAll('[data-testid=tps-history] tbody tr')].map((tr) => tr.innerText.replace(/\\s+/g, ' ').trim()),
   credits: () => document.querySelector('[data-testid=tps-credits]')?.innerText ?? '',
 };
@@ -305,6 +306,9 @@ async function main() {
   await b.evaluate(`__t.click('Check 5 numbers')`);
   await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 5 && !!document.querySelector('[role=radiogroup][aria-label="Show rows"]')`, 60000);
   check('Batch 2 checks all 5 mobiles', (await b.evaluate('__t.results()')).every((r) => /^(Valid|DNC)/.test(r[2])));
+  const closedAtFirst = (await b.evaluate('__t.openHistory()')) === 'false';
+  await sleep(400);
+  check('Recent checks starts closed and opens on click', closedAtFirst && (await b.evaluate('__t.history()')).length === 2);
   check('History lists both checks, newest first', (await b.evaluate('__t.history()')).length === 2 && (await b.evaluate('__t.history()'))[0].startsWith('batch-2.csv'));
 
   // ---- the whole list again: everything was checked minutes ago, so it's free -----------

@@ -10,6 +10,7 @@ import {
   CaretLeft,
   CaretRight,
   Check,
+  ClockCounterClockwise,
   Coins,
   DotsThree,
   DownloadSimple,
@@ -90,7 +91,12 @@ function StatusTag({ job }: { job: TpsJob }) {
       </span>
     );
   }
-  if (job.status === 'done') return <span className="tag tag-0">Done</span>;
+  if (job.status === 'done')
+    return (
+      <span role="img" aria-label="Done" title="Done" className="inline-flex text-[#3f8f5e]">
+        <Check size={15} weight="bold" />
+      </span>
+    );
   if (job.status === 'cancelled') return <span className="tag tag-7">Cancelled</span>;
   return <span className="tag tag-3">Stopped</span>;
 }
@@ -710,6 +716,7 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
 // ---- history ---------------------------------------------------------------------------------
 function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string | null; onOpen: (id: string) => void }) {
   const { workspace } = useApp();
+  const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const toast = useToast();
 
@@ -730,17 +737,27 @@ function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string 
   }
 
   return (
-    <section className="mt-10" aria-label="Recent checks">
-      <h2 className="font-medium text-black-400">Recent checks</h2>
-      {jobs.length === 0 ? (
-        <p className="mt-2 rounded-md border border-dashed border-white-800 px-4 py-6 text-center text-black-700">Your checked files will appear here, ready to download again.</p>
+    <section className="mt-10 overflow-hidden rounded-md border border-white-800" aria-label="Recent checks">
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-2.5 px-4 py-3 text-left">
+        <ClockCounterClockwise size={16} weight="duotone" style={{ color: BLUE }} />
+        <span className="font-medium text-black-400">Recent checks</span>
+        {jobs.length ? <span className="tabular-nums text-black-700">{n(jobs.length)}</span> : null}
+        {jobs.some(isLive) ? (
+          <span className="tag tag-1">
+            <span className="tps-pulse h-1.5 w-1.5 rounded-full" style={{ background: BLUE }} /> Checking
+          </span>
+        ) : null}
+        <CaretRight size={14} className={cn('ml-auto text-black-700 transition-transform duration-150', open && 'rotate-90')} />
+      </button>
+      {!open ? null : jobs.length === 0 ? (
+        <p className="ai-pop border-t border-white-800 px-4 py-6 text-center text-black-700">Your checked files will appear here, ready to download again.</p>
       ) : (
-        <div className="mt-2 overflow-x-auto rounded-md border border-white-800">
+        <div className="ai-pop overflow-x-auto border-t border-white-800">
           <table className="w-full min-w-[820px] table-fixed border-collapse" data-testid="tps-history">
             <thead>
               <tr className="border-b border-white-800 text-left text-black-700">
                 <th className="px-4 py-2 font-normal">File</th>
-                <th className="w-[110px] px-3 py-2 font-normal">Checked</th>
+                <th className="w-[140px] px-3 py-2 font-normal">Checked</th>
                 <th className="w-[300px] px-3 py-2 font-normal">Result</th>
                 <th className="w-[80px] px-3 py-2 text-right font-normal">Credits</th>
                 <th className="w-[120px] px-3 py-2 font-normal">Status</th>
@@ -761,7 +778,7 @@ function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string 
                       <p className="truncate text-black-400">{job.file_name}</p>
                       <p className="tabular-nums text-black-700">{plural(job.total_rows, 'row')}</p>
                     </td>
-                    <td className="px-3 py-2.5 text-black-700">{timeAgo(job.created_at)}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-black-700">{timeAgo(job.created_at)}</td>
                     <td className="px-3 py-2.5">
                       {isLive(job) ? (
                         <span className="text-black-700">Checking…</span>
