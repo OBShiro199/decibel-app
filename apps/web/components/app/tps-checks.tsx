@@ -17,7 +17,6 @@ import {
   FileCsv,
   FileText,
   FileXls,
-  Info,
   Phone,
   ShieldCheck,
   Trash,
@@ -852,53 +851,6 @@ function History({ jobs, activeId, onOpen }: { jobs: TpsJob[]; activeId: string 
   );
 }
 
-// ---- how it works -----------------------------------------------------------------------------
-function HowItWorks() {
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="mt-10 rounded-md border border-white-800" aria-label="How TPS/CTPS checks work">
-      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-2.5 px-4 py-3 text-left">
-        <Info size={16} weight="duotone" style={{ color: BLUE }} />
-        <span className="flex-1 font-medium text-black-400">How TPS/CTPS checks work</span>
-        <CaretRight size={14} className={cn('text-black-700 transition-transform duration-150', open && 'rotate-90')} />
-      </button>
-      {open ? (
-        <div className="ai-pop grid gap-6 border-t border-white-800 px-4 py-4 md:grid-cols-2">
-          <div className="space-y-3 text-black-700">
-            <p>
-              <span className="font-medium text-black-400">What it checks.</span> The Telephone Preference Service (TPS) lists people and sole traders who have opted out of sales calls. The Corporate TPS (CTPS) lists companies that have. UK law (PECR) says you must not make unsolicited sales calls to numbers on either register, so screen your lists before you call.
-            </p>
-            <p>
-              <span className="font-medium text-black-400">Keep it fresh.</span> The registers change daily, and a check is generally treated as good for 28 days. Each result shows the date it was checked; check a list again before you call it after that.
-            </p>
-            <p>
-              <span className="font-medium text-black-400">Your file.</span> Upload a CSV, XLSX, TSV or TXT file with a header row and up to 1,000 rows, choose the column with the phone numbers, and you get the same file back with TPS status, TPS registered, CTPS registered and Checked on columns. Numbers can be written any common way: 07…, +44 7…, 0044…, with spaces or brackets.
-            </p>
-            <p>
-              <span className="font-medium text-black-400">Credits.</span> Every account starts with 2,500 check credits, separate from your data credits. A check uses 1 credit per unique UK number. Duplicates are checked once, numbers you checked in the last 28 days are free and keep their original date, and anything that could not be checked is refunded automatically. Need more? Use Top up.
-            </p>
-            <p>
-              <span className="font-medium text-black-400">Privacy.</span> Uploaded files are only visible to your workspace and are deleted after 90 days. You can delete any check sooner from its menu in Recent checks.
-            </p>
-          </div>
-          <ul className="space-y-2.5">
-            {(['valid', 'tps', 'ctps', 'both', 'invalid', 'not_uk', 'missing', 'unchecked'] as Outcome[]).map((o) => (
-              <li key={o} className="flex items-start gap-3">
-                <span className="w-[136px] shrink-0">
-                  <OutcomeTag outcome={o} />
-                </span>
-                <span className="text-black-700">
-                  {OUTCOMES[o].hint} <span className="text-white-900">In the file: {OUTCOMES[o].file}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
 // ---- page -----------------------------------------------------------------------------------------
 export function TpsChecks() {
   const { workspace } = useApp();
@@ -941,7 +893,6 @@ export function TpsChecks() {
         </div>
 
         <History jobs={jobs.data ?? []} activeId={activeId} onOpen={(id) => open(id)} />
-        <HowItWorks />
       </div>
     </div>
   );
