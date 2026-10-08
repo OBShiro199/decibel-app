@@ -23,7 +23,8 @@ export function prettyValue(def: FilterDef, v: string): string {
   return v;
 }
 
-function summary(def: FilterDef, f: Filters): string {
+/** The chip text for a filter, e.g. "Job title: CEO +2". */
+export function summary(def: FilterDef, f: Filters): string {
   if (def.kind === 'bool') return f[def.key] ? (def.yes ?? def.label) : (def.no ?? `Not ${def.label.toLowerCase()}`);
   if (def.kind === 'range') {
     const { min, max, unit } = def.range!;

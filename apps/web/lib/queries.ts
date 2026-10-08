@@ -140,10 +140,19 @@ export const industriesQuery = () =>
     queryFn: async () => ((await supabase().from('industries').select('name').order('name')).data ?? []).map((i) => i.name as string),
   });
 
-export const savedSearchesQuery = (workspaceId: string) =>
+/** Where a saved search list opens. */
+export const searchListHref = (l: { id: string; search_source: string | null }) => `/app/${l.search_source === 'local' ? 'local' : 'leads'}?search=${l.id}`;
+
+/** One saved search list (Lists → open), for ?search=<id> on Leads and Local businesses. */
+export const searchListQuery = (workspaceId: string, listId: string) =>
   queryOptions({
-    queryKey: ['saved-searches', workspaceId],
-    queryFn: async () => (await supabase().from('saved_searches').select('id,name,filters').eq('workspace_id', workspaceId).order('created_at')).data ?? [],
+    queryKey: ['search-list', workspaceId, listId],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase().from('lists').select('id,name,search,search_source').eq('workspace_id', workspaceId).eq('id', listId).maybeSingle();
+      if (error) throw error;
+      return (data as Pick<List, 'id' | 'name' | 'search' | 'search_source'> | null) ?? null;
+    },
   });
 
 export interface StatRow {
@@ -261,7 +270,6 @@ export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string
   } else if (href === '/app/leads') {
     // the default first page and count of the lead database (filters: has mobile)
     void qc.prefetchQuery(facetsQuery('leads'));
-    void qc.prefetchQuery(savedSearchesQuery(workspaceId));
     void qc.prefetchQuery(listsQuery(workspaceId, userId));
     void qc.prefetchQuery(leadSearchQuery(workspaceId, toServer({ hasMobile: true }, ''), 0));
     void qc.prefetchQuery(leadCountQuery(workspaceId, toServer({ hasMobile: true }, '')));
@@ -283,4 +291,4 @@ export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string
 }
 
 /** Every main tab plus the dashboard: run once at idle after the first page has its data. */
-export const PREFETCH_ROUTES = ['/app', '/app/leads', '/app/local', '/app/lists', '/app/calls', '/app/dialler', '/app/tps', '/app/dashboard'];
+export const PREFETCH_ROUTES = ['/app/leads', '/app/local', '/app/lists', '/app/calls', '/app/dialler', '/app/tps', '/app/dashboard'];

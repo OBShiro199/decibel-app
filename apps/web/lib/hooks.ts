@@ -53,7 +53,15 @@ export function useNumbers() {
   return useQuery(numbersQuery(workspace.id));
 }
 
+/** Lists of people (what the dialler, pickers and filters work with). Saved searches are left out. */
 export function useLists() {
+  const { workspace, user } = useApp();
+  return useQuery({ ...listsQuery(workspace.id, user.id), select: peopleLists });
+}
+const peopleLists = <T extends { search: unknown }>(lists: T[]) => lists.filter((l) => !l.search);
+
+/** Every list, including saved searches (the Lists page). */
+export function useAllLists() {
   const { workspace, user } = useApp();
   return useQuery(listsQuery(workspace.id, user.id));
 }

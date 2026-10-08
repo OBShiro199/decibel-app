@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { HOME } from '@/lib/constants';
 
 const PROTECTED = ['/app', '/onboarding'];
 const AUTH_PAGES = ['/login', '/signup'];
@@ -52,7 +53,7 @@ async function check(request: NextRequest, supabaseUrl: string, supabaseKey: str
   if (user && AUTH_PAGES.includes(path)) {
     const url = request.nextUrl.clone();
     const next = request.nextUrl.searchParams.get('next');
-    url.pathname = next && next.startsWith('/') && !next.startsWith('//') ? next : '/app';
+    url.pathname = next && next.startsWith('/') && !next.startsWith('//') ? next : HOME;
     url.search = '';
     return NextResponse.redirect(url);
   }

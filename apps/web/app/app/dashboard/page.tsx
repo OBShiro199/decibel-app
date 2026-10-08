@@ -132,7 +132,7 @@ export default function DashboardPage() {
 
       {empty ? (
         <div className="card">
-          <EmptyState title="Data appears after your first call" description="Dials, connects, talk time and meetings fill in as your team calls." action={<ButtonLink variant="primary" href="/app">Go to Today</ButtonLink>} />
+          <EmptyState title="Data appears after your first call" description="Dials, connects, talk time and meetings fill in as your team calls." action={<ButtonLink variant="primary" href="/app/leads">Find people to call</ButtonLink>} />
         </div>
       ) : (
         <>

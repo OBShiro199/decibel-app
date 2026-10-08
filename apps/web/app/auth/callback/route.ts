@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { HOME } from '@/lib/constants';
 
 // Handles OAuth, magic-link and email-confirmation redirects (PKCE code exchange).
 export async function GET(request: Request) {
@@ -7,8 +8,8 @@ export async function GET(request: Request) {
   const code = url.searchParams.get('code');
   const tokenHash = url.searchParams.get('token_hash');
   const type = url.searchParams.get('type');
-  const nextParam = url.searchParams.get('next') ?? '/app';
-  const next = nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/app';
+  const nextParam = url.searchParams.get('next') ?? HOME;
+  const next = nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : HOME;
   const supabase = await createClient();
 
   if (code) {

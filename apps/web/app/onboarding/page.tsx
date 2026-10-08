@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { stepByNumber } from '@/lib/onboarding';
 import { createClient } from '@/lib/supabase/server';
 import type { Workspace, WorkspaceRole } from '@/lib/types';
+import { HOME } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,6 @@ export default async function OnboardingIndex() {
   if (!rows.length) redirect('/onboarding/workspace');
   const active = rows.find((m) => m.workspace!.id === profile?.last_workspace_id) ?? rows[0];
   if (active.role !== 'owner') redirect('/onboarding/test?invited=1');
-  if (active.workspace!.onboarding_completed_at) redirect('/app');
+  if (active.workspace!.onboarding_completed_at) redirect(HOME);
   redirect(`/onboarding/${stepByNumber(active.workspace!.onboarding_state?.step ?? 1).slug}`);
 }

@@ -286,9 +286,9 @@ export function IcpStep({ workspace, user, done }: StepProps) {
       return;
     }
     setIcpId(res.data.id);
-    // the ICP search is saved as "My ICP" so it is one click away on the Leads page
-    await db.from('saved_searches').delete().eq('workspace_id', workspace.id).eq('user_id', user.id).eq('name', 'My ICP');
-    await db.from('saved_searches').insert({ workspace_id: workspace.id, user_id: user.id, name: 'My ICP', filters });
+    // the ICP search is saved as a "My ICP" list, one click away in Lists
+    await db.from('lists').delete().eq('workspace_id', workspace.id).eq('name', 'My ICP').not('search', 'is', null);
+    await db.from('lists').insert({ workspace_id: workspace.id, owner_id: user.id, name: 'My ICP', is_shared: true, search: filters, search_source: 'leads' });
 
     const [{ count }, { data: preview }] = await Promise.all([
       applyLeadFilters(db.from('contacts_public').select('id', { count: 'exact', head: true }), filters),

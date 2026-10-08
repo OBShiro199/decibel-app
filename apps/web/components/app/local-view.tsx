@@ -4,7 +4,8 @@
 // information, so phones and emails show in full. "Add to list" saves the selected
 // businesses as People (deduplicated by phone) so they can be called from the dialler.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Download, Facebook, Globe, Instagram, Linkedin, ListPlus, MapPin, MessageCircle, Phone, Plus, Search, Star, Trash2 } from 'lucide-react';
+import { Bookmark, Download, Facebook, Globe, Instagram, Linkedin, ListPlus, MapPin, MessageCircle, Phone, Plus, Search, Star } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { track } from '@/lib/analytics';
@@ -25,7 +26,6 @@ import {
   type LocalRow,
 } from '@/lib/lead-search';
 import { toE164 } from '@/lib/phone';
-import { savedSearchesQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
 import { cn, exportCsv } from '@/lib/utils';
 import { SmartFilterBar } from '@/components/app/smart-filters';
@@ -33,7 +33,8 @@ import { BulkAction, BulkBar, ListPickerDialog } from '@/components/app/records'
 import { Avatar, EmptyState, ErrorCard, TableSkeleton } from '@/components/ui/display';
 import { Button } from '@/components/ui/button';
 import { Checkbox, Input } from '@/components/ui/form';
-import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
+import { MenuItem, Popover, useToast } from '@/components/ui/overlay';
+import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
 const DEFAULT_FILTERS: Filters = { hasPhone: true };
 const EXPORT_MAX = 500;
@@ -78,7 +79,18 @@ function csvRow(b: LocalRow) {
  * The local business search workspace. Used by the Local businesses page and by Search with AI
  * (which passes the filters it built and a banner).
  */
-export function LocalView({ initialFilters = DEFAULT_FILTERS, initialText = '', banner }: { initialFilters?: Filters; initialText?: string; banner?: React.ReactNode }) {
+export function LocalView({
+  initialFilters = DEFAULT_FILTERS,
+  initialText = '',
+  banner,
+  savedList,
+}: {
+  initialFilters?: Filters;
+  initialText?: string;
+  banner?: React.ReactNode;
+  /** Set when opened from a saved search list in Lists. */
+  savedList?: SavedListRef;
+}) {
   const { workspace, user } = useApp();
   const { data: stages } = useStages();
   const qc = useQueryClient();
@@ -93,15 +105,12 @@ export function LocalView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<null | 'add' | 'create' | 'save-filtered'>(null);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saveName, setSaveName] = useState('');
   const [busy, setBusy] = useState(false);
 
   const server = useMemo(() => toServer(filters, q), [filters, q]);
   const facets = useQuery(facetsQuery('local'));
   const results = useQuery({ ...localSearchQuery(workspace.id, server, page), placeholderData: (prev) => prev });
   const count = useQuery({ ...localCountQuery(workspace.id, server), placeholderData: (prev) => prev });
-  const saved = useQuery(savedSearchesQuery(workspace.id));
-  const mySaved = (saved.data ?? []).filter((s) => (s.filters as Record<string, unknown> | null)?.source === 'local');
 
   useEffect(() => {
     if (count.data !== undefined && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data, source: 'local' });
@@ -231,17 +240,6 @@ export function LocalView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
     }
   };
 
-  const saveSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!saveName.trim()) return;
-    const { error } = await db.from('saved_searches').insert({ workspace_id: workspace.id, user_id: user.id, name: saveName.trim(), filters: { v: 2, source: 'local', ...filters, q: text.trim() || undefined } });
-    if (error) return void toast(error.message);
-    setSaveOpen(false);
-    setSaveName('');
-    toast('Search saved');
-    void saved.refetch();
-  };
-
   return (
     <div className="flex h-full flex-col bg-white-100">
       {banner}
@@ -263,48 +261,14 @@ export function LocalView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
         <h1 className="whitespace-nowrap text-sm text-black-700">
           <span className="text-black-400">{formatCount(total, page * PAGE_SIZE + rows.length)}</span> businesses
         </h1>
+        {savedList ? (
+          <Link href="/app/lists" className="tag tag-1 max-w-[260px] truncate" title="A saved search from Lists">
+            {savedList.name}
+          </Link>
+        ) : null}
         <div className="ml-auto flex items-center gap-2">
-          <Popover
-            align="right"
-            trigger={({ toggle }) => (
-              <Button size="compact" onClick={toggle}>
-                <Bookmark size={16} strokeWidth={1.5} /> Saved
-              </Button>
-            )}
-          >
-            {(close) =>
-              mySaved.length ? (
-                mySaved.map((s) => (
-                  <div key={s.id} className="flex items-center">
-                    <MenuItem
-                      onClick={() => {
-                        const { v: _v, source: _s, q: savedQ, ...rest } = (s.filters ?? {}) as Record<string, unknown>;
-                        update(rest);
-                        setText(typeof savedQ === 'string' ? savedQ : '');
-                        close();
-                      }}
-                    >
-                      {s.name}
-                    </MenuItem>
-                    <button
-                      aria-label={`Delete saved search ${s.name}`}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-black-700 hover:bg-white-300"
-                      onClick={async () => {
-                        await db.from('saved_searches').delete().eq('id', s.id);
-                        void saved.refetch();
-                      }}
-                    >
-                      <Trash2 size={14} strokeWidth={1.5} />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p className="px-2 py-1.5 text-black-700">No saved searches yet.</p>
-              )
-            }
-          </Popover>
           <Button size="compact" onClick={() => setSaveOpen(true)}>
-            Save search
+            <Bookmark size={16} strokeWidth={1.5} /> {savedList ? 'Save' : 'Save as list'}
           </Button>
           <Popover
             align="right"
@@ -531,17 +495,14 @@ export function LocalView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
         title={picker === 'save-filtered' ? 'Save matching businesses to a list' : `Add ${selected.size} to a list`}
         busyLabel="Saving…"
       />
-      <Dialog open={saveOpen} onClose={() => setSaveOpen(false)} title="Save search">
-        <form onSubmit={saveSearch} className="flex flex-col gap-4">
-          <Input autoFocus value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="Electricians in Manchester with mobiles" aria-label="Search name" />
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setSaveOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary" disabled={!saveName.trim()}>
-              Save
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+      <SaveSearchDialog
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        source="local"
+        search={{ v: 2, ...filters, q: text.trim() || undefined }}
+        savedList={savedList}
+        placeholder="Electricians in Manchester with mobiles"
+      />
     </div>
   );
 }

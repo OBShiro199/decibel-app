@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox, Field, Input } from '@/components/ui/form';
 import { TRIAL_CREDITS } from '@/lib/constants';
 import { GoogleIcon } from '@/components/ui/google-icon';
+import { HOME } from '@/lib/constants';
 
 function friendly(message: string): string {
   if (/provider is not enabled|Unsupported provider/i.test(message)) return 'Google sign-in is not enabled for this project yet. Use email instead.';
@@ -24,7 +25,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'signup' }) {
   const router = useRouter();
   const params = useSearchParams();
   const nextParam = params.get('next');
-  const next = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : mode === 'signup' ? '/onboarding' : '/app';
+  const next = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : mode === 'signup' ? '/onboarding' : HOME;
   const [name, setName] = useState('');
   const [email, setEmail] = useState(params.get('email') ?? '');
   const [password, setPassword] = useState('');

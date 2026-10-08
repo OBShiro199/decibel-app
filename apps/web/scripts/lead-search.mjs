@@ -383,9 +383,16 @@ async function main() {
   const crossReveal = await a.client.rpc('reveal_leads', { p_workspace_id: wsB, p_lead_ids: [ids[20]] });
   check("cannot reveal into another workspace", !!crossReveal.error);
 
-  // saved search round trip
-  const saved = await a.client.from('saved_searches').insert({ workspace_id: wsA, user_id: a.id, name: 'test', filters: { v: 2, hasMobile: true, employeesMin: 7, employeesMax: 15 } }).select('filters').single();
-  check('saved searches store the new filters', !saved.error && saved.data.filters.employeesMin === 7);
+  // a saved search is a list in Lists (0024): it keeps the filters and never holds people
+  const saved = await a.client.from('lists').insert({ workspace_id: wsA, owner_id: a.id, name: 'test search', search: { v: 2, hasMobile: true, employeesMin: 7, employeesMax: 15 }, search_source: 'leads' }).select('id,search').single();
+  check('saved searches are stored as lists with their filters', !saved.error && saved.data.search.employeesMin === 7, saved.error?.message);
+  const badShape = await a.client.from('lists').insert({ workspace_id: wsA, owner_id: a.id, name: 'bad search', search: { v: 2 }, search_source: 'elsewhere' });
+  check('a saved search must say which database it searches', !!badShape.error);
+  if (saved.data) {
+    const { data: person } = await a.client.from('people').insert({ workspace_id: wsA, owner_id: a.id, first_name: 'Search', last_name: 'list probe', source: 'manual' }).select('id').single();
+    const member = person ? await a.client.from('list_members').insert({ list_id: saved.data.id, person_id: person.id, workspace_id: wsA }) : { error: { message: 'no person' } };
+    check('people cannot be added to a saved search list', !!member.error, member.error?.message);
+  }
 }
 
 try {

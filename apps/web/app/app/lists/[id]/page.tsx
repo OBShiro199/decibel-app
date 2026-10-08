@@ -1,10 +1,11 @@
 'use client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, FileText, Phone, Plus, Trash2, Users, Zap } from 'lucide-react';
+import { ChevronLeft, FileText, Plus, Trash2, Users, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useApp } from '@/lib/app-context';
+import { searchListHref } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
 import type { List } from '@/lib/types';
 import { PeopleView } from '@/components/app/people-view';
@@ -23,7 +24,6 @@ export default function ListPage() {
   const [assign, setAssign] = useState(false);
   const [add, setAdd] = useState(false);
   const [settings, setSettings] = useState(false);
-  const [starting, setStarting] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', script: '', is_shared: true });
 
   const list = useQuery({
@@ -34,18 +34,13 @@ export default function ListPage() {
       return data as List | null;
     },
   });
+  // a saved search list has no people: it opens as a search on Leads or Local businesses
+  useEffect(() => {
+    if (list.data?.search) router.replace(searchListHref(list.data));
+  }, [list.data, router]);
   useEffect(() => {
     if (list.data) setForm({ name: list.data.name, description: list.data.description ?? '', script: list.data.script ?? '', is_shared: list.data.is_shared });
   }, [list.data]);
-
-  const start = async () => {
-    setStarting(true);
-    const { data, error } = await supabase().rpc('start_calling_list', { p_list_id: id });
-    setStarting(false);
-    if (error) return toast(`Could not start: ${error.message}`);
-    toast(`${data ?? 0} people queued for you`);
-    router.push('/app');
-  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,9 +102,6 @@ export default function ListPage() {
         </Button>
         <Button size="compact" onClick={() => setAssign(true)} disabled={!isAdmin} title={isAdmin ? undefined : 'Only owners and admins can assign'}>
           <Users size={16} strokeWidth={1.5} /> Assign to
-        </Button>
-        <Button size="compact" loading={starting} onClick={start} title="Queue everyone in this list on your Today page">
-          <Phone size={16} strokeWidth={1.5} /> Add to Today
         </Button>
         <ButtonLink size="compact" variant="primary" href={`/app/dialler?list=${id}`}>
           <Zap size={16} strokeWidth={1.6} style={{ color: 'var(--dialler)' }} /> Start power dialler

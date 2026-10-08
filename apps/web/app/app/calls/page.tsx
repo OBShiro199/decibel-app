@@ -118,7 +118,7 @@ export default function CallsPage() {
           filtered ? (
             <EmptyState shape="diamond" title="No calls match" description="Loosen a filter to see more calls." action={<Button onClick={reset}>Clear filters</Button>} />
           ) : (
-            <EmptyState title="No calls yet" description="Every call you make is logged here with its outcome, duration and recording." action={<ButtonLink variant="primary" href="/app">Make your first call</ButtonLink>} />
+            <EmptyState title="No calls yet" description="Every call you make is logged here with its outcome, duration and recording." action={<ButtonLink variant="primary" href="/app/leads">Find people to call</ButtonLink>} />
           )
         ) : (
           <RevealOnce id="calls">

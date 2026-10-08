@@ -189,6 +189,9 @@ export interface List {
   owner_id: string;
   created_at: string;
   updated_at: string;
+  /** Set on a saved search list: the filters, and which database they search. */
+  search: Record<string, unknown> | null;
+  search_source: 'leads' | 'local' | null;
 }
 
 export interface Call {

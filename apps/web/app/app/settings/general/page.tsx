@@ -7,6 +7,7 @@ import { Dialog, useToast } from '@/components/ui/overlay';
 import { useApp } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
 import { AdminOnly, Notice, Section, SettingsPage } from '../_components';
+import { HOME } from '@/lib/constants';
 
 const SLUG = /^[a-z0-9]([a-z0-9-]{1,38}[a-z0-9])?$/;
 const TEAM_SIZES = ['1', '2–5', '6–20', '21–50', '51+'];
@@ -64,7 +65,7 @@ export default function GeneralPage() {
       setDangerBusy(false);
       return setDangerError(err.message);
     }
-    window.location.assign('/app');
+    window.location.assign(HOME);
   }
 
   async function leaveWorkspace() {
@@ -75,7 +76,7 @@ export default function GeneralPage() {
       setDangerBusy(false);
       return setDangerError(err.message);
     }
-    window.location.assign('/app');
+    window.location.assign(HOME);
   }
 
   return (

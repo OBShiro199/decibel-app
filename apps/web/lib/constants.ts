@@ -1,5 +1,8 @@
 import type { CallOutcome, CallStatus, CompanySizeBand, Seniority, TpsStatus } from './types';
 
+/** Where the app opens after sign-in, sign-up and onboarding (there is no Today tab). */
+export const HOME = '/app/leads';
+
 export type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent';
 
 /** Outcome picker order = keyboard shortcuts 1-9 (PRD 6.5: 1-6 on Today). */

@@ -4,6 +4,7 @@ import { Wizard } from '@/components/onboarding/wizard';
 import { stepBySlug } from '@/lib/onboarding';
 import { createClient } from '@/lib/supabase/server';
 import type { Profile, Workspace, WorkspaceRole } from '@/lib/types';
+import { HOME } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Set up your workspace' };
@@ -47,7 +48,7 @@ export default async function OnboardingStep({
   if (!active && step.slug !== 'workspace') redirect('/onboarding/workspace');
   const invited = !!active && active.role !== 'owner';
   if (invited && step.slug !== 'test') redirect('/onboarding/test?invited=1');
-  if (active && !invited && active.workspace!.onboarding_completed_at) redirect('/app');
+  if (active && !invited && active.workspace!.onboarding_completed_at) redirect(HOME);
   // step 1 is done once a workspace exists: move on rather than create a second one by accident
   if (active && !invited && step.slug === 'workspace') redirect('/onboarding/business');
 

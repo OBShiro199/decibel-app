@@ -6,6 +6,7 @@ import { track } from '@/lib/analytics';
 import { invoke, supabase } from '@/lib/supabase/client';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/display';
+import { HOME } from '@/lib/constants';
 
 interface Invite {
   workspace_name: string;
@@ -75,7 +76,7 @@ export default function InvitePage() {
         <p className="mt-2 text-black-700">
           {invite ? `Ask ${invite.inviter_name} to send a new invite to ${invite.workspace_name}.` : 'Ask your teammate to send a new invite.'}
         </p>
-        <ButtonLink href={invite?.status === 'accepted' ? '/app' : '/login'} className="mt-6">
+        <ButtonLink href={invite?.status === 'accepted' ? HOME : '/login'} className="mt-6">
           {invite?.status === 'accepted' ? 'Open Decibel' : 'Log in'}
         </ButtonLink>
       </div>

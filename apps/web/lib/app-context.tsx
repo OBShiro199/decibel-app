@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo } from 'reac
 import { setAnalyticsContext } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase/client';
 import type { Profile, Workspace, WorkspaceRole } from '@/lib/types';
+import { HOME } from '@/lib/constants';
 
 export interface AppContextValue {
   user: { id: string; email: string; emailConfirmed: boolean };
@@ -58,7 +59,7 @@ export function AppProvider({
   const switchWorkspace = useCallback(
     async (id: string) => {
       await supabase().from('profiles').update({ last_workspace_id: id }).eq('id', initial.user.id);
-      window.location.assign('/app');
+      window.location.assign(HOME);
     },
     [initial.user.id],
   );

@@ -275,20 +275,24 @@ async function main() {
   const header = (lines[0] ?? []).join(',');
   check('CSV downloads with the selected leads, unmasked', lines.length === 3 && header.includes('mobile') && !csv.includes('•'), `${lines.length - 1} rows; columns: ${header.slice(0, 120)}`);
 
-  // save the search and load it back
-  await b.evaluate(`__t.click('Save search')`);
+  // save the search: it becomes a list in Lists, and opening it restores the filters
+  await b.evaluate(`__t.click('Save as list')`);
   await sleep(300);
-  await b.evaluate(`__t.type('input[aria-label="Search name"]', 'UI probe search')`);
-  await b.evaluate(`__t.clickIn('[role=dialog] button', 'Save')`);
-  await sleep(800);
-  await b.evaluate(`__t.click('Clear all')`);
-  await sleep(500);
-  await b.evaluate(`__t.click('Saved')`);
-  await sleep(400);
-  await b.evaluate(`__t.click('UI probe search')`);
+  await b.evaluate(`__t.type('input[aria-label="List name"]', 'UI probe search')`);
+  await b.evaluate(`__t.clickIn('[role=dialog] button', 'Save list')`);
+  await sleep(900);
+  await b.send('Page.navigate', { url: `${BASE}/app/lists` });
+  await waitFor(b, `document.readyState === 'complete'`);
+  await b.evaluate(HELPERS);
+  const cardExpr = `[...document.querySelectorAll('article')].find((a) => a.innerText.includes('UI probe search'))`;
+  await waitFor(b, `!!${cardExpr}`, 15000);
+  const card = await b.evaluate(`${cardExpr}?.innerText ?? ''`);
+  check('A saved search appears in Lists with its filters', card.includes('Leads search') && card.includes('7–15'), card.replace(/\n/g, ' | '));
+  await b.evaluate(`[...${cardExpr}.querySelectorAll('button')].find((x) => x.innerText.includes('Open search')).click()`);
+  await waitFor(b, `location.pathname === '/app/leads' && location.search.startsWith('?search=')`, 10000);
   await settle(b);
   const reloaded = await b.evaluate('__t.chips()');
-  check('A saved search restores its filters', reloaded.some((c) => c.includes('7–15')) && reloaded.some((c) => c.startsWith('Has mobile')), reloaded.join(' | '));
+  check('Opening it from Lists restores its filters on Leads', reloaded.some((c) => c.includes('7–15')) && reloaded.some((c) => c.startsWith('Has mobile')), reloaded.join(' | '));
 
   // start the dialler from two selected leads
   await b.evaluate(`__t.click('Clear all')`);

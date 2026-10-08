@@ -118,39 +118,34 @@ function StatusTag({ job }: { job: TpsJob }) {
   return <span className="tag tag-3">Stopped</span>;
 }
 
-// ---- credits -------------------------------------------------------------------------
-function CreditsCard() {
+// ---- credits ----------------------------------------------------------------------------
+/** Compact, top right: what's left, a short pastel bar, and Top up. */
+function CreditsBadge() {
   const { workspace } = useApp();
   const credits = useQuery(tpsCreditsQuery(workspace.id));
   const left = credits.data?.balance ?? 0;
   const total = Math.max(credits.data?.granted ?? WELCOME_TPS_CREDITS, left, 1);
   const pct = Math.max(0, Math.min(100, (left / total) * 100));
   const tone = left <= 0 || pct < 5 ? { fill: '#e8a593', track: '#fbeee9' } : pct < 20 ? { fill: '#e2bf6f', track: '#faf3e3' } : { fill: '#8fb0ee', track: '#edf2fd' };
+  const label = `${n(left)} of ${n(total)} check credits left. 1 credit per unique UK number; duplicates, blanks, invalid and non-UK numbers are free.`;
   return (
-    <section className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-md border border-white-800 px-4 py-3.5" aria-label="Check credits">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: '#f1f5fd' }}>
-        <Coins size={16} weight="duotone" style={{ color: BLUE }} />
-      </span>
-      <div className="min-w-[220px] flex-1">
-        <p className="flex items-baseline justify-between gap-3">
-          <span className="font-medium text-black-400">Check credits</span>
-          <span className="tabular-nums text-black-700" data-testid="tps-credits">
-            {credits.isLoading ? '…' : (
-              <>
-                <span className="font-medium text-black-400">{n(left)}</span> of {n(total)} left
-              </>
-            )}
-          </span>
+    <div className="flex shrink-0 items-center gap-3" aria-label="Check credits" title={label}>
+      <div className="text-right">
+        <p className="tabular-nums text-black-700" data-testid="tps-credits">
+          {credits.isLoading ? '…' : (
+            <>
+              <span className="font-medium text-black-400">{n(left)}</span> of {n(total)} left
+            </>
+          )}
         </p>
-        <span className="mt-2 block h-1.5 overflow-hidden rounded-full" style={{ background: tone.track }}>
+        <span className="mt-1 ml-auto block h-1 w-[120px] overflow-hidden rounded-full" style={{ background: tone.track }}>
           <span className="block h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)]" style={{ width: `${pct}%`, background: tone.fill }} />
         </span>
-        <p className="mt-1.5 text-black-700">1 credit per unique UK number. Duplicates, blanks, invalid and non-UK numbers are free, and a number you checked in the last 28 days is free to check again.</p>
       </div>
       <Button size="compact" onClick={topUp}>
         <Coins size={14} /> Top up
       </Button>
-    </section>
+    </div>
   );
 }
 
@@ -840,15 +835,18 @@ export function TpsChecks() {
   return (
     <div className="h-full overflow-y-auto bg-white-100">
       <div className="mx-auto w-full max-w-[1040px] px-6 pb-20 pt-10">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: '#f1f5fd' }}>
-            <ShieldCheck size={17} weight="duotone" style={{ color: BLUE }} />
-          </span>
-          <h1 className="t-h2">TPS/CTPS checks</h1>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: '#f1f5fd' }}>
+                <ShieldCheck size={17} weight="duotone" style={{ color: BLUE }} />
+              </span>
+              <h1 className="t-h2">TPS/CTPS checks</h1>
+            </div>
+            <p className="mt-2 max-w-[600px] text-black-700">Upload a list and Decibel checks every UK number against the TPS and CTPS registers, then gives you the file back with a status for each row: valid, or do not call.</p>
+          </div>
+          <CreditsBadge />
         </div>
-        <p className="mt-2 max-w-[640px] text-black-700">Upload a list and Decibel checks every UK number against the TPS and CTPS registers, then gives you the file back with a status for each row: valid, or do not call.</p>
-
-        <CreditsCard />
 
         <div className="mt-6">
           {activeId ? (

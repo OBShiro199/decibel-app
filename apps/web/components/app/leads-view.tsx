@@ -4,20 +4,19 @@
 // adding to a list and exporting all go through reveal_leads, so every contact that leaves
 // Decibel has been paid for once (1 credit, free if this workspace already revealed it).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Download, Eye, Linkedin, ListPlus, Phone, Plus, Search, Trash2 } from 'lucide-react';
+import { Bookmark, Download, Eye, Linkedin, ListPlus, Phone, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
-import { prefetchPerson, savedSearchesQuery } from '@/lib/queries';
+import { prefetchPerson } from '@/lib/queries';
 import { diallerListName } from '@/lib/dialler';
 import { useDebounced, useLists } from '@/lib/hooks';
 import {
   COUNT_CAP,
   facetsQuery,
   formatCount,
-  fromSaved,
   LEAD_FILTERS,
   leadCountQuery,
   leadIdsForFilters,
@@ -37,6 +36,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
 import { Checkbox, Input } from '@/components/ui/form';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
+import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
 const DEFAULT_FILTERS: Filters = { hasMobile: true };
 const EXPORT_MAX = 500;
@@ -73,7 +73,18 @@ function csvRow(lead: LeadRow | undefined, p: Person) {
  * The lead search workspace: toolbar, stackable filters, results, selection bar. Used by the
  * Leads page and by Search with AI (which passes the filters it built and a banner).
  */
-export function LeadsView({ initialFilters = DEFAULT_FILTERS, initialText = '', banner }: { initialFilters?: Filters; initialText?: string; banner?: React.ReactNode }) {
+export function LeadsView({
+  initialFilters = DEFAULT_FILTERS,
+  initialText = '',
+  banner,
+  savedList,
+}: {
+  initialFilters?: Filters;
+  initialText?: string;
+  banner?: React.ReactNode;
+  /** Set when opened from a saved search list in Lists. */
+  savedList?: SavedListRef;
+}) {
   const { workspace, user, refreshWorkspace } = useApp();
   const params = useSearchParams();
   const router = useRouter();
@@ -90,7 +101,6 @@ export function LeadsView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<null | 'add' | 'create' | 'save-filtered'>(null);
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saveName, setSaveName] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<null | { title: string; body: string; action: string; run: () => Promise<void> }>(null);
 
@@ -98,8 +108,6 @@ export function LeadsView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
   const facets = useQuery(facetsQuery('leads'));
   const results = useQuery({ ...leadSearchQuery(workspace.id, server, page), placeholderData: (prev) => prev });
   const count = useQuery({ ...leadCountQuery(workspace.id, server), placeholderData: (prev) => prev });
-  const saved = useQuery(savedSearchesQuery(workspace.id));
-  const mySaved = (saved.data ?? []).filter((s) => (s.filters as Record<string, unknown> | null)?.source !== 'local');
 
   useEffect(() => {
     if (count.data !== undefined && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data, source: 'leads' });
@@ -247,17 +255,6 @@ export function LeadsView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
     }
   };
 
-  const saveSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!saveName.trim()) return;
-    const { error } = await db.from('saved_searches').insert({ workspace_id: workspace.id, user_id: user.id, name: saveName.trim(), filters: { v: 2, ...filters, q: text.trim() || undefined } });
-    if (error) return void toast(error.message);
-    setSaveOpen(false);
-    setSaveName('');
-    toast('Search saved');
-    void saved.refetch();
-  };
-
   const targetName = lists?.find((l) => l.id === targetList)?.name;
 
   return (
@@ -281,6 +278,11 @@ export function LeadsView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
           <h1 className="whitespace-nowrap text-sm text-black-700">
             <span className="text-black-400">{formatCount(total, page * PAGE_SIZE + rows.length)}</span> leads
           </h1>
+          {savedList ? (
+            <Link href="/app/lists" className="tag tag-1 max-w-[260px] truncate" title="A saved search from Lists">
+              {savedList.name}
+            </Link>
+          ) : null}
           {targetList ? (
             <Link href={`/app/lists/${targetList}`} className="tag tag-1 max-w-[260px] truncate" title="Select leads, then choose Add to list">
               Adding to {targetName ?? 'your list'} · back
@@ -292,47 +294,8 @@ export function LeadsView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
             </span>
           ) : null}
           <div className="ml-auto flex items-center gap-2">
-            <Popover
-              align="right"
-              trigger={({ toggle }) => (
-                <Button size="compact" onClick={toggle}>
-                  <Bookmark size={16} strokeWidth={1.5} /> Saved
-                </Button>
-              )}
-            >
-              {(close) =>
-                mySaved.length ? (
-                  mySaved.map((s) => (
-                    <div key={s.id} className="flex items-center">
-                      <MenuItem
-                        onClick={() => {
-                          const loaded = fromSaved((s.filters ?? {}) as Record<string, unknown>);
-                          update(loaded.filters);
-                          setText(loaded.q);
-                          close();
-                        }}
-                      >
-                        {s.name}
-                      </MenuItem>
-                      <button
-                        aria-label={`Delete saved search ${s.name}`}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-black-700 hover:bg-white-300"
-                        onClick={async () => {
-                          await db.from('saved_searches').delete().eq('id', s.id);
-                          void saved.refetch();
-                        }}
-                      >
-                        <Trash2 size={14} strokeWidth={1.5} />
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="px-2 py-1.5 text-black-700">No saved searches yet.</p>
-                )
-              }
-            </Popover>
             <Button size="compact" onClick={() => setSaveOpen(true)}>
-              Save search
+              <Bookmark size={16} strokeWidth={1.5} /> {savedList ? 'Save' : 'Save as list'}
             </Button>
             <Popover
               align="right"
@@ -580,17 +543,14 @@ export function LeadsView({ initialFilters = DEFAULT_FILTERS, initialText = '', 
           </Button>
         </div>
       </Dialog>
-      <Dialog open={saveOpen} onClose={() => setSaveOpen(false)} title="Save search">
-        <form onSubmit={saveSearch} className="flex flex-col gap-4">
-          <Input autoFocus value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder="UK IT directors with mobiles" aria-label="Search name" />
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setSaveOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary" disabled={!saveName.trim()}>
-              Save
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+      <SaveSearchDialog
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        source="leads"
+        search={{ v: 2, ...filters, q: text.trim() || undefined }}
+        savedList={savedList}
+        placeholder="UK IT directors with mobiles"
+      />
     </div>
   );
 }

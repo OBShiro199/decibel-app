@@ -1,6 +1,6 @@
 'use client';
 import {
-  ArrowDownUp, Bell, Building2, ChevronLeft, Code2, CreditCard, Headphones, Layers, Lock, Mic, MonitorSmartphone, Palette, Phone, Search, ShieldCheck, User, Users,
+  ArrowDownUp, Bell, Blocks, Building2, ChevronLeft, Code2, CreditCard, Headphones, Layers, Lock, Mic, MonitorSmartphone, Palette, Phone, Search, ShieldCheck, User, Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Select } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
+import { HOME } from '@/lib/constants';
 
 interface NavItem {
   route: string;
@@ -41,6 +42,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Data',
     items: [
+      { route: 'integrations', label: 'Integrations', icon: Blocks },
       { route: 'data', label: 'Imports & exports', icon: ArrowDownUp },
       { route: 'developers', label: 'Developers', icon: Code2 },
     ],
@@ -106,7 +108,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
       {/* Mobile: back link + page select */}
       <div className="flex shrink-0 items-center gap-2 border-b border-white-800 bg-white-100 px-4 py-2 md:hidden">
-        <Link href="/app" aria-label="Back to app" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm hover:bg-white-300">
+        <Link href={HOME} aria-label="Back to app" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm hover:bg-white-300">
           <ChevronLeft size={16} strokeWidth={1.5} />
         </Link>
         <Select className="min-w-0 flex-1" aria-label="Settings page" value={current?.route ?? ''} onChange={(e) => router.push(href(e.target.value))}>

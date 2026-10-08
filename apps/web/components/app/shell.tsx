@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
 import { Check, ChevronsUpDown, Coins, LogOut, Mail, Phone, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
 import { FOUNDER } from '@/lib/site';
-import { AddressBook, Globe, Lightning, ListBullets, PhoneCall, PlugsConnected, ShieldCheck, SunDim } from '@phosphor-icons/react';
+import { AddressBook, Globe, Lightning, ListBullets, PhoneCall, ShieldCheck } from '@phosphor-icons/react';
 import { GoogleIcon } from '@/components/ui/google-icon';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -14,6 +14,7 @@ import { destroyDevice } from '@/lib/twilio/device';
 import type { Person } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CreditsMeter } from '@/components/app/credits-meter';
+import { HOME } from '@/lib/constants';
 import { SoftphoneToggle } from '@/components/app/quick-dial';
 import { SoftphoneProvider } from '@/components/softphone/provider';
 import { SupportWidget } from '@/components/app/support-widget';
@@ -33,14 +34,12 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   {
     label: null,
     items: [
-      { href: '/app', label: 'Today', icon: SunDim, exact: true },
-      { href: '/app/ai', label: 'Search with AI', icon: Globe },
       { href: '/app/leads', label: 'Leads', icon: AddressBook },
+      { href: '/app/ai', label: 'Search with AI', icon: Globe },
       { href: '/app/local', label: 'Local businesses', icon: GoogleNavIcon },
       // Companies is hidden for now: the page still exists at /app/companies. To bring the tab back,
       // restore { href: '/app/companies', label: 'Companies', icon: Buildings } here and in PREFETCH_ROUTES.
       { href: '/app/lists', label: 'Lists', icon: ListBullets },
-      { href: '/app/integrations', label: 'Integrations', icon: PlugsConnected },
     ],
   },
   {
@@ -267,7 +266,7 @@ function Sidebar() {
       aria-label="Main"
       className="flex w-[var(--sidebar-width)] shrink-0 flex-col border-r border-white-800 bg-canvas transition-[width]"
     >
-      <Link href="/app" aria-label="Decibel home" className="flex h-12 shrink-0 items-center gap-1.5 border-b border-white-800 px-4 max-[1100px]:justify-center max-[1100px]:px-0">
+      <Link href={HOME} aria-label="Decibel home" className="flex h-12 shrink-0 items-center gap-1.5 border-b border-white-800 px-4 max-[1100px]:justify-center max-[1100px]:px-0">
         <LogoMark size={20} />
         <span className="font-semibold tracking-[-0.02em] text-black-400 max-[1100px]:hidden">Decibel</span>
       </Link>

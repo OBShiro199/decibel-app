@@ -15,6 +15,7 @@ import { SoftphoneProvider } from '@/components/softphone/provider';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/overlay';
 import { BusinessStep, ComplianceStep, IcpStep, InviteStep, NumberStep, TestStep, WorkspaceStep } from './steps';
+import { HOME } from '@/lib/constants';
 
 export interface StepProps {
   user: { id: string; email: string; emailConfirmed: boolean };
@@ -100,7 +101,7 @@ export function Wizard({
       track('onboarding_step_completed', { step: current.n, skipped });
       if (invited) {
         setFinishing(true);
-        router.replace('/app');
+        router.replace(HOME);
         return;
       }
       const next = STEPS.find((s) => s.n === current.n + 1);
@@ -128,7 +129,7 @@ export function Wizard({
       }
       const started = state.started_at ? new Date(state.started_at).getTime() : null;
       track('onboarding_completed', { minutes_taken: started ? Math.round((Date.now() - started) / 60000) : null });
-      router.replace('/app?welcome=1');
+      router.replace(`${HOME}?welcome=1`);
       router.refresh();
     },
     [completed, current.n, go, invited, router, state, toast, workspace],
