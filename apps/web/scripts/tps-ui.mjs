@@ -243,6 +243,8 @@ async function main() {
   await waitFor(b, `__t.text().includes('UK numbers to check')`, 10000);
   const quoteText = await b.evaluate('__t.text()');
   check('The exact cost shows before anything is charged', quoteText.includes(`Check ${uk1} numbers`) && quoteText.includes('Not UK (skipped, free)'), `UK ${uk1}`);
+  const prev = await b.evaluate(`(() => { const box = document.querySelector('[data-testid=tps-preview]'); return { cols: box.querySelectorAll('thead th').length, scrolls: box.scrollWidth > box.clientWidth }; })()`);
+  check('The preview shows every column of the file and scrolls sideways', prev.cols === 1 + header.split(',').length && prev.scrolls, JSON.stringify(prev));
   await b.shot('tps-2-prepare');
 
   const t0 = Date.now();
@@ -257,6 +259,12 @@ async function main() {
   await waitFor(b, `document.querySelectorAll('[data-testid=tps-results] tbody tr').length === 5 && !!document.querySelector('[role=radiogroup][aria-label="Show rows"]')`, 60000);
   check('The check finishes on its own and switches to the results', (await b.evaluate(`__t.results().length`)) === 5, `${((Date.now() - t0) / 1000).toFixed(1)}s`);
   check('Confetti when it finishes', (await b.evaluate(`window.__tpsConfetti ?? 0`)) >= 1);
+  const wide = await b.evaluate(`(() => { const t = document.querySelector('[data-testid=tps-results]'); const box = t.parentElement; const heads = [...t.querySelectorAll('thead th')].map((th) => th.innerText.trim()); box.scrollLeft = box.scrollWidth; const pinned = t.querySelector('tbody tr td:nth-child(3)').getBoundingClientRect().left >= box.getBoundingClientRect().left; return { heads, scrolls: box.scrollWidth > box.clientWidth, pinned }; })()`);
+  const original = header.split(',');
+  check('Results show every original column plus the TPS columns, scrolling sideways', original.every((h) => wide.heads.includes(h)) && ['TPS status', 'TPS registered', 'CTPS registered', 'Checked on'].every((h) => wide.heads.includes(h)) && wide.scrolls, `${wide.heads.length} columns`);
+  check('Row, phone and TPS status stay pinned while scrolling', wide.pinned);
+  await b.shot('tps-4b-scrolled');
+  await b.evaluate(`document.querySelector('[data-testid=tps-results]').parentElement.scrollLeft = 0`);
   const res1 = await b.evaluate('__t.results()');
   check('Each row shows its status: UK numbers valid or DNC, others not UK', res1.every((r, i) => (mobiles[i].startsWith('+44') ? /^(Valid|DNC)/.test(r[2]) : r[2] === 'Not UK')), res1.map((r) => r[2]).join(', '));
   check('Row numbers match the spreadsheet', res1[0][0] === '2' && res1[4][0] === '6');

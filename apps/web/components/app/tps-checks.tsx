@@ -226,7 +226,6 @@ function Prepare({ file, onCancel, onStarted }: { file: ParsedFile; onCancel: ()
     onError: (e) => setError(explainError((e as Error).message)),
   });
 
-  const others = file.headers.map((h, i) => ({ h, i })).filter((c) => c.i !== column).slice(0, 3);
   const preview = file.rows.slice(0, 5);
 
   return (
@@ -260,35 +259,57 @@ function Prepare({ file, onCancel, onStarted }: { file: ParsedFile; onCancel: ()
             />
           </div>
 
-          <div className="mt-4 overflow-x-auto rounded-md border border-white-800">
-            <table className="w-full min-w-[480px] table-fixed border-collapse">
+          {/* every column of the file, scrolling sideways, so nothing looks left out of the export;
+              # and the phone column stay pinned on the left */}
+          <div className="mt-4 overflow-x-auto rounded-md border border-white-800" data-testid="tps-preview">
+            <table className="table-fixed border-separate border-spacing-0" style={{ width: 40 + file.headers.length * 160, minWidth: '100%' }}>
+              <colgroup>
+                <col style={{ width: 40 }} />
+                {file.headers.map((_, i) => (
+                  <col key={i} style={{ width: 160 }} />
+                ))}
+              </colgroup>
               <thead>
-                <tr className="border-b border-white-800 text-left text-black-700">
-                  <th className="w-10 px-3 py-2 font-normal">#</th>
-                  {column >= 0 ? <th className="w-[170px] bg-[#f7f9fe] px-3 py-2 font-medium text-[#3653a3]">{file.headers[column]}</th> : null}
-                  {others.map((c) => (
-                    <th key={c.i} className="truncate px-3 py-2 font-normal">
-                      {c.h}
+                <tr className="text-left text-black-700 [&>th]:border-b [&>th]:border-white-800 [&>th]:py-2">
+                  <th className="sticky left-0 z-[1] bg-white-100 px-3 font-normal">#</th>
+                  {column >= 0 ? (
+                    <th title={file.headers[column]} className="sticky left-[40px] z-[1] truncate border-r bg-[#f7f9fe] px-3 font-medium text-[#3653a3]">
+                      {file.headers[column]}
                     </th>
-                  ))}
+                  ) : null}
+                  {file.headers.map((h, i) =>
+                    i === column ? null : (
+                      <th key={i} title={h} className="truncate px-3 font-normal">
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:last-child>td]:border-b-0 [&>tr>td]:border-b [&>tr>td]:border-white-800">
                 {preview.map((r, ri) => (
-                  <tr key={ri} className="border-b border-white-800 last:border-0">
-                    <td className="px-3 py-2 tabular-nums text-black-700">{ri + 1}</td>
-                    {column >= 0 ? <td className="truncate bg-[#f7f9fe] px-3 py-2 tabular-nums text-black-400">{r[column] || <span className="text-white-900">Blank</span>}</td> : null}
-                    {others.map((c) => (
-                      <td key={c.i} className="truncate px-3 py-2 text-black-700">
-                        {r[c.i]}
+                  <tr key={ri}>
+                    <td className="sticky left-0 z-[1] bg-white-100 px-3 py-2 tabular-nums text-black-700">{ri + 1}</td>
+                    {column >= 0 ? (
+                      <td title={r[column]} className="sticky left-[40px] z-[1] truncate border-r bg-[#f7f9fe] px-3 py-2 tabular-nums text-black-400">
+                        {r[column] || <span className="text-white-900">Blank</span>}
                       </td>
-                    ))}
+                    ) : null}
+                    {file.headers.map((_, i) =>
+                      i === column ? null : (
+                        <td key={i} title={r[i]} className="truncate px-3 py-2 text-black-700">
+                          {r[i]}
+                        </td>
+                      ),
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {file.rows.length > preview.length ? <p className="mt-2 text-black-700">Showing the first 5 of {plural(file.rows.length, 'row')}.</p> : null}
+          <p className="mt-2 text-black-700">
+            {file.rows.length > preview.length ? `First 5 of ${plural(file.rows.length, 'row')}. ` : ''}All {plural(file.headers.length, 'column')} are kept{file.headers.length > 5 ? ', scroll sideways to see them' : ''}.
+          </p>
         </div>
 
         <aside className="flex flex-col p-4" aria-label="What this check costs">
@@ -552,7 +573,11 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
   const PAGE = 50;
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
   const slice = shown.slice(page * PAGE, page * PAGE + PAGE);
-  const others = j.headers.map((h, i) => ({ h, i })).filter((c) => c.i !== j.phone_column).slice(0, 4);
+  const others = j.headers.map((h, i) => ({ h, i })).filter((c) => c.i !== j.phone_column);
+  const COL = 170;
+  const tableWidth = 56 + 160 + 170 + others.length * COL + 130 + 130 + 120;
+  const span = 6 + others.length;
+  const pin = 'sticky z-[1] bg-white-100';
   const filters: { id: RowFilter; label: string; count: number }[] = [
     { id: 'all', label: 'All rows', count: j.total_rows },
     { id: 'callable', label: 'Valid', count: counts.valid },
@@ -584,7 +609,7 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
                 : `Checking ${n(j.numbers_done)} of ${plural(j.numbers_total, 'number')}, ${eta(j)}`
               : j.status === 'failed'
                 ? failureText(j)
-                : `${plural(j.total_rows, 'row')} · ${plural(j.numbers_total, 'unique UK number')} · ${plural(creditsUsed(j), 'credit')} used${j.numbers_reused ? ` · ${n(j.numbers_reused)} reused free` : ''}${j.credits_refunded ? ` · ${n(j.credits_refunded)} refunded` : ''}`}
+                : `${plural(j.total_rows, 'row')} · ${plural(j.headers.length, 'column')} · ${plural(j.numbers_total, 'unique UK number')} · ${plural(creditsUsed(j), 'credit')} used${j.numbers_reused ? ` · ${n(j.numbers_reused)} reused free` : ''}${j.credits_refunded ? ` · ${n(j.credits_refunded)} refunded` : ''}`}
           </p>
         </div>
         {live && j.status === 'running' ? (
@@ -638,34 +663,52 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] table-fixed border-collapse" data-testid="tps-results">
+          {/* every column of the file scrolls sideways; row, phone and status stay pinned on the left */}
+          <table className="table-fixed border-separate border-spacing-0" style={{ width: tableWidth, minWidth: '100%' }} data-testid="tps-results">
+            <colgroup>
+              <col style={{ width: 56 }} />
+              <col style={{ width: 160 }} />
+              <col style={{ width: 170 }} />
+              {others.map((c) => (
+                <col key={c.i} style={{ width: COL }} />
+              ))}
+              <col style={{ width: 130 }} />
+              <col style={{ width: 130 }} />
+              <col style={{ width: 120 }} />
+            </colgroup>
             <thead>
-              <tr className="border-b border-white-800 text-left text-black-700">
-                <th className="w-14 px-5 py-2 font-normal">Row</th>
-                <th className="w-[150px] px-3 py-2 font-normal">{j.headers[j.phone_column]}</th>
-                <th className="w-[150px] px-3 py-2 font-normal">TPS status</th>
-                <th className="w-[110px] px-3 py-2 font-normal">Checked on</th>
+              <tr className="text-left text-black-700 [&>th]:border-b [&>th]:border-white-800 [&>th]:py-2 [&>th]:font-normal">
+                <th className={cn(pin, 'left-0 pl-5 pr-2')}>Row</th>
+                <th className={cn(pin, 'left-[56px] truncate px-3')} title={j.headers[j.phone_column]}>
+                  {j.headers[j.phone_column]}
+                </th>
+                <th className={cn(pin, 'left-[216px] border-r px-3')}>TPS status</th>
                 {others.map((c) => (
-                  <th key={c.i} className="truncate px-3 py-2 font-normal">
+                  <th key={c.i} title={c.h} className="truncate px-3">
                     {c.h}
                   </th>
                 ))}
+                <th className="px-3">TPS registered</th>
+                <th className="px-3">CTPS registered</th>
+                <th className="px-3">Checked on</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:last-child>td]:border-b-0 [&>tr>td]:border-b [&>tr>td]:border-white-800">
               {results.isLoading
                 ? Array.from({ length: 5 }, (_, i) => (
-                    <tr key={i} className="border-b border-white-800">
-                      <td colSpan={4 + others.length} className="px-5 py-2.5">
-                        <span className="skeleton block h-3.5 w-2/3" />
+                    <tr key={i}>
+                      <td colSpan={span} className="px-5 py-2.5">
+                        <span className="skeleton block h-3.5 w-[420px]" />
                       </td>
                     </tr>
                   ))
                 : slice.map((r) => (
-                    <tr key={r.row_no} className="border-b border-white-800 last:border-0">
-                      <td className="px-5 py-2 tabular-nums text-black-700">{r.row_no + 2}</td>
-                      <td className="truncate px-3 py-2 tabular-nums text-black-400">{r.phone_raw || <span className="text-white-900">Blank</span>}</td>
-                      <td className="px-3 py-2">
+                    <tr key={r.row_no}>
+                      <td className={cn(pin, 'left-0 py-2 pl-5 pr-2 tabular-nums text-black-700')}>{r.row_no + 2}</td>
+                      <td className={cn(pin, 'left-[56px] truncate px-3 py-2 tabular-nums text-black-400')} title={r.phone_raw}>
+                        {r.phone_raw || <span className="text-white-900">Blank</span>}
+                      </td>
+                      <td className={cn(pin, 'left-[216px] border-r px-3 py-2')}>
                         {r.outcome === 'pending' ? (
                           <span className="tag tag-1">
                             <span className="tps-pulse h-1.5 w-1.5 rounded-full" style={{ background: BLUE }} /> Checking
@@ -676,17 +719,19 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2 tabular-nums text-black-700">{r.checked_at ? new Date(r.checked_at).toLocaleDateString('en-GB') : ''}</td>
                       {others.map((c) => (
-                        <td key={c.i} className="truncate px-3 py-2 text-black-700">
+                        <td key={c.i} title={r.cells[c.i] ?? ''} className="truncate px-3 py-2 text-black-700">
                           {r.cells[c.i]}
                         </td>
                       ))}
+                      <td className="px-3 py-2 tabular-nums text-black-700">{r.tps_since ? new Date(r.tps_since).toLocaleDateString('en-GB') : ''}</td>
+                      <td className="px-3 py-2 tabular-nums text-black-700">{r.ctps_since ? new Date(r.ctps_since).toLocaleDateString('en-GB') : ''}</td>
+                      <td className="px-3 py-2 tabular-nums text-black-700">{r.checked_at ? new Date(r.checked_at).toLocaleDateString('en-GB') : ''}</td>
                     </tr>
                   ))}
               {results.data && !shown.length ? (
                 <tr>
-                  <td colSpan={4 + others.length} className="px-5 py-6 text-center text-black-700">
+                  <td colSpan={span} className="px-5 py-6 text-black-700">
                     {rows.length ? 'No rows match this filter.' : 'The uploaded rows for this check have been deleted (files are kept for 90 days).'}
                   </td>
                 </tr>
