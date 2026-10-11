@@ -16,7 +16,7 @@ import { createSession, findOpenSession, reconcileResults, saveSession, sessionL
 import { useLists } from '@/lib/hooks';
 import { peopleQuery, todayQueueQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
-import { isLive, PHASE_LABEL } from '@/lib/twilio/call-machine';
+import { isLive, PHASE_LABEL } from '@/lib/softphone/call-machine';
 import type { CallOutcome } from '@/lib/types';
 import { cn, formatDuration, formatPhone, normalizePhone, timeAgo } from '@/lib/utils';
 import { FilterMenu } from '@/components/app/filter-menu';

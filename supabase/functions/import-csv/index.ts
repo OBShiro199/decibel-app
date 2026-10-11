@@ -4,7 +4,7 @@
 // Dedupes on email / mobile, normalises phones, and TPS-checks every row
 // against tps_cache (V1 seeded flags).
 import { admin, corsHeaders, fail, getRole, getUser, isAdmin, json } from '../_shared/http.ts';
-import { normalizePhone } from '../_shared/twilio.ts';
+import { normalizePhone } from '../_shared/phone.ts';
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];

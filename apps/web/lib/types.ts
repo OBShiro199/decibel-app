@@ -12,7 +12,7 @@ export type CallStatus =
 export type CallOutcome =
   | 'connected' | 'no_answer' | 'voicemail' | 'busy' | 'wrong_number'
   | 'meeting_booked' | 'not_interested' | 'call_back' | 'do_not_call';
-export type PhoneNumberKind = 'twilio_local' | 'twilio_national' | 'twilio_mobile' | 'verified_caller_id';
+export type PhoneNumberKind = 'local' | 'national' | 'mobile' | 'verified_caller_id';
 export type PhoneNumberStatus = 'pending_bundle' | 'pending_review' | 'active' | 'rejected' | 'released';
 export type ActivityKind =
   | 'call' | 'note' | 'task_created' | 'task_completed' | 'stage_changed'
@@ -47,7 +47,6 @@ export interface Workspace {
   logo_url: string | null;
   team_size: string | null;
   created_by: string;
-  twilio_account_mode?: 'pending' | 'subaccount' | 'parent';
   recording_policy: RecordingPolicy;
   recording_notice_text: string;
   art14_notice_text?: string;
@@ -94,7 +93,11 @@ export interface PhoneNumber {
   assigned_user_id: string | null;
   is_default: boolean;
   monthly_cost_pence: number;
-  regulatory_bundle_sid: string | null;
+  provider: 'telnyx' | 'twilio';
+  requirement_group_id: string | null;
+  number_order_id: string | null;
+  /** Telnyx review progress or a reviewer's reason, shown under the number. */
+  status_detail: string | null;
   created_at: string;
 }
 
@@ -206,8 +209,8 @@ export interface Call {
   to_e164: string;
   status: CallStatus;
   outcome: CallOutcome | null;
-  twilio_call_sid: string | null;
-  twilio_child_call_sid: string | null;
+  provider_call_id: string | null;
+  provider_child_call_id: string | null;
   blocked_reason: string | null;
   started_at: string;
   answered_at: string | null;

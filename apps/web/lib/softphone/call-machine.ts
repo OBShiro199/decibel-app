@@ -3,8 +3,8 @@ import type { Call as CallRow, CallOutcome } from '@/lib/types';
 
 /**
  * checking: opened instantly while TPS/DNC, microphone and device setup run in parallel
- * blocked:  the call was refused before or by Twilio (no outcome needed)
- * failed:   the call never reached Twilio (no outcome needed)
+ * blocked:  the call was refused by the server checks (no outcome needed)
+ * failed:   the call never reached the calling service (no outcome needed)
  */
 export type Phase = 'idle' | 'checking' | 'incoming' | 'connecting' | 'ringing' | 'in_call' | 'ended' | 'blocked' | 'failed';
 
@@ -16,6 +16,8 @@ export interface Callee {
   listId?: string | null;
   /** Power dialler test routing: a real call to this person that rings the rep's own number. */
   testRoute?: boolean;
+  /** Setup test without a number: ring this teammate's browser (internal call). */
+  toUserId?: string;
 }
 
 export interface SoftphoneState {
@@ -33,8 +35,8 @@ export interface SoftphoneState {
   startedAt: number | null;
   endedAt: number | null;
   callRow: CallRow | null;
-  /** Twilio reached twilio-voice, so a calls row exists and an outcome is required. */
-  reachedTwilio: boolean;
+  /** The call reached the server and was placed, so a calls row exists and an outcome is required. */
+  reachedServer: boolean;
   notes: string;
   outcome: CallOutcome | null;
   message: string | null;
@@ -55,7 +57,7 @@ export const initialState: SoftphoneState = {
   startedAt: null,
   endedAt: null,
   callRow: null,
-  reachedTwilio: false,
+  reachedServer: false,
   notes: '',
   outcome: null,
   message: null,
@@ -85,7 +87,7 @@ export type Action =
 const LIVE: Phase[] = ['checking', 'incoming', 'connecting', 'ringing', 'in_call'];
 export const isLive = (phase: Phase) => LIVE.includes(phase);
 /** A finished call that still needs an outcome before the panel can close. */
-export const needsOutcome = (s: Pick<SoftphoneState, 'phase' | 'kind' | 'reachedTwilio'>) => s.phase === 'ended' && s.kind === 'standard' && s.reachedTwilio;
+export const needsOutcome = (s: Pick<SoftphoneState, 'phase' | 'kind' | 'reachedServer'>) => s.phase === 'ended' && s.kind === 'standard' && s.reachedServer;
 
 export function reducer(state: SoftphoneState, action: Action): SoftphoneState {
   switch (action.type) {
@@ -96,23 +98,23 @@ export function reducer(state: SoftphoneState, action: Action): SoftphoneState {
       return state.phase === 'checking' ? { ...state, phase: 'connecting' } : state;
     case 'INCOMING':
       if (isLive(state.phase)) return state;
-      return { ...initialState, phase: 'incoming', direction: 'inbound', callee: action.callee, callId: action.callId, open: true, reachedTwilio: true };
+      return { ...initialState, phase: 'incoming', direction: 'inbound', callee: action.callee, callId: action.callId, open: true, reachedServer: true };
     case 'RINGING':
-      return state.phase === 'connecting' ? { ...state, phase: 'ringing', reachedTwilio: true } : state;
+      return state.phase === 'connecting' ? { ...state, phase: 'ringing', reachedServer: true } : state;
     case 'ACCEPTED':
-      return isLive(state.phase) ? { ...state, phase: 'in_call', reachedTwilio: true, startedAt: state.startedAt ?? Date.now() } : state;
+      return isLive(state.phase) ? { ...state, phase: 'in_call', reachedServer: true, startedAt: state.startedAt ?? Date.now() } : state;
     case 'ENDED':
       if (!isLive(state.phase)) return state;
       return { ...state, phase: 'ended', endedAt: Date.now(), muted: false, held: false, keypad: false, minimised: false, open: true };
     case 'BLOCKED':
-      return { ...state, phase: 'blocked', message: action.message, endedAt: Date.now(), open: true, minimised: false, keypad: false, reachedTwilio: false };
+      return { ...state, phase: 'blocked', message: action.message, endedAt: Date.now(), open: true, minimised: false, keypad: false, reachedServer: false };
     case 'FAILED':
       return { ...state, phase: 'failed', message: action.message, endedAt: Date.now(), open: true, minimised: false, keypad: false };
     case 'ROW': {
       if (action.row.id !== state.callId) return state;
       const row = action.row;
-      if (row.status === 'blocked' && state.phase !== 'blocked') return { ...state, callRow: row, phase: 'blocked', message: null, reachedTwilio: false };
-      let next: SoftphoneState = { ...state, callRow: row, reachedTwilio: true };
+      if (row.status === 'blocked' && state.phase !== 'blocked') return { ...state, callRow: row, phase: 'blocked', message: null, reachedServer: false };
+      let next: SoftphoneState = { ...state, callRow: row, reachedServer: true };
       if (row.status === 'ringing' && next.phase === 'connecting') next = { ...next, phase: 'ringing' };
       if (row.status === 'in_progress' && isLive(next.phase)) next = { ...next, phase: 'in_call', startedAt: next.startedAt ?? Date.now() };
       // suggest an outcome once, only if the rep hasn't picked one

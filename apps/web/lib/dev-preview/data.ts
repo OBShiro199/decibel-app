@@ -10,7 +10,7 @@ export const ids = { WS, ME, PRIYA };
 
 export const workspace = {
   id: WS, name: "Oliver's Test Team", slug: 'olivers-test-team', website: null, logo_url: null, team_size: '2–5', created_by: ME,
-  twilio_account_mode: 'subaccount', recording_policy: 'always', recording_notice_text: 'This call may be recorded for quality and training purposes.',
+  recording_policy: 'always', recording_notice_text: 'This call may be recorded for quality and training purposes.',
   art14_notice_text: 'We hold your business contact details under legitimate interest.', stripe_customer_id: null, plan: 'trial',
   trial_ends_at: ago(-9), credit_balance: 42, minute_balance_seconds: 2840, daily_reveal_limit: 300,
   onboarding_state: { step: 7, completed: [1, 2, 3, 4, 5, 6, 7] }, onboarding_completed_at: ago(2), created_at: ago(5),
@@ -80,7 +80,7 @@ export const calls = callOutcomes.map((outcome, i) => {
   const id = `66666666-0000-4000-8000-0000000000${pad(i + 1)}`;
   return {
     id, workspace_id: WS, user_id: i % 4 === 3 ? PRIYA : ME, person_id: p.id, list_id: null, phone_number_id: null, direction: i === 6 ? 'inbound' : 'outbound', kind: 'standard',
-    from_e164: '+447700900001', to_e164: p.mobile_e164, status: dur ? 'completed' : 'no_answer', outcome, twilio_call_sid: null, twilio_child_call_sid: null, blocked_reason: null,
+    from_e164: '+447700900001', to_e164: p.mobile_e164, status: dur ? 'completed' : 'no_answer', outcome, provider_call_id: null, provider_child_call_id: null, blocked_reason: null,
     started_at: ago(i * 0.35, i), answered_at: dur ? ago(i * 0.35, i) : null, ended_at: ago(i * 0.35, i), duration_seconds: dur, talk_seconds: dur, notes: i === 0 ? 'Keen on a demo next Tuesday. Uses spreadsheets today.' : null,
     person: { id: p.id, full_name: p.full_name, job_title: p.job_title, company: { id: p.tenant_company_id, name: p.company.name } },
     recording: dur > 0 ? [{ id: `r-${i}`, call_id: id, storage_path: `${WS}/${id}.mp3`, duration_seconds: dur }] : [],
@@ -120,7 +120,7 @@ export const stats = Array.from({ length: 45 }, (_, d) => ({
   })),
 );
 
-export const numbers = [{ id: '88888888-0000-4000-8000-000000000001', workspace_id: WS, e164: '+447700900001', friendly_name: 'Verified caller ID', country_code: 'GB', kind: 'verified_caller_id', status: 'active', assigned_user_id: ME, is_default: true, monthly_cost_pence: 0, regulatory_bundle_sid: null, created_at: ago(4) }];
+export const numbers = [{ id: '88888888-0000-4000-8000-000000000001', workspace_id: WS, e164: '+447700900001', friendly_name: 'Verified caller ID', country_code: 'GB', kind: 'verified_caller_id', status: 'active', assigned_user_id: ME, is_default: true, monthly_cost_pence: 0, provider: 'telnyx', requirement_group_id: null, number_order_id: null, status_detail: null, created_at: ago(4) }];
 
 export const activities = [
   { id: 1, workspace_id: WS, person_id: people[0].id, actor_id: ME, kind: 'call', call_id: calls[0].id, note_id: null, task_id: null, payload: { outcome: 'meeting_booked' }, created_at: ago(0, 1) },

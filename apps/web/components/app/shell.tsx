@@ -10,7 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { AppProvider, useApp, type AppContextValue } from '@/lib/app-context';
 import { invoke, supabase } from '@/lib/supabase/client';
-import { destroyDevice } from '@/lib/twilio/device';
+import { destroyDevice } from '@/lib/softphone/device';
 import type { Person } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CreditsMeter } from '@/components/app/credits-meter';

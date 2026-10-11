@@ -13,8 +13,7 @@ type Tool = 'tps' | 'email' | 'phone';
 
 const TPS_KEY = Deno.env.get('TPSAPI_KEY') ?? '';
 const MV_KEY = Deno.env.get('MILLIONVERIFIER_KEY') ?? '';
-const TW_SID = Deno.env.get('TWILIO_ACCOUNT_SID') ?? '';
-const TW_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN') ?? '';
+const TELNYX_KEY = Deno.env.get('TELNYX_API_KEY') ?? '';
 const TURNSTILE_SECRET = Deno.env.get('TURNSTILE_SECRET') ?? '';
 const INBOX_EMAIL = Deno.env.get('SUPPORT_INBOX_EMAIL') ?? 'oliverburt3@gmail.com';
 
@@ -138,26 +137,41 @@ async function checkEmail(email: string) {
   };
 }
 
+// Telnyx carrier type -> the line types the page labels
+const LINE_TYPE: Record<string, string> = {
+  mobile: 'mobile',
+  'fixed line': 'landline',
+  'fixed line or mobile': 'landline',
+  voip: 'nonFixedVoip',
+  'toll free': 'tollFree',
+  'premium rate': 'premium',
+  'shared cost': 'sharedCost',
+  'personal number': 'personal',
+  pager: 'pager',
+  uan: 'uan',
+  voicemail: 'voicemail',
+};
+
 async function checkPhone(e164: string) {
-  const auth = `Basic ${btoa(`${TW_SID}:${TW_TOKEN}`)}`;
-  // free validation first; the paid line-type lookup only runs for valid numbers
-  const basic = await fetch(`https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(e164)}`, { headers: { authorization: auth } });
-  if (!basic.ok) throw new Unavailable(`twilio ${basic.status}`);
-  const b = await basic.json();
-  if (!b.valid) return { paid: false, data: { number: e164, valid: false, reason: (b.validation_errors ?? [])[0] ?? 'INVALID' } };
-  const full = await fetch(`https://lookups.twilio.com/v2/PhoneNumbers/${encodeURIComponent(e164)}?Fields=line_type_intelligence`, { headers: { authorization: auth } });
-  if (!full.ok) throw new Unavailable(`twilio ${full.status}`);
-  const f = await full.json();
-  const lt = f.line_type_intelligence ?? {};
+  const headers = { authorization: `Bearer ${TELNYX_KEY}`, accept: 'application/json' };
+  // Telnyx Number Lookup: validity and format first; the paid carrier lookup only runs for valid numbers
+  const basic = await fetch(`https://api.telnyx.com/v2/number_lookup/${encodeURIComponent(e164)}`, { headers });
+  if (!basic.ok) throw new Unavailable(`telnyx ${basic.status}`);
+  const b = (await basic.json()).data ?? {};
+  if (b.valid_number === false) return { paid: false, data: { number: e164, valid: false, reason: 'INVALID' } };
+  const full = await fetch(`https://api.telnyx.com/v2/number_lookup/${encodeURIComponent(e164)}?type=carrier`, { headers });
+  if (!full.ok) throw new Unavailable(`telnyx ${full.status}`);
+  const f = (await full.json()).data ?? {};
+  const carrierType = String(f.carrier?.type ?? '').toLowerCase();
   return {
     paid: true,
     data: {
       number: f.phone_number ?? e164,
-      national_format: f.national_format ?? null,
-      country_code: f.country_code ?? null,
+      national_format: f.national_format ?? b.national_format ?? null,
+      country_code: f.country_code ?? b.country_code ?? null,
       valid: true,
-      line_type: lt.type ?? 'unknown',
-      carrier: lt.carrier_name ?? null,
+      line_type: LINE_TYPE[carrierType] ?? (carrierType ? carrierType : 'unknown'),
+      carrier: f.carrier?.name ?? null,
     },
   };
 }

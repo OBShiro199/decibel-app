@@ -6,8 +6,8 @@ import { Section, SettingsPage } from '../_components';
 const IN_PLACE: [string, string][] = [
   ['Row-level security on every table', 'Each query runs as the logged-in user. The database itself refuses rows from other workspaces.'],
   ['Private call recordings', 'Recordings sit in private storage. Playback uses signed links that expire after 1 hour.'],
-  ['Telephony secrets in a vault', 'Twilio credentials are stored in Supabase Vault and never reach the browser.'],
-  ['Signed webhooks', 'Incoming Twilio and Stripe webhooks are rejected unless their signature is valid.'],
+  ['Telephony secrets in a vault', 'Telnyx keys live only in server secrets. Browsers get short-lived calling tokens, never credentials.'],
+  ['Signed webhooks', 'Incoming Telnyx and Stripe webhooks are rejected unless their signature is valid.'],
 ];
 const PLANNED: [string, string][] = [
   ['SSO / SAML', 'Single sign-on through your identity provider.'],

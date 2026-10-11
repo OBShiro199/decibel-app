@@ -63,12 +63,12 @@ export default function PrivacyPage() {
 
       <h2>5. Who we share data with</h2>
       <p>
-        We share data with the sub-processors listed in our <Link href="/dpa">DPA</Link> (Supabase, Twilio, Stripe, Vercel, Resend and PostHog) so they can
+        We share data with the sub-processors listed in our <Link href="/dpa">DPA</Link> (Supabase, Telnyx, Stripe, Vercel, Resend and PostHog) so they can
         provide their services to us. We do not sell personal data to advertisers. We may disclose data where the law requires it.
       </p>
       <p>
         <strong>Free tools.</strong> When you use our free <Link href="/tools">tools</Link>, the number or email you enter is sent to the provider that runs
-        the check: TPS Services API (tpsapi.com) for TPS and CTPS checks, MillionVerifier for email checks and Twilio for phone checks. We do not keep the number
+        the check: TPS Services API (tpsapi.com) for TPS and CTPS checks, MillionVerifier for email checks and Telnyx for phone checks. We do not keep the number
         or email itself. We keep a one-way hashed copy, with the result, for up to 7 days (TPS), 14 days (email) or 30 days (phone) so repeat checks are
         instant, and a hashed copy of your IP address for 30 days to enforce daily limits.
       </p>

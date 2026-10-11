@@ -26,7 +26,7 @@ interface DncEntry {
 
 const SUBPROCESSORS: [string, string][] = [
   ['Supabase', 'Database, authentication and file storage (London)'],
-  ['Twilio', 'Voice calls and phone numbers'],
+  ['Telnyx', 'Voice calls, phone numbers and call recording'],
   ['Stripe', 'Billing and payments'],
   ['Vercel', 'Application hosting'],
   ['Resend', 'Transactional email'],

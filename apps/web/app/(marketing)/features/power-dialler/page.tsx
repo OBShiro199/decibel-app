@@ -110,7 +110,7 @@ const FAQS: FaqItem[] = [
     answer: 'No. Decibel dials one number at a time for each rep, so there is always a person on the line when someone answers. There are no abandoned or silent calls.',
   },
   {
-    question: 'Do I need Twilio or a phone system?',
+    question: 'Do I need a phone system or a calling provider?',
     answer: 'No. Calling is built in and each seat gets a UK number. You only need Chrome or another modern browser and a headset.',
   },
   {
