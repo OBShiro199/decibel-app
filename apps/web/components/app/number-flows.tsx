@@ -270,11 +270,11 @@ function DetailsForm({
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Registered company name" htmlFor="b-name">
+        <Field label="Business name" htmlFor="b-name" hint="Your registered company name, or your trading name if you are a sole trader">
           <Input id="b-name" required value={form.name} onChange={set('name')} />
         </Field>
-        <Field label="Company number" htmlFor="b-reg" hint="Your Companies House number">
-          <Input id="b-reg" required value={form.registration_number} onChange={set('registration_number')} />
+        <Field label="Company number (optional)" htmlFor="b-reg" hint="Your Companies House number. Leave blank if you are a sole trader">
+          <Input id="b-reg" value={form.registration_number} onChange={set('registration_number')} />
         </Field>
         <Field label="Company website" htmlFor="b-web" hint="A live site that names your business" className="sm:col-span-2">
           <Input id="b-web" required type="url" value={form.website} onChange={set('website')} />
@@ -297,8 +297,13 @@ function DetailsForm({
         <Field label="Contact phone" htmlFor="b-phone" className="sm:col-span-2">
           <Input id="b-phone" required type="tel" value={form.contact_phone} onChange={set('contact_phone')} placeholder="07700 900123" />
         </Field>
-        <FileField id="b-identity" label="Company registration certificate" hint="Your certificate of incorporation (PDF, JPG or PNG). Sole traders: a passport or driving licence." onFile={setIdentity} />
-        <FileField id="b-proof" label="Proof of address" hint="A utility bill, bank statement or telecoms invoice for the business address, from the last 3 months." onFile={setProof} />
+        <FileField
+          id="b-identity"
+          label={form.registration_number.trim() ? 'Company registration certificate' : 'Passport or driving licence'}
+          hint={form.registration_number.trim() ? 'Your certificate of incorporation (PDF, JPG or PNG).' : 'For sole traders: a photo or scan of the contact person’s passport or driving licence (PDF, JPG or PNG).'}
+          onFile={setIdentity}
+        />
+        <FileField id="b-proof" label="Proof of address" hint="A utility bill, bank statement or telecoms invoice from the last 3 months for the address above (your home address is fine for a sole trader)." onFile={setProof} />
       </div>
       {error ? <ErrorCard message={error} /> : null}
       <div className="flex gap-2">

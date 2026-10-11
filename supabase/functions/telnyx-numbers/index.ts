@@ -127,7 +127,8 @@ Deno.serve(async (req) => {
           last: clip(b.contact_last_name, 60),
           phone: normalizePhone(b.contact_phone) ?? '',
         };
-        const missing = Object.entries(business).filter(([, v]) => !v).map(([k]) => k);
+        // a company number is optional: sole traders register with a passport or ID instead
+        const missing = Object.entries(business).filter(([k, v]) => !v && k !== 'registration').map(([k]) => k);
         if (!e164) missing.push('number');
         if (!/^https?:\/\/\S+\.\S+/.test(business.website)) missing.push('website');
         if (typeof d.identity !== 'string' || typeof d.address_proof !== 'string') missing.push('documents');
@@ -167,8 +168,9 @@ Deno.serve(async (req) => {
         };
         const [identityDoc, proofDoc] = await Promise.all([upload(d.identity), upload(d.address_proof)]);
         // 3. the requirement group, then submit it for approval
+        const who = business.registration ? `${business.name} (UK company ${business.registration})` : `${business.first} ${business.last}, trading as ${business.name} (sole trader)`;
         const useCase =
-          `${business.name} (UK company ${business.registration}) uses this number as the caller ID for its own sales team's outbound business-to-business calls to UK companies, ` +
+          `${who} uses this number as the caller ID for its own sales team's outbound business-to-business calls to UK companies, ` +
           `made through Decibel, a browser-based sales calling platform. Calls to the number ring the same team. The number is used only by ${business.name} and is not sub-allocated to any other business.`;
         const group = await telnyx<{ id: string; status: string }>('POST', '/requirement_groups', {
           country_code: 'GB',
