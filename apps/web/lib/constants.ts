@@ -35,7 +35,7 @@ export const CALL_STATUS_LABEL: Record<CallStatus, string> = {
 export const BLOCK_REASONS: Record<string, { title: string; fix: string; href?: string }> = {
   tps_listed: { title: 'TPS listed', fix: 'This number is on the TPS/CTPS register and cannot be cold-called.' },
   do_not_call: { title: 'Do not call', fix: 'This person asked not to be called.' },
-  dnc_list: { title: 'On your DNC list', fix: 'Remove the number from your do-not-call list to dial it.', href: '/app/settings/compliance' },
+  dnc_list: { title: 'On your DNC list', fix: 'It can’t be called unless an owner or admin removes it from the DNC list.', href: '/app/dnc' },
   no_mobile: { title: 'No mobile', fix: 'Add a mobile number to this person first.' },
   no_minutes: { title: 'Out of minutes', fix: 'Add a card to keep calling.', href: '/app/settings/billing' },
   trial_expired: { title: 'Trial ended', fix: 'Pick a plan to keep calling.', href: '/app/settings/plans' },

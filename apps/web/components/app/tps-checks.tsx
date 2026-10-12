@@ -17,7 +17,7 @@ import {
   FileCsv,
   FileText,
   FileXls,
-  Phone,
+  PhoneX,
   ShieldCheck,
   Trash,
   UploadSimple,
@@ -28,9 +28,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '@/lib/app-context';
 import { track } from '@/lib/analytics';
+import { addToDnc } from '@/lib/dnc';
 import { supabase } from '@/lib/supabase/client';
 import {
-  ACCEPT,
   creditsUsed,
   detectPhoneColumn,
   downloadChecked,
@@ -39,9 +39,7 @@ import {
   isLive,
   numberOutcome,
   matchesFilter,
-  MAX_ROWS,
   OUTCOMES,
-  readFile,
   rowCounts,
   TOP_UP_MESSAGE,
   tpsCreditsQuery,
@@ -61,6 +59,7 @@ import { Button } from '@/components/ui/button';
 import { MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { openSupport } from '@/components/app/support-widget';
 import { confetti } from '@/components/ui/confetti';
+import { ColumnPicker, FileDropzone } from '@/components/app/file-upload';
 
 const BLUE = '#5f86e0';
 const n = (v: number) => v.toLocaleString('en-GB');
@@ -132,64 +131,6 @@ function CreditsBadge() {
 }
 
 // ---- upload ----------------------------------------------------------------------------
-function Dropzone({ onFile }: { onFile: (f: ParsedFile) => void }) {
-  const input = useRef<HTMLInputElement>(null);
-  const [over, setOver] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  async function take(file: File | undefined) {
-    if (!file) return;
-    setBusy(true);
-    setError('');
-    try {
-      const parsed = await readFile(file);
-      track('tps_file_read', { rows: parsed.rows.length, columns: parsed.headers.length, type: file.name.split('.').pop() });
-      onFile(parsed);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-      if (input.current) input.current.value = '';
-    }
-  }
-
-  return (
-    <div>
-      <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={() => setOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setOver(false);
-          void take(e.dataTransfer.files?.[0]);
-        }}
-        className={cn(
-          'flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-6 py-12 text-center transition-colors duration-150',
-          over ? 'border-[#9db4ec] bg-[#f5f8fe]' : 'border-white-900 hover:border-[#9db4ec] hover:bg-[#fafbfe]',
-        )}
-      >
-        <input ref={input} type="file" accept={ACCEPT} className="sr-only" aria-label="Upload a list to check" onChange={(e) => void take(e.target.files?.[0])} />
-        <span className={cn('flex h-10 w-10 items-center justify-center rounded-md transition-transform duration-150', over && '-translate-y-0.5')} style={{ background: '#f1f5fd' }}>
-          {busy ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white-800" style={{ borderTopColor: BLUE }} /> : <UploadSimple size={18} weight="duotone" style={{ color: BLUE }} />}
-        </span>
-        <p className="mt-3 font-medium text-black-400">{busy ? 'Reading your file…' : 'Drop a CSV or Excel file here'}</p>
-        <p className="mt-1 text-black-700">
-          or <span className="text-[#3653a3] underline decoration-[#c4d1f2] underline-offset-2">choose a file</span>. Up to {n(MAX_ROWS)} rows, with a header row. CSV, XLSX, TSV or TXT.
-        </p>
-      </label>
-      {error ? (
-        <p role="alert" className="mt-2 text-[#94402f]">
-          {error}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 function Prepare({ file, onCancel, onStarted }: { file: ParsedFile; onCancel: () => void; onStarted: (id: string) => void }) {
   const { workspace } = useApp();
   const qc = useQueryClient();
@@ -369,56 +310,6 @@ function Prepare({ file, onCancel, onStarted }: { file: ParsedFile; onCancel: ()
   );
 }
 
-/** Which column holds the phone numbers: a quiet button and a menu with a sample from each column. */
-function ColumnPicker({ file, value, onChange }: { file: ParsedFile; value: number; onChange: (i: number) => void }) {
-  const sample = (i: number) => file.rows.find((r) => r[i]?.trim())?.[i]?.trim() ?? 'Empty';
-  return (
-    <Popover
-      trigger={({ open, toggle }) => (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          aria-label="Phone number column"
-          className={cn(
-            'inline-flex h-8 max-w-[280px] items-center gap-2 rounded-sm border bg-white-100 pl-2.5 pr-2 text-black-400 transition-colors',
-            open ? 'border-white-900' : 'border-btnborder hover:border-white-900',
-          )}
-        >
-          <Phone size={14} className="shrink-0 text-black-700" />
-          <span className="truncate font-medium">{value >= 0 ? file.headers[value] : 'Choose a column'}</span>
-          <CaretDown size={11} weight="bold" className={cn('shrink-0 text-black-700 transition-transform duration-150', open && 'rotate-180')} />
-        </button>
-      )}
-    >
-      {(close) => (
-        <div role="listbox" aria-label="Columns" className="max-h-[320px] w-[300px] overflow-y-auto p-1">
-          {file.headers.map((h, i) => (
-            <button
-              key={i}
-              type="button"
-              role="option"
-              aria-selected={i === value}
-              onClick={() => {
-                onChange(i);
-                close();
-              }}
-              className={cn('flex w-full items-center gap-2.5 rounded-sm px-2 py-1.5 text-left hover:bg-white-300', i === value && 'bg-[#f5f8fe]')}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-black-400">{h}</span>
-                <span className="block truncate tabular-nums text-black-700">{sample(i)}</span>
-              </span>
-              {i === value ? <Check size={14} weight="bold" className="shrink-0" style={{ color: BLUE }} /> : null}
-            </button>
-          ))}
-        </div>
-      )}
-    </Popover>
-  );
-}
-
 function QuoteLine({ dot, label, value, strong }: { dot: string; label: string; value: number; strong?: boolean }) {
   return (
     <li className="flex items-center gap-2">
@@ -492,6 +383,8 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
   const numbers = useQuery({ ...tpsLiveQuery(jobId), enabled: live, refetchInterval: live ? 800 : false });
   const [filter, setFilter] = useState<RowFilter>('all');
   const [page, setPage] = useState(0);
+  const [dncBusy, setDncBusy] = useState(false);
+  const [dncDone, setDncDone] = useState(false);
   const [, tick] = useState(0);
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -586,6 +479,25 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
   ];
   const pct = j.numbers_total ? Math.max(4, Math.round((j.numbers_done / j.numbers_total) * 100)) : 100;
 
+  async function sendToDnc() {
+    if (!j) return;
+    const data = results.data?.length ? rows : await qc.fetchQuery(tpsResultsQuery(j.id));
+    const listed = [...new Set(data.filter((r) => r.e164 && matchesFilter(r.outcome, 'dnc')).map((r) => r.e164 as string))];
+    if (!listed.length) return toast('No do-not-call rows in this check.');
+    setDncBusy(true);
+    try {
+      const r = await addToDnc(workspace.id, listed, { kind: 'tps_check', fileName: j.file_name, reason: 'On the TPS or CTPS register' });
+      track('dnc_added', { kind: 'tps_check', added: r.added, rows: listed.length });
+      setDncDone(true);
+      ['dnc', 'dnc-total', 'dnc-imports', 'lead-search', 'local-search', 'people'].forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
+      toast(r.added ? `${plural(r.added, 'number')} added to your DNC list${r.duplicates ? `, ${n(r.duplicates)} already on it` : ''}` : 'Every one of these numbers is already on your DNC list', { href: '/app/dnc', label: 'Open DNC list' });
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setDncBusy(false);
+    }
+  }
+
   async function exportAs(ext: ExportFormat) {
     if (!j) return;
     const data = results.data?.length ? rows : await qc.fetchQuery(tpsResultsQuery(j.id));
@@ -618,6 +530,11 @@ function JobPanel({ jobId, onClose }: { jobId: string; onClose: () => void }) {
           </Button>
         ) : ready ? (
           <div className="ai-pop flex items-center gap-2">
+            {dnc ? (
+              <Button size="compact" loading={dncBusy} disabled={dncDone} onClick={() => void sendToDnc()}>
+                <PhoneX size={14} weight="duotone" /> {dncDone ? 'On your DNC list' : 'Add do-not-call rows to DNC list'}
+              </Button>
+            ) : null}
             <ExportMenu note={`${FILTER_NOTE[filter]} · ${plural(filters.find((f) => f.id === filter)?.count ?? 0, 'row')}`} disabled={!results.data} onExport={(ext) => void exportAs(ext)} />
             <Button size="compact" onClick={onClose}>
               <UploadSimple size={14} /> Check another file
@@ -933,7 +850,7 @@ export function TpsChecks() {
           ) : file ? (
             <Prepare file={file} onCancel={() => setFile(null)} onStarted={(id) => open(id)} />
           ) : (
-            <Dropzone onFile={setFile} />
+            <FileDropzone onFile={setFile} ariaLabel="Upload a list to check" event="tps_file_read" />
           )}
         </div>
 

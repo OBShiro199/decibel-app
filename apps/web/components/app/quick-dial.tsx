@@ -16,6 +16,7 @@ import { useSoftphoneActions, useSoftphoneStatus } from '@/components/softphone/
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/display';
 import { Popover } from '@/components/ui/overlay';
+import { explainDnc } from '@/lib/dnc';
 
 type Match = Pick<Person, 'id' | 'full_name' | 'mobile_e164' | 'tps_status' | 'do_not_call'> & { company: { name: string } | null };
 const looksLikeNumber = (v: string) => /^[+\d][\d\s()-]{5,}$/.test(v.trim());
@@ -61,7 +62,7 @@ function useQuickDial(onDone?: () => void, country: DialCountry = DEFAULT_DIAL_C
             .insert({ workspace_id: workspace.id, first_name: formatPhone(number), mobile_e164: number, source: 'manual', created_by: user.id, owner_id: user.id, stage_id: stages?.[0]?.id ?? null })
             .select('id,full_name,mobile_e164,tps_status,do_not_call')
             .single();
-          if (insertError) throw new Error(insertError.message);
+          if (insertError) throw new Error(explainDnc(insertError.message));
           target = { ...(created as Omit<Match, 'company'>), company: null };
           void qc.invalidateQueries({ queryKey: ['people'] });
         }

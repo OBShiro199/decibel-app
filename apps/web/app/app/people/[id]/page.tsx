@@ -23,6 +23,7 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { Avatar, Chip, EmptyState, ErrorCard, Skeleton, Tabs } from '@/components/ui/display';
 import { Checkbox, ChipsInput, Field, Input, Textarea } from '@/components/ui/form';
 import { Dialog, useToast } from '@/components/ui/overlay';
+import { explainDnc } from '@/lib/dnc';
 
 type CallRow = Call & { recording: Recording[] | Recording | null };
 const firstRecording = (c: CallRow): Recording | null => (Array.isArray(c.recording) ? (c.recording[0] ?? null) : c.recording);
@@ -567,7 +568,7 @@ function EditPersonDialog({ open, onClose, person, onSaved }: { open: boolean; o
       })
       .eq('id', person.id);
     setBusy(false);
-    if (error) return setError(/people_ws_mobile_uq/.test(error.message) ? 'Someone else in this workspace already has that mobile number.' : error.message);
+    if (error) return setError(/people_ws_mobile_uq/.test(error.message) ? 'Someone else in this workspace already has that mobile number.' : explainDnc(error.message));
     onSaved();
     onClose();
   };

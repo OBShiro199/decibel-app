@@ -16,6 +16,7 @@ import { Field, Input, Select } from '@/components/ui/form';
 import { Dialog, Popover, useToast } from '@/components/ui/overlay';
 import { DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { explainDnc } from '@/lib/dnc';
 
 export function OutcomeBadge({ outcome }: { outcome: CallOutcome | null | undefined }) {
   const meta = outcomeMeta(outcome);
@@ -272,7 +273,7 @@ export function AddPersonDialog({ open, onClose, listId }: { open: boolean; onCl
         })
         .select('id')
         .single();
-      if (error) throw new Error(/people_ws_mobile_uq/.test(error.message) ? 'Someone with that mobile number already exists.' : error.message);
+      if (error) throw new Error(/people_ws_mobile_uq/.test(error.message) ? 'Someone with that mobile number already exists.' : explainDnc(error.message));
       if (listId) {
         await db.from('list_members').insert({ list_id: listId, person_id: person.id, workspace_id: workspace.id, added_by: user.id });
         track('person_added_to_list', { source: 'manual' });

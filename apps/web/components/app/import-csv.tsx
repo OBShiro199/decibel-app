@@ -93,7 +93,7 @@ export function ImportCsvDialog({
   const [parsing, setParsing] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
+  const [result, setResult] = useState<{ imported: number; skipped: number; dncSkipped: number } | null>(null);
 
   useEffect(() => {
     if (open) return;
@@ -158,9 +158,9 @@ export function ImportCsvDialog({
         .select('id')
         .single();
       if (ins.error) throw new Error(ins.error.message);
-      const res = await invoke<{ imported: number; skipped: number }>('import-csv', { import_id: ins.data.id });
+      const res = await invoke<{ imported: number; skipped: number; dnc_skipped?: number }>('import-csv', { import_id: ins.data.id });
       const out = { imported: res.imported ?? 0, skipped: res.skipped ?? 0 };
-      setResult(out);
+      setResult({ ...out, dncSkipped: res.dnc_skipped ?? 0 });
       setStep('done');
       (['people', 'today', 'imports', 'list'] as const).forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
       onDone?.(out);
@@ -353,9 +353,20 @@ export function ImportCsvDialog({
                 Imported {result.imported.toLocaleString('en-GB')}, skipped {result.skipped.toLocaleString('en-GB')}
               </p>
               <p className="mt-2 text-black-700">
-                {result.skipped ? 'Skipped rows were duplicates or had no usable name, email or mobile.' : 'Every row was imported.'}
+                {result.skipped
+                  ? result.dncSkipped === result.skipped
+                    ? 'Every skipped row has a number on your DNC list.'
+                    : 'Skipped rows were duplicates, had no usable name, email or mobile, or have a number on your DNC list.'
+                  : 'Every row was imported.'}
                 {listId ? ' New people were added to this list.' : ''}
               </p>
+              {result.dncSkipped ? (
+                <p className="mt-3">
+                  <a href="/app/dnc" className="tag tag-3">
+                    {result.dncSkipped.toLocaleString('en-GB')} on your DNC list, not imported
+                  </a>
+                </p>
+              ) : null}
             </div>
           ) : null}
         </>

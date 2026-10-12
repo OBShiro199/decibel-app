@@ -9,6 +9,7 @@ import { dashboardRanges, thisWeek } from '@/lib/dashboard';
 import { applyLeadFilters, type LeadFilters } from '@/lib/leads';
 import type { Activity, Call, ContactPublic, List, Note, Person, PhoneNumber, Recording, Task, TenantCompany } from '@/lib/types';
 import { tpsCreditsQuery, tpsJobsQuery } from '@/lib/tps';
+import { dncEntriesQuery, dncTotalQuery } from '@/lib/dnc';
 
 export const PERSON_SELECT = '*, company:tenant_companies(id,name,domain)';
 
@@ -285,10 +286,13 @@ export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string
   } else if (href === '/app/tps') {
     void qc.prefetchQuery(tpsCreditsQuery(workspaceId));
     void qc.prefetchQuery(tpsJobsQuery(workspaceId));
+  } else if (href === '/app/dnc') {
+    void qc.prefetchQuery(dncTotalQuery(workspaceId));
+    void qc.prefetchQuery(dncEntriesQuery(workspaceId, '', 0));
   } else if (href === '/app/dashboard') {
     for (const { start, end } of dashboardRanges('week')) void qc.prefetchQuery(dashboardQuery(workspaceId, start, end));
   }
 }
 
 /** Every main tab plus the dashboard: run once at idle after the first page has its data. */
-export const PREFETCH_ROUTES = ['/app/leads', '/app/local', '/app/lists', '/app/calls', '/app/dialler', '/app/tps', '/app/dashboard'];
+export const PREFETCH_ROUTES = ['/app/leads', '/app/local', '/app/lists', '/app/calls', '/app/dialler', '/app/tps', '/app/dnc', '/app/dashboard'];

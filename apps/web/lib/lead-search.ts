@@ -228,6 +228,8 @@ export interface LeadRow {
   total_funding_amount: string | null;
   smart_tags: string | null;
   person_id: string | null;
+  /** The mobile is on the workspace's DNC list (it can't be revealed, added or called). */
+  on_dnc: boolean;
 }
 
 export interface LocalRow {
@@ -257,6 +259,8 @@ export interface LocalRow {
   hours: string | null;
   maps_url: string | null;
   logo_url: string | null;
+  /** The phone is on the workspace's DNC list. */
+  on_dnc: boolean;
 }
 
 // ---- queries ----------------------------------------------------------------

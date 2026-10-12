@@ -142,6 +142,9 @@ export function LeadsView({
     const { people, error } = await revealLeads(workspace.id, leadIds, { listId, from: listId ? 'list' : from });
     setBusy(null);
     if (error) toast(error.message, error.href ? { label: error.label ?? 'Fix', href: error.href } : undefined);
+    // the server leaves out leads whose mobile is on the DNC list (not revealed, not charged)
+    const dnc = error ? 0 : leadIds.length - people.length;
+    if (dnc > 0) toast(`${dnc.toLocaleString('en-GB')} ${dnc === 1 ? 'lead is' : 'leads are'} on your DNC list and ${dnc === 1 ? 'was' : 'were'} left out`, { label: 'DNC list', href: '/app/dnc' });
     after();
     return { people, ok: !error };
   };
@@ -164,7 +167,7 @@ export function LeadsView({
 
   /** Export the given leads: reveal any not yet revealed (with a confirmation), then download. */
   const exportLeads = (leads: LeadRow[], label: string) => {
-    const fresh = leads.filter((l) => !l.person_id).length;
+    const fresh = leads.filter((l) => !l.person_id && !l.on_dnc).length;
     const run = async () => {
       const { people, ok } = await reveal(
         leads.map((l) => l.lead_id),
@@ -183,9 +186,10 @@ export function LeadsView({
   };
 
   /** Saves the selected leads that have a mobile as a new list and opens the dialler on it. */
-  const callable = rows.filter((r) => selected.has(r.lead_id) && r.has_mobile);
+  const callable = rows.filter((r) => selected.has(r.lead_id) && r.has_mobile && !r.on_dnc);
   const startDialler = () => {
-    if (!callable.length) return void toast('None of the selected leads has a mobile number.');
+    const onDnc = rows.filter((r) => selected.has(r.lead_id) && r.on_dnc).length;
+    if (!callable.length) return void toast(onDnc ? 'The selected leads are on your DNC list, so they can’t be called.' : 'None of the selected leads has a mobile number.');
     const fresh = callable.filter((r) => !r.person_id).length;
     const run = async () => {
       setBusy('dial');
@@ -203,7 +207,8 @@ export function LeadsView({
       setSelected(new Set());
       router.push(`/app/dialler?list=${list.id}&new=1`);
     };
-    const skipped = selected.size - callable.length;
+    const skipped = selected.size - callable.length - onDnc;
+    if (onDnc) toast(`${onDnc.toLocaleString('en-GB')} selected ${onDnc === 1 ? 'lead is' : 'leads are'} on your DNC list and ${onDnc === 1 ? 'is' : 'are'} left out`, { label: 'DNC list', href: '/app/dnc' });
     if (!fresh) return void run();
     setConfirm({
       title: `Start the dialler with ${callable.length.toLocaleString('en-GB')} ${callable.length === 1 ? 'lead' : 'leads'}`,
@@ -232,7 +237,7 @@ export function LeadsView({
     setBusy('filtered');
     try {
       const leads = await leadIdsForFilters(workspace.id, server, EXPORT_MAX);
-      const fresh = leads.filter((l) => !l.person_id).length;
+      const fresh = leads.filter((l) => !l.person_id && !l.on_dnc).length;
       const run = async () => {
         const { people } = await reveal(
           leads.map((l) => l.lead_id),
@@ -435,7 +440,11 @@ export function LeadsView({
                         <td>
                           <span className="flex items-center gap-2">
                             <span className={cn('tabular-nums text-xs', !mine && 'text-black-700')}>{r.mobile ? (mine ? formatPhone(r.mobile) : r.mobile) : '–'}</span>
-                            {mine ? (
+                            {r.on_dnc ? (
+                              <span className="tag tag-3 shrink-0" title="This number is on your DNC list: it can't be revealed, added or called.">
+                                DNC
+                              </span>
+                            ) : mine ? (
                               <Tag color={1}>Revealed</Tag>
                             ) : r.has_mobile ? (
                               <button

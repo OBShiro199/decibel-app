@@ -106,7 +106,6 @@ Deno.serve(async (req) => {
       if (email) emails.add(email);
       if (mobile) mobiles.add(mobile);
       const company = get(r, 'company');
-      if (company) companyNames.push(company);
       const cc = get(r, 'country_code').toUpperCase();
       candidates.push({
         workspace_id: ws,
@@ -123,8 +122,21 @@ Deno.serve(async (req) => {
         created_by: user.id,
         stage_id: stage?.id ?? null,
         _company: company.toLowerCase(),
+        _companyName: company,
       });
     }
+
+    // the DNC list: anyone whose mobile or direct dial is on it is not imported
+    const numbers = [...new Set(candidates.flatMap((c) => [c.mobile_e164, c.direct_dial_e164]).filter(Boolean) as string[])];
+    const dnc = new Set<string>();
+    for (let i = 0; i < numbers.length; i += 500) {
+      const { data } = await db.from('dnc_entries').select('e164').eq('workspace_id', ws).in('e164', numbers.slice(i, i + 500));
+      (data ?? []).forEach((d) => dnc.add(d.e164));
+    }
+    const before = candidates.length;
+    if (dnc.size) candidates.splice(0, candidates.length, ...candidates.filter((c) => !dnc.has(c.mobile_e164 as string) && !dnc.has(c.direct_dial_e164 as string)));
+    const dncSkipped = before - candidates.length;
+    for (const c of candidates) if (c._companyName) companyNames.push(c._companyName as string);
 
     // companies: create any that are new
     const newCompanies = [...new Set(companyNames.map((c) => c.trim()))].filter((c) => !companyIds.has(c.toLowerCase()));
@@ -148,7 +160,7 @@ Deno.serve(async (req) => {
     let imported = 0;
     const insertedIds: string[] = [];
     for (let i = 0; i < candidates.length; i += 500) {
-      const batch = candidates.slice(i, i + 500).map(({ _company, ...c }) => ({
+      const batch = candidates.slice(i, i + 500).map(({ _company, _companyName: _n, ...c }) => ({
         ...c,
         tenant_company_id: _company ? (companyIds.get(_company as string) ?? null) : null,
         tps_status: c.mobile_e164 ? (tps.get(c.mobile_e164 as string) ?? 'clear') : 'unchecked',
@@ -174,8 +186,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    await finish({ status: 'completed', row_count: rows.length - 1, imported_count: imported, skipped_count: skipped });
-    return json({ imported, skipped });
+    await finish({ status: 'completed', row_count: rows.length - 1, imported_count: imported, skipped_count: skipped + dncSkipped, dnc_skipped_count: dncSkipped });
+    return json({ imported, skipped: skipped + dncSkipped, dnc_skipped: dncSkipped });
   } catch (e) {
     await finish({ status: 'failed', error: (e as Error).message });
     return fail((e as Error).message, 422);

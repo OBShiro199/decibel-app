@@ -17,6 +17,24 @@
       "env": {
         "NEXT_DIST_DIR": ".next-preview"
       }
+    },
+    {
+      "name": "decibels-web-3005",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@decibels/web",
+        "exec",
+        "next",
+        "dev",
+        "--port",
+        "3005"
+      ],
+      "port": 3005,
+      "env": {
+        "NEXT_DIST_DIR": ".next-preview",
+        "NEXT_PUBLIC_E2E": "1"
+      }
     }
   ]
 }

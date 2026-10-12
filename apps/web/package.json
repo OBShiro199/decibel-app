@@ -15,7 +15,9 @@
     "test:credits": "node scripts/credit-integrity.mjs",
     "test:search": "node scripts/lead-search.mjs",
     "test:tps": "node scripts/tps-checks.mjs",
-    "test:tps-ui": "node scripts/tps-ui.mjs"
+    "test:tps-ui": "node scripts/tps-ui.mjs",
+    "test:dnc": "node scripts/dnc.mjs",
+    "test:dnc-ui": "node scripts/dnc-ui.mjs"
   },
   "dependencies": {
     "@decibels/design-tokens": "workspace:*",

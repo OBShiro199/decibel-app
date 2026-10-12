@@ -133,8 +133,19 @@ export function LocalView({
   const saveToList = async (businesses: LocalRow[], listId: string, quiet = false): Promise<number> => {
     setBusy(true);
     try {
-      const usable = businesses.map((b) => ({ b, e164: b.phone ? toE164(b.phone) : null })).filter((x) => x.e164) as { b: LocalRow; e164: string }[];
-      if (!usable.length) throw new Error('None of these businesses has a phone number.');
+      const withPhone = businesses.map((b) => ({ b, e164: b.phone ? toE164(b.phone) : null })).filter((x) => x.e164) as { b: LocalRow; e164: string }[];
+      if (!withPhone.length) throw new Error('None of these businesses has a phone number.');
+      // numbers on the DNC list are never saved or called
+      const listed = new Set<string>();
+      const allNumbers = [...new Set(withPhone.map((x) => x.e164))];
+      for (let i = 0; i < allNumbers.length; i += 5000) {
+        const { data, error } = await db.rpc('dnc_check', { p_workspace_id: workspace.id, p_numbers: allNumbers.slice(i, i + 5000) });
+        if (error) throw error;
+        ((data ?? []) as { e164: string }[]).forEach((r) => listed.add(r.e164));
+      }
+      const usable = withPhone.filter((x) => !listed.has(x.e164));
+      const onDnc = withPhone.length - usable.length;
+      if (!usable.length) throw new Error(onDnc === 1 ? 'that business is on your DNC list.' : 'these businesses are on your DNC list.');
       const mobiles = [...new Set(usable.map((x) => x.e164))];
       const have = await db.from('people').select('id,mobile_e164').eq('workspace_id', workspace.id).in('mobile_e164', mobiles);
       if (have.error) throw have.error;
@@ -191,8 +202,10 @@ export function LocalView({
       if (members.error) throw members.error;
 
       ['people', 'lists', 'list', 'today'].forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
-      const skipped = businesses.length - usable.length;
-      if (!quiet) toast(`${personIds.length} added to the list${skipped ? ` (${skipped} without a phone skipped)` : ''}`, { label: 'Open list', href: `/app/lists/${listId}` });
+      const skipped = businesses.length - withPhone.length;
+      const notes = [skipped ? `${skipped} without a phone` : '', onDnc ? `${onDnc} on your DNC list` : ''].filter(Boolean).join(', ');
+      if (!quiet) toast(`${personIds.length} added to the list${notes ? ` (${notes} left out)` : ''}`, { label: 'Open list', href: `/app/lists/${listId}` });
+      else if (onDnc) toast(`${onDnc} ${onDnc === 1 ? 'business is' : 'businesses are'} on your DNC list and ${onDnc === 1 ? 'was' : 'were'} left out`, { label: 'DNC list', href: '/app/dnc' });
       setSelected(new Set());
       return personIds.length;
     } catch (e) {
@@ -204,9 +217,9 @@ export function LocalView({
   };
 
   /** Saves the selected businesses as a new list and opens the dialler on it, ready to start. */
-  const callable = chosen.filter((b) => !!b.phone);
+  const callable = chosen.filter((b) => !!b.phone && !b.on_dnc);
   const startDialler = async () => {
-    if (!callable.length) return void toast('None of the selected businesses has a phone number.');
+    if (!callable.length) return void toast(chosen.some((b) => b.on_dnc) ? 'The selected businesses are on your DNC list, so they can’t be called.' : 'None of the selected businesses has a phone number.');
     setBusy(true);
     const { data: list, error } = await db.from('lists').insert({ workspace_id: workspace.id, name: diallerListName(), owner_id: user.id }).select('id').single();
     if (error || !list) {
@@ -396,8 +409,14 @@ export function LocalView({
                       </td>
                       <td>
                         <span className="flex items-center gap-2">
-                          <span className="whitespace-nowrap tabular-nums text-xs text-black-400">{b.phone ?? '–'}</span>
-                          {b.has_mobile ? <span className="tag tag-1">Mobile</span> : null}
+                          <span className={cn('whitespace-nowrap tabular-nums text-xs', b.on_dnc ? 'text-black-700 line-through decoration-[#ecc5bb]' : 'text-black-400')}>{b.phone ?? '–'}</span>
+                          {b.on_dnc ? (
+                            <span className="tag tag-3" title="This number is on your DNC list: it can't be saved or called.">
+                              DNC
+                            </span>
+                          ) : b.has_mobile ? (
+                            <span className="tag tag-1">Mobile</span>
+                          ) : null}
                         </span>
                       </td>
                       <td className="truncate text-xs text-black-700" title={b.all_emails ?? undefined}>

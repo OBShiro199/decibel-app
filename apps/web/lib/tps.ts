@@ -201,10 +201,12 @@ const cell = (v: unknown): string => {
   return String(v).replace(/\u0000/g, '').slice(0, 1000);
 };
 
-/** Reads a CSV, TSV, TXT or XLSX file into a header row and text cells. Throws a readable Error. */
-export async function readFile(file: File): Promise<ParsedFile> {
+/** Reads a CSV, TSV, TXT or XLSX file. Limits default to the TPS checker's; the DNC list passes larger ones. */
+export async function readFile(file: File, limits: { maxRows?: number; maxBytes?: number } = {}): Promise<ParsedFile> {
+  const maxRows = limits.maxRows ?? MAX_ROWS;
+  const maxBytes = limits.maxBytes ?? MAX_FILE_BYTES;
   const lower = file.name.toLowerCase();
-  if (file.size > MAX_FILE_BYTES) throw new Error('Files can be up to 5 MB.');
+  if (file.size > maxBytes) throw new Error(`Files can be up to ${Math.round(maxBytes / 1024 / 1024)} MB.`);
   if (lower.endsWith('.xls') || lower.endsWith('.numbers') || lower.endsWith('.ods')) {
     throw new Error('Save the file as .xlsx or .csv first, then upload it.');
   }
@@ -228,7 +230,7 @@ export async function readFile(file: File): Promise<ParsedFile> {
   if (width > MAX_COLUMNS) throw new Error(`Files can have up to ${MAX_COLUMNS} columns.`);
   const headers = Array.from({ length: width }, (_, i) => (grid[0][i] ?? '').trim() || `Column ${i + 1}`);
   const rows = grid.slice(1).map((r) => Array.from({ length: width }, (_, i) => r[i] ?? ''));
-  if (rows.length > MAX_ROWS) throw new Error(`Files can have up to ${MAX_ROWS.toLocaleString('en-GB')} rows. This one has ${rows.length.toLocaleString('en-GB')}. Split it and upload each part.`);
+  if (rows.length > maxRows) throw new Error(`Files can have up to ${maxRows.toLocaleString('en-GB')} rows. This one has ${rows.length.toLocaleString('en-GB')}. Split it and upload each part.`);
   return { name: file.name, headers, rows };
 }
 

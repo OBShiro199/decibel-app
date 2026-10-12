@@ -89,6 +89,11 @@ Deno.serve(async (req) => {
     else to = requested;
   }
   if (!blocked && !toUserId && !E164.test(to)) blocked = 'no_mobile';
+  // every number dialled (test and test-routed calls too) is checked against the DNC list
+  if (!blocked && !toUserId) {
+    const { data: listed } = await db.from('dnc_entries').select('id').eq('workspace_id', wsId).eq('e164', to).maybeSingle();
+    if (listed) blocked = 'dnc_list';
+  }
   if (!blocked && !toUserId && !caller) blocked = 'no_caller_id';
 
   const base = {
