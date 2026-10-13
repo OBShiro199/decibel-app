@@ -1,0 +1,165 @@
+{
+ "fields": [
+  {
+   "name": "rank",
+   "type": "int32",
+   "sort": true
+  },
+  {
+   "name": "full_name",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "current_title",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "company",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "company_domain",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "location",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "smart_tags",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "skills",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "languages",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "tech",
+   "type": "string",
+   "optional": true
+  },
+  {
+   "name": "seniority_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "department_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "main_industry_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "company_industry_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "size_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "revenue_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "country_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "hq_country_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "email_status_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "funding_h",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "mobile_codes_h",
+   "type": "int32[]",
+   "optional": true
+  },
+  {
+   "name": "employees",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "founded",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "role_start",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "has_mobile",
+   "type": "bool"
+  },
+  {
+   "name": "has_email",
+   "type": "bool"
+  },
+  {
+   "name": "has_personal_email",
+   "type": "bool"
+  },
+  {
+   "name": "has_linkedin",
+   "type": "bool"
+  },
+  {
+   "name": "open_to_work",
+   "type": "bool"
+  },
+  {
+   "name": "is_hiring",
+   "type": "bool"
+  },
+  {
+   "name": "has_funding",
+   "type": "bool"
+  }
+ ],
+ "token_separators": [
+  ".",
+  "-",
+  "/",
+  "@",
+  "&",
+  "(",
+  ")",
+  ",",
+  "|",
+  ";",
+  ":"
+ ]
+}
