@@ -207,6 +207,8 @@ async function main() {
   cleanup.unshift(() => b.close());
   const host = new URL(BASE).hostname;
   await b.send('Network.enable');
+  // no Twilio sub-account for throwaway workspaces: the softphone's token request is blocked
+  await b.send('Network.setBlockedURLs', { urls: ['*functions/v1/twilio-token*'] });
   await b.send('DOM.enable');
   for (const c of u.jar) await b.send('Network.setCookie', { name: c.name, value: c.value, domain: host, path: '/' });
 

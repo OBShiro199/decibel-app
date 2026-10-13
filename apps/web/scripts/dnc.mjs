@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // DNC list: bulk uploads, every way a person can be added, dialling, reveals, search flags,
-// permissions and tenant isolation (migration 0026, import-csv, telnyx-call). Creates throwaway
+// permissions and tenant isolation (migration 0026, import-csv, twilio-voice). Creates throwaway
 // users and workspaces and deletes them afterwards. Spends at most 1 reveal credit (a throwaway
 // workspace's own welcome credits).
 //
 //   SUPABASE_SERVICE_ROLE_KEY=... node scripts/dnc.mjs
 import { createClient } from '@supabase/supabase-js';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +22,11 @@ if (existsSync(envFile)) {
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Twilio parent credentials (supabase/functions/.env, gitignored) sign the simulated Twilio request
+const fnEnv = join(here, '..', '..', '..', 'supabase', 'functions', '.env');
+const fromFnEnv = (k) => (existsSync(fnEnv) ? readFileSync(fnEnv, 'utf8').match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.replace(/^"|"$/g, '') : undefined);
+const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID ?? fromFnEnv('TWILIO_ACCOUNT_SID');
+const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN ?? fromFnEnv('TWILIO_AUTH_TOKEN');
 if (!URL_ || !ANON || !SERVICE) {
   console.error('Needs .env.local and SUPABASE_SERVICE_ROLE_KEY.');
   process.exit(2);
@@ -133,8 +138,16 @@ async function main() {
 
   // test and test-routed calls are checked too
   await admin.from('profiles').update({ mobile_e164: '+447700000030' }).eq('id', member.id);
-  const testCall = await member.fn('telnyx-call', { workspace_id: ws, call_id: randomUUID(), kind: 'test', to: '+447700000030' });
-  check('A test call to a DNC number is blocked before dialling', testCall.body.blocked === 'dnc_list', JSON.stringify(testCall.body));
+  // Twilio asks twilio-voice what to dial; the request is signed the way Twilio signs it (parent
+  // account, as the throwaway workspace has no sub-account)
+  const voiceUrl = `${URL_}/functions/v1/twilio-voice?ws=${ws}`;
+  const testCallId = randomUUID();
+  const params = { AccountSid: TWILIO_SID, CallSid: `CA${randomBytes(16).toString('hex')}`, From: `client:${member.id.replace(/-/g, '_')}`, To: '+447700000030', Kind: 'test', CallId: testCallId };
+  const signature = createHmac('sha1', TWILIO_TOKEN).update(Object.keys(params).sort().reduce((acc, k) => acc + k + params[k], voiceUrl)).digest('base64');
+  const voice = await fetch(voiceUrl, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': signature }, body: new URLSearchParams(params) });
+  const twiml = await voice.text();
+  const { data: testRow } = await admin.from('calls').select('status,blocked_reason').eq('id', testCallId).maybeSingle();
+  check('A test call to a DNC number is blocked before dialling', testRow?.status === 'blocked' && testRow?.blocked_reason === 'dnc_list' && twiml.includes('<Hangup/>') && !twiml.includes('<Dial'), `${voice.status} ${JSON.stringify(testRow)}`);
 
   // ---- removing: owners and admins only --------------------------------------------------------------
   const { data: entry } = await admin.from('dnc_entries').select('id').eq('workspace_id', ws).eq('e164', '+447911000003').single();

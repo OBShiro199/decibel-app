@@ -152,6 +152,8 @@ async function run(base, jar, port) {
   try {
     await b.send('Page.enable');
     await b.send('Network.enable');
+    // no Twilio sub-account for throwaway workspaces: the softphone's token request is blocked
+    await b.send('Network.setBlockedURLs', { urls: ['*functions/v1/twilio-token*'] });
     await b.send('Emulation.setFocusEmulationEnabled', { enabled: true });
     for (const c of jar) await b.send('Network.setCookie', { name: c.name, value: c.value, url: base, path: '/' });
     await b.send('Page.addScriptToEvaluateOnNewDocument', { source: SETTLE });
