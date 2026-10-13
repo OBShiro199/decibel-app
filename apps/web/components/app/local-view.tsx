@@ -76,7 +76,7 @@ function csvRow(b: LocalRow) {
 }
 
 /**
- * The local business search workspace. Used by the Local businesses page and by Search with AI
+ * The local business search workspace. Used by the Local businesses page
  * (which passes the filters it built and a banner).
  */
 export function LocalView({

@@ -71,7 +71,7 @@ function csvRow(lead: LeadRow | undefined, p: Person) {
 
 /**
  * The lead search workspace: toolbar, stackable filters, results, selection bar. Used by the
- * Leads page and by Search with AI (which passes the filters it built and a banner).
+ * Leads page.
  */
 export function LeadsView({
   initialFilters = DEFAULT_FILTERS,
