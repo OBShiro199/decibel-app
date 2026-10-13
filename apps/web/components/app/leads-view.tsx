@@ -20,10 +20,9 @@ import {
   searchEngine,
   type SearchEngine,
   LEAD_FILTERS,
-  leadCountQuery,
   leadIdsForFilters,
-  leadSearchQuery,
-  PAGE_SIZE,
+  LEADS_PAGE_SIZE,
+  leadPageQuery,
   toServer,
   type Filters,
   type LeadRow,
@@ -111,15 +110,16 @@ export function LeadsView({
   // the engine is read in the browser (URL ?search= / remembered), so queries wait for it
   const [engine, setEngine] = useState<SearchEngine | null>(null);
   useEffect(() => setEngine(searchEngine()), []);
-  const results = useQuery({ ...leadSearchQuery(workspace.id, server, page, engine ?? 'postgres'), enabled: engine !== null, placeholderData: (prev) => prev });
-  const count = useQuery({ ...leadCountQuery(workspace.id, server, engine ?? 'postgres'), enabled: engine !== null, placeholderData: (prev) => prev });
+  // one request per page: the rows on screen and the exact total (nothing else is fetched)
+  const results = useQuery({ ...leadPageQuery(workspace.id, server, page, engine ?? 'typesense'), enabled: engine !== null, placeholderData: (prev) => prev });
+  const count = { data: results.data?.count, isPlaceholderData: results.isPlaceholderData };
 
   useEffect(() => {
     if (count.data?.exact && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data?.n ?? null, exact: count.data?.exact, source: 'leads' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count.data, JSON.stringify(server)]);
 
-  const rows = results.data ?? [];
+  const rows = results.data?.rows ?? [];
   const byId = useMemo(() => new Map(rows.map((r) => [r.lead_id, r])), [rows]);
   const ids = [...selected];
   const unrevealed = ids.filter((id) => !byId.get(id)?.person_id);
@@ -127,7 +127,7 @@ export function LeadsView({
   const costLabel = unrevealed.length ? ` (${cost(unrevealed.length)})` : '';
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.lead_id));
   const total = count.data;
-  const pages = pageCount(total, engine ?? 'postgres');
+  const pages = pageCount(total, engine ?? 'typesense', LEADS_PAGE_SIZE);
   const countries = (filters.countries as string[] | undefined) ?? [];
   const strictMarket = countries.some((c) => c === 'Germany' || c === 'Austria');
 
@@ -288,9 +288,9 @@ export function LeadsView({
           <h1 className="whitespace-nowrap text-sm text-black-700">
             <span className="text-black-400">{formatCount(total)}</span> leads
           </h1>
-          {engine === 'typesense' ? (
-            <span className="tag tag-1" title="This browser searches Leads with Typesense. Add ?engine=postgres to the URL to switch back.">
-              Typesense test
+          {engine === 'postgres' ? (
+            <span className="tag tag-3" title="This browser uses the old search. Add ?engine=typesense to the URL to switch back.">
+              Old search
             </span>
           ) : null}
           {savedList ? (
@@ -492,13 +492,13 @@ export function LeadsView({
 
         <div className="flex h-12 shrink-0 items-center justify-between border-t border-white-800 bg-panel px-4">
           <span className="t-label">
-            {rows.length ? `Leads ${(page * PAGE_SIZE + 1).toLocaleString('en-GB')}–${(page * PAGE_SIZE + rows.length).toLocaleString('en-GB')} of ${formatCount(total)}` : results.isLoading ? 'Loading' : 'No leads'}
+            {rows.length ? `Leads ${(page * LEADS_PAGE_SIZE + 1).toLocaleString('en-GB')}–${(page * LEADS_PAGE_SIZE + rows.length).toLocaleString('en-GB')} of ${formatCount(total)}` : results.isLoading ? 'Loading' : 'No leads'}
           </span>
           <div className="flex gap-2">
             <Button size="compact" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
               Previous
             </Button>
-            <Button size="compact" disabled={rows.length < PAGE_SIZE || page >= pages - 1 || page >= 99} onClick={() => setPage((p) => p + 1)}>
+            <Button size="compact" disabled={rows.length < LEADS_PAGE_SIZE || page >= pages - 1} onClick={() => setPage((p) => p + 1)}>
               Next
             </Button>
           </div>

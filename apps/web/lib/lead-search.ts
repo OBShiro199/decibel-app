@@ -7,6 +7,10 @@ import { queryOptions } from '@tanstack/react-query';
 import { invoke, supabase } from '@/lib/supabase/client';
 
 export const PAGE_SIZE = 100;
+/** Leads shows 20 per page: each page reads its rows from data_list, so fewer is faster. */
+export const LEADS_PAGE_SIZE = 20;
+/** Browsing goes up to 100 pages; bigger lists are exported. */
+export const MAX_PAGES = 100;
 /** search_leads / search_local page no further than this many rows (offset 10,000) */
 export const PAGE_CAP = 10000;
 
@@ -272,8 +276,9 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
 }
 
 /**
- * Which engine Leads searches with. Typesense (search/typesense) is being tested: add ?engine=typesense
- * to the Leads URL to switch this browser over (remembered), ?engine=postgres to switch back.
+ * Which engine Leads searches with: Typesense (search/typesense) for everyone. ?engine=postgres on the
+ * Leads URL switches this browser back to the old Postgres search (remembered) as a fallback;
+ * ?engine=typesense undoes that.
  */
 export type SearchEngine = 'postgres' | 'typesense';
 const ENGINE_KEY = 'decibel.search-engine';
@@ -282,9 +287,9 @@ export function searchEngine(): SearchEngine {
   try {
     const asked = new URLSearchParams(window.location.search).get('engine');
     if (asked === 'typesense' || asked === 'postgres') window.localStorage.setItem(ENGINE_KEY, asked);
-    return window.localStorage.getItem(ENGINE_KEY) === 'typesense' ? 'typesense' : 'postgres';
+    return window.localStorage.getItem(ENGINE_KEY) === 'postgres' ? 'postgres' : 'typesense';
   } catch {
-    return 'postgres';
+    return 'typesense';
   }
 }
 
@@ -317,6 +322,24 @@ export interface MatchCount {
 // an older server answered with a bare number (or null when it ran out of time)
 const toCount = (v: unknown): MatchCount => (typeof v === 'number' ? { n: v, exact: true } : v && typeof v === 'object' ? (v as MatchCount) : { n: null, exact: false });
 const pollUntilExact = (q: { state: { data?: MatchCount } }) => (q.state.data && !q.state.data.exact ? 2500 : false);
+
+/** One page of Leads and its total in one request (Typesense), or two queries on the Postgres fallback. */
+export const leadPageQuery = (workspaceId: string, filters: Filters, page: number, engine: SearchEngine) =>
+  queryOptions({
+    queryKey: ['lead-page', workspaceId, filters, page, engine],
+    staleTime: 60_000,
+    queryFn: async (): Promise<{ rows: LeadRow[]; count: MatchCount }> => {
+      if (engine === 'typesense') {
+        const r = await typesense(workspaceId, filters, page * LEADS_PAGE_SIZE, LEADS_PAGE_SIZE);
+        return { rows: r.rows, count: r.count };
+      }
+      const [rows, count] = await Promise.all([
+        rpc<LeadRow[]>('search_leads', { p_workspace_id: workspaceId, p_filters: filters, p_limit: LEADS_PAGE_SIZE, p_offset: page * LEADS_PAGE_SIZE }),
+        rpc<unknown>('count_leads', { p_workspace_id: workspaceId, p_filters: filters }).then(toCount),
+      ]);
+      return { rows, count };
+    },
+  });
 
 export const leadCountQuery = (workspaceId: string, filters: Filters, engine: SearchEngine = searchEngine()) =>
   queryOptions({
@@ -375,5 +398,5 @@ export function formatCount(c: MatchCount | undefined): string {
 }
 
 /** Pages to offer: up to the paging limit (none on Typesense), or 100 while the count isn't known. */
-export const pageCount = (c: MatchCount | undefined, engine: SearchEngine = 'postgres') =>
-  c?.n == null ? 100 : Math.max(1, Math.ceil((engine === 'typesense' ? c.n : Math.min(c.n, PAGE_CAP)) / PAGE_SIZE));
+export const pageCount = (c: MatchCount | undefined, engine: SearchEngine = 'postgres', size = PAGE_SIZE) =>
+  c?.n == null ? MAX_PAGES : Math.min(MAX_PAGES, Math.max(1, Math.ceil((engine === 'typesense' ? c.n : Math.min(c.n, PAGE_CAP)) / size)));

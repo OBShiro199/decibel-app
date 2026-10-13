@@ -1,7 +1,7 @@
 'use client';
 // Shared query definitions. Pages and the hover/idle prefetcher use the same
 // keys and fetchers, so a prefetched tab opens with its data already in cache.
-import { facetsQuery, leadCountQuery, leadSearchQuery, localCountQuery, localSearchQuery, toServer } from '@/lib/lead-search';
+import { facetsQuery, leadPageQuery, localCountQuery, localSearchQuery, searchEngine, toServer } from '@/lib/lead-search';
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { COUNTRIES, MARKETS } from '@/lib/constants';
@@ -272,8 +272,7 @@ export function prefetchRoute(qc: QueryClient, href: string, workspaceId: string
     // the default first page and count of the lead database (filters: has mobile)
     void qc.prefetchQuery(facetsQuery('leads'));
     void qc.prefetchQuery(listsQuery(workspaceId, userId));
-    void qc.prefetchQuery(leadSearchQuery(workspaceId, toServer({ hasMobile: true }, ''), 0));
-    void qc.prefetchQuery(leadCountQuery(workspaceId, toServer({ hasMobile: true }, '')));
+    void qc.prefetchQuery(leadPageQuery(workspaceId, toServer({ hasMobile: true }, ''), 0, searchEngine()));
   } else if (href === '/app/local') {
     void qc.prefetchQuery(facetsQuery('local'));
     void qc.prefetchQuery(localSearchQuery(workspaceId, toServer({ hasPhone: true }, ''), 0));
