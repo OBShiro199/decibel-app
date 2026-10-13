@@ -156,10 +156,10 @@ export default function InvitePage() {
           <Field label="Your name" htmlFor="inv-name">
             <Input id="inv-name" autoFocus autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
           </Field>
-          <Field label="Password" htmlFor="inv-password" hint="At least 8 characters.">
+          <Field label="Password" htmlFor="inv-password" hint="At least 10 characters, including one number.">
             <Input id="inv-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </Field>
-          <Button type="submit" variant="primary" className="w-full" loading={busy} disabled={!name.trim() || password.length < 8}>
+          <Button type="submit" variant="primary" className="w-full" loading={busy} disabled={!name.trim() || password.length < 10 || !/\d/.test(password)}>
             Join {invite.workspace_name}
           </Button>
         </form>

@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const password = String(input.password ?? '');
     if (token.length < 32) return fail('invalid_invitation', 400);
     if (!fullName) return fail('name_required', 400, { message: 'Add your name.' });
-    if (password.length < 8) return fail('weak_password', 400, { message: 'Use at least 8 characters for your password.' });
+    if (password.length < 10 || !/\d/.test(password)) return fail('weak_password', 400, { message: 'Use at least 10 characters, including one number.' });
     const rate = await db.rpc('check_rate_limit', { p_key: `invite-signup:${token}`, p_limit: 5, p_window_seconds: 3600 });
     if (rate.data === false) return fail('rate_limited', 429, { message: 'Too many attempts. Try again later.' });
 
