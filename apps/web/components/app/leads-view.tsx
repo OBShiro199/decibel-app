@@ -4,7 +4,7 @@
 // adding to a list and exporting all go through reveal_leads, so every contact that leaves
 // Decibel has been paid for once (1 credit, free if this workspace already revealed it).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, Download, Eye, Linkedin, ListPlus, Phone, Plus, Search } from 'lucide-react';
+import { Bookmark, Download, Eye, ListPlus, Phone, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -36,6 +36,8 @@ import { BulkAction, BulkBar, ListPickerDialog, PersonCell } from '@/components/
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
 import { Checkbox, Input } from '@/components/ui/form';
+import { LinkedinLogo } from '@/components/ui/linkedin-logo';
+import { QuickFilters } from '@/components/app/quick-filters';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
@@ -288,6 +290,8 @@ export function LeadsView({
           <h1 className="whitespace-nowrap text-sm text-black-700">
             <span className="text-black-400">{formatCount(total)}</span> leads
           </h1>
+          <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-white-800" />
+          <QuickFilters filters={filters} onChange={update} facets={facets.data ?? {}} />
           {engine === 'postgres' ? (
             <span className="tag tag-3" title="This browser uses the old search. Add ?engine=typesense to the URL to switch back.">
               Old search
@@ -416,7 +420,15 @@ export function LeadsView({
                           />
                         </td>
                         <td>
-                          <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="flex min-w-0 items-center gap-2">
+                            {/* LinkedIn first, in a fixed slot, so every row's logo, initials and name line up */}
+                            <span className="flex w-4 shrink-0 justify-center">
+                              {r.linkedin_url ? (
+                                <a href={r.linkedin_url.startsWith('http') ? r.linkedin_url : `https://${r.linkedin_url}`} target="_blank" rel="noreferrer" aria-label={`${name} on LinkedIn`} className="rounded-[3px] transition-opacity hover:opacity-80">
+                                  <LinkedinLogo size={16} />
+                                </a>
+                              ) : null}
+                            </span>
                             {mine ? (
                               <Link href={`/app/people/${r.person_id}`} onMouseEnter={() => prefetchPerson(qc, r.person_id!)} className="min-w-0 hover:underline">
                                 <PersonCell name={name} />
@@ -424,11 +436,6 @@ export function LeadsView({
                             ) : (
                               <PersonCell name={name} />
                             )}
-                            {r.linkedin_url ? (
-                              <a href={r.linkedin_url.startsWith('http') ? r.linkedin_url : `https://${r.linkedin_url}`} target="_blank" rel="noreferrer" aria-label={`${name} on LinkedIn`} className="shrink-0 text-white-900 hover:text-black-400">
-                                <Linkedin size={13} strokeWidth={1.5} />
-                              </a>
-                            ) : null}
                           </span>
                         </td>
                         <td className="truncate text-black-500" title={r.current_title ?? undefined}>
