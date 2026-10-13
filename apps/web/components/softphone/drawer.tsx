@@ -57,6 +57,9 @@ function RoundButton({ label, active, onClick, disabled, children }: { label: st
 
 const tone = (s: SoftphoneState) => (s.phase === 'in_call' ? 'success' : s.phase === 'blocked' || s.phase === 'failed' ? 'danger' : s.phase === 'ended' ? 'neutral' : 'accent');
 
+// a small dot per outcome kind: good, neutral, a problem, do not call, follow up
+const OUTCOME_DOT: Record<string, string> = { success: '#3f8f5e', neutral: '#b3b3b3', warning: '#c9a227', danger: '#c2553f', accent: '#5f86e0' };
+
 export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
   const state = useSoftphoneState();
   const sp = useSoftphoneActions();
@@ -199,26 +202,33 @@ export function SoftphonePanel({ mode }: { mode: 'docked' | 'overlay' }) {
           )
         ) : mustLog ? (
           <div className="flex h-full flex-col">
-            <p className="t-label mb-2">Outcome · keys 1–9</p>
-            <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Call outcome">
-              {OUTCOMES.map((o, i) => (
-                <button
-                  key={o.value}
-                  role="radio"
-                  aria-checked={state.outcome === o.value}
-                  onClick={() => sp.setOutcome(o.value)}
-                  className={cn(
-                    't-small relative h-10 border px-1 text-center transition-colors',
-                    state.outcome === o.value ? 'border-black-400 bg-white-300 text-black-400' : 'border-btnborder hover:border-white-900',
-                  )}
-                >
-                  {o.label}
-                  <span className={cn('absolute right-1 top-0.5 tabular-nums text-xs', state.outcome === o.value ? 'text-white-900' : 'text-faint')}>{i + 1}</span>
-                </button>
-              ))}
+            <p className="t-label mb-2 flex items-baseline justify-between">
+              <span>Outcome</span>
+              <span className="t-caption text-faint">Press 1–9</span>
+            </p>
+            <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Call outcome">
+              {OUTCOMES.map((o, i) => {
+                const on = state.outcome === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => sp.setOutcome(o.value)}
+                    className={cn(
+                      'group flex h-8 items-center gap-1.5 rounded-sm border pl-2 pr-1.5 text-sm transition-[background-color,border-color,color,scale] duration-150 active:scale-[0.97]',
+                      on ? 'border-[#c4d1f2] bg-[#f2f5fe] text-[#3653a3]' : 'border-white-800 text-black-400 hover:border-white-900 hover:bg-white-200',
+                    )}
+                  >
+                    <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: OUTCOME_DOT[o.tone] }} />
+                    <span className="whitespace-nowrap">{o.label}</span>
+                    <kbd className={cn('ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-[4px] px-1 font-sans text-[10px] tabular-nums', on ? 'bg-white-100 text-[#3653a3]' : 'bg-white-300 text-black-700')}>{i + 1}</kbd>
+                  </button>
+                );
+              })}
             </div>
-            <label className="t-label mb-1 mt-3 block" htmlFor="follow-up">
-              Follow-up (optional)
+            <label className="t-label mb-1 mt-4 block" htmlFor="follow-up">
+              Follow up <span className="text-faint">(optional)</span>
             </label>
             <Input id="follow-up" type="datetime-local" className="h-8" value={followUp} onChange={(e) => setFollowUp(e.target.value)} />
           </div>
