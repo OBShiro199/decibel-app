@@ -54,3 +54,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.tps-check]
 verify_jwt = false
+[functions.lead-search]
+verify_jwt = false

@@ -17,6 +17,8 @@ import {
   facetsQuery,
   formatCount,
   pageCount,
+  searchEngine,
+  type SearchEngine,
   LEAD_FILTERS,
   leadCountQuery,
   leadIdsForFilters,
@@ -106,8 +108,11 @@ export function LeadsView({
 
   const server = useMemo(() => toServer(filters, q), [filters, q]);
   const facets = useQuery(facetsQuery('leads'));
-  const results = useQuery({ ...leadSearchQuery(workspace.id, server, page), placeholderData: (prev) => prev });
-  const count = useQuery({ ...leadCountQuery(workspace.id, server), placeholderData: (prev) => prev });
+  // the engine is read in the browser (URL ?search= / remembered), so queries wait for it
+  const [engine, setEngine] = useState<SearchEngine | null>(null);
+  useEffect(() => setEngine(searchEngine()), []);
+  const results = useQuery({ ...leadSearchQuery(workspace.id, server, page, engine ?? 'postgres'), enabled: engine !== null, placeholderData: (prev) => prev });
+  const count = useQuery({ ...leadCountQuery(workspace.id, server, engine ?? 'postgres'), enabled: engine !== null, placeholderData: (prev) => prev });
 
   useEffect(() => {
     if (count.data?.exact && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data?.n ?? null, exact: count.data?.exact, source: 'leads' });
@@ -122,7 +127,7 @@ export function LeadsView({
   const costLabel = unrevealed.length ? ` (${cost(unrevealed.length)})` : '';
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.lead_id));
   const total = count.data;
-  const pages = pageCount(total);
+  const pages = pageCount(total, engine ?? 'postgres');
   const countries = (filters.countries as string[] | undefined) ?? [];
   const strictMarket = countries.some((c) => c === 'Germany' || c === 'Austria');
 
@@ -283,6 +288,11 @@ export function LeadsView({
           <h1 className="whitespace-nowrap text-sm text-black-700">
             <span className="text-black-400">{formatCount(total)}</span> leads
           </h1>
+          {engine === 'typesense' ? (
+            <span className="tag tag-1" title="This browser searches Leads with Typesense. Add ?search=postgres to the URL to switch back.">
+              Typesense test
+            </span>
+          ) : null}
           {savedList ? (
             <Link href="/app/lists" className="tag tag-1 max-w-[260px] truncate" title="A saved search from Lists">
               {savedList.name}

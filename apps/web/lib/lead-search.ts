@@ -4,7 +4,7 @@
 // what the server filters on. Every filter stacks with AND; values inside one filter are OR.
 'use client';
 import { queryOptions } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase/client';
+import { invoke, supabase } from '@/lib/supabase/client';
 
 export const PAGE_SIZE = 100;
 /** search_leads / search_local page no further than this many rows (offset 10,000) */
@@ -271,11 +271,39 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 
-export const leadSearchQuery = (workspaceId: string, filters: Filters, page: number) =>
+/**
+ * Which engine Leads searches with. Typesense (search/typesense) is being tested: add ?search=typesense
+ * to the Leads URL to switch this browser over (remembered), ?search=postgres to switch back.
+ */
+export type SearchEngine = 'postgres' | 'typesense';
+const ENGINE_KEY = 'decibel.search-engine';
+export function searchEngine(): SearchEngine {
+  if (typeof window === 'undefined') return 'postgres';
+  try {
+    const asked = new URLSearchParams(window.location.search).get('search');
+    if (asked === 'typesense' || asked === 'postgres') window.localStorage.setItem(ENGINE_KEY, asked);
+    return window.localStorage.getItem(ENGINE_KEY) === 'typesense' ? 'typesense' : 'postgres';
+  } catch {
+    return 'postgres';
+  }
+}
+
+interface TypesenseResult {
+  rows: LeadRow[];
+  count: MatchCount;
+  took_ms: number;
+}
+const typesense = (workspaceId: string, filters: Filters, offset: number, limit: number) =>
+  invoke<TypesenseResult>('lead-search', { workspace_id: workspaceId, filters, offset, limit });
+
+export const leadSearchQuery = (workspaceId: string, filters: Filters, page: number, engine: SearchEngine = searchEngine()) =>
   queryOptions({
-    queryKey: ['lead-search', workspaceId, filters, page],
+    queryKey: ['lead-search', workspaceId, filters, page, engine],
     staleTime: 60_000,
-    queryFn: () => rpc<LeadRow[]>('search_leads', { p_workspace_id: workspaceId, p_filters: filters, p_limit: PAGE_SIZE, p_offset: page * PAGE_SIZE }),
+    queryFn: async () =>
+      engine === 'typesense'
+        ? (await typesense(workspaceId, filters, page * PAGE_SIZE, PAGE_SIZE)).rows
+        : rpc<LeadRow[]>('search_leads', { p_workspace_id: workspaceId, p_filters: filters, p_limit: PAGE_SIZE, p_offset: page * PAGE_SIZE }),
   });
 
 /**
@@ -290,11 +318,14 @@ export interface MatchCount {
 const toCount = (v: unknown): MatchCount => (typeof v === 'number' ? { n: v, exact: true } : v && typeof v === 'object' ? (v as MatchCount) : { n: null, exact: false });
 const pollUntilExact = (q: { state: { data?: MatchCount } }) => (q.state.data && !q.state.data.exact ? 2500 : false);
 
-export const leadCountQuery = (workspaceId: string, filters: Filters) =>
+export const leadCountQuery = (workspaceId: string, filters: Filters, engine: SearchEngine = searchEngine()) =>
   queryOptions({
-    queryKey: ['lead-count', workspaceId, filters],
+    queryKey: ['lead-count', workspaceId, filters, engine],
     staleTime: 5 * 60_000,
-    queryFn: async () => toCount(await rpc<unknown>('count_leads', { p_workspace_id: workspaceId, p_filters: filters })),
+    queryFn: async () =>
+      engine === 'typesense'
+        ? (await typesense(workspaceId, filters, 0, 0)).count
+        : toCount(await rpc<unknown>('count_leads', { p_workspace_id: workspaceId, p_filters: filters })),
     refetchInterval: pollUntilExact,
   });
 
@@ -328,6 +359,7 @@ export const facetsQuery = (source: 'leads' | 'local') =>
 
 /** All matching ids (up to 500) for "export / save all filtered". */
 export async function leadIdsForFilters(workspaceId: string, filters: Filters, limit: number): Promise<LeadRow[]> {
+  if (searchEngine() === 'typesense') return (await typesense(workspaceId, filters, 0, Math.min(limit, 500))).rows;
   return rpc<LeadRow[]>('search_leads', { p_workspace_id: workspaceId, p_filters: filters, p_limit: Math.min(limit, 500), p_offset: 0 });
 }
 export async function localRowsForFilters(workspaceId: string, filters: Filters, limit: number): Promise<LocalRow[]> {
@@ -342,5 +374,6 @@ export function formatCount(c: MatchCount | undefined): string {
   return `about ${(Math.round(c.n / round) * round).toLocaleString('en-GB')}`;
 }
 
-/** Pages to offer: up to the paging limit, or 100 while the count isn't known. */
-export const pageCount = (c: MatchCount | undefined) => (c?.n == null ? 100 : Math.max(1, Math.ceil(Math.min(c.n, PAGE_CAP) / PAGE_SIZE)));
+/** Pages to offer: up to the paging limit (none on Typesense), or 100 while the count isn't known. */
+export const pageCount = (c: MatchCount | undefined, engine: SearchEngine = 'postgres') =>
+  c?.n == null ? 100 : Math.max(1, Math.ceil((engine === 'typesense' ? c.n : Math.min(c.n, PAGE_CAP)) / PAGE_SIZE));
