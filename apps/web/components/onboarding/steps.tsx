@@ -107,6 +107,8 @@ export function WorkspaceStep({ user, profile }: Pick<StepProps, 'user' | 'profi
     const onboarding_state = { step: 2, completed: [1], skipped: [], role, started_at: new Date().toISOString(), short: free && !website.trim() };
     const wsId = ws.id;
     void saveInBackground(() => db.from('workspaces').update({ logo_url: logo, onboarding_state }).eq('id', wsId), { what: 'your workspace details', toast });
+    // provision the Twilio subaccount in the background; twilio-token retries it if this fails
+    void invoke('create-twilio-subaccount', { workspace_id: ws.id }).catch(() => {});
     track('onboarding_step_completed', { step: 1, skipped: false, workspace_id: ws.id });
     adopt({ ...ws, logo_url: logo, onboarding_state });
   };
@@ -396,7 +398,7 @@ export function NumberStep({ workspace, user, done }: StepProps) {
           </>
         ) : pending ? (
           <p className="text-warning-700">
-            <span className="tabular-nums">{formatPhone(pending.e164)}</span> is being reviewed by Telnyx (usually within 72 hours). Verify your own number below to call meanwhile.
+            <span className="tabular-nums">{formatPhone(pending.e164)}</span> is being reviewed by Twilio. Verify your own number below to call meanwhile.
           </p>
         ) : (
           <p className="text-black-700">No number yet. Pick an option below.</p>
@@ -406,7 +408,7 @@ export function NumberStep({ workspace, user, done }: StepProps) {
         <OptionCard
           icon={Hand}
           title="Use my existing number as caller ID"
-          description="We text you a code, you type it in, and you can call straight away."
+          description="Twilio calls you, you key in a code, and you can call straight away."
           selected={option === 'verify'}
           onSelect={() => setOption('verify')}
           badge={<Badge tone="success">Instant</Badge>}

@@ -85,7 +85,7 @@ export default function CompliancePage() {
         head={['Sub-processor', 'Purpose']}
         rows={[
           ['Supabase', 'Database, authentication and file storage (London)'],
-          ['Telnyx', 'Voice calls, phone numbers and call recordings'],
+          ['Twilio', 'Voice calls, phone numbers and call recordings'],
           ['Stripe', 'Subscription billing and payments'],
           ['Vercel', 'Application hosting'],
           ['Resend', 'Transactional email'],

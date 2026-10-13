@@ -1,6 +1,6 @@
 'use client';
 import { useSyncExternalStore } from 'react';
-import { getConnection, subscribeConnection, type ConnectionStatus } from '@/lib/softphone/device';
+import { getConnection, subscribeConnection, type ConnectionStatus } from '@/lib/twilio/device';
 import { cn } from '@/lib/utils';
 
 const META: Record<ConnectionStatus, { label: string; dot: string; pulse?: boolean }> = {
@@ -15,7 +15,7 @@ export function useConnectionStatus(): ConnectionStatus {
   return useSyncExternalStore(subscribeConnection, getConnection, () => 'idle');
 }
 
-/** Softphone link to Telnyx: green when connected, amber pulsing while reconnecting, red offline. */
+/** Softphone link to Twilio: green when connected, amber pulsing while reconnecting, red offline. */
 export function ConnectionDot({ withLabel = true, className }: { withLabel?: boolean; className?: string }) {
   const status = useConnectionStatus();
   const m = META[status];

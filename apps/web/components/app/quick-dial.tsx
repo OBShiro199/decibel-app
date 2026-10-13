@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useApp } from '@/lib/app-context';
 import { useDebounced, useStages } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
-import { PHASE_LABEL } from '@/lib/softphone/call-machine';
+import { PHASE_LABEL } from '@/lib/twilio/call-machine';
 import type { Person } from '@/lib/types';
 import { formatPhone } from '@/lib/utils';
 import { DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';

@@ -27,7 +27,7 @@ Owners and admins only (`dnc_remove`). Removing a number un-flags people with th
 | `people` insert or number change | `people_before_write` raises `dnc_listed: +44… is on your DNC list`; the app shows it in plain words (`explainDnc`) in Quick call, Add person and person edit |
 | Adding a number | People already holding it are set to `do_not_call` |
 | `can_dial` / `can_dial_for` | DNC is checked first, reason `dnc_list` ("On your DNC list") |
-| `telnyx-call` | Test and direct calls to a listed number are refused with `blocked: dnc_list` |
+| `twilio-voice` | Every number Twilio is asked to dial (test and test-routed calls too) is refused with `blocked_reason: dnc_list` |
 | CSV import of people (`import-csv`) | Rows whose mobile or direct dial is listed are skipped and counted (`imports.dnc_skipped_count`) |
 | Lead search and reveal | `search_leads` returns `on_dnc`; the row shows a DNC tag; `reveal_leads` skips those leads and doesn't charge for them |
 | Local businesses | `search_local` returns `on_dnc`; the phone is struck through; saving to a list leaves listed numbers out (`dnc_check`) |

@@ -13,7 +13,7 @@ import { AdminOnly, Notice, Section, SettingsPage } from '../_components';
 
 const SUBPROCESSORS: [string, string][] = [
   ['Supabase', 'Database, authentication and file storage (London)'],
-  ['Telnyx', 'Voice calls, phone numbers and call recording'],
+  ['Twilio', 'Voice calls, phone numbers and call recording'],
   ['Stripe', 'Billing and payments'],
   ['Vercel', 'Application hosting'],
   ['Resend', 'Transactional email'],

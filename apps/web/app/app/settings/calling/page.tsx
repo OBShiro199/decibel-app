@@ -75,7 +75,7 @@ export default function CallingPage() {
     setCallerBusy(true);
     setCallerError(null);
     try {
-      await invoke('telnyx-numbers', { workspace_id: workspace.id, action: 'set_default', id });
+      await invoke('twilio-numbers', { workspace_id: workspace.id, action: 'set_default', id });
       await qc.invalidateQueries({ queryKey: ['numbers'] });
       toast('Default caller ID updated');
     } catch (e) {

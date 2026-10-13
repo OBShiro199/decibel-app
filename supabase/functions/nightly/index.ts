@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     .select('id');
   out.invitations_expired = expired?.length ?? 0;
 
-  // calls still "live" after 6 hours missed their final Telnyx webhook
+  // calls still "live" after 6 hours missed their final Twilio callback
   const { data: stale } = await db
     .from('calls')
     .update({ status: 'failed', hangup_cause: 'stale', ended_at: new Date().toISOString() })

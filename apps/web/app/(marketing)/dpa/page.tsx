@@ -65,7 +65,7 @@ export default function DpaPage() {
         head={['Sub-processor', 'Purpose', 'Data processed', 'Location']}
         rows={[
           ['Supabase', 'Database, authentication, file storage', 'All customer data', 'UK (London, eu-west-2)'],
-          ['Telnyx', 'Voice calls, phone numbers, call recording, phone checks', 'Phone numbers, call audio, call metadata', '[To be confirmed]'],
+          ['Twilio', 'Voice calls, phone numbers, call recording', 'Phone numbers, call audio, call metadata', '[To be confirmed]'],
           ['Stripe', 'Subscription billing and payments', 'Billing contact, payment details', '[To be confirmed]'],
           ['Vercel', 'Application hosting', 'Requests in transit, logs', '[To be confirmed]'],
           ['Resend', 'Transactional email', 'Email addresses, email content', '[To be confirmed]'],

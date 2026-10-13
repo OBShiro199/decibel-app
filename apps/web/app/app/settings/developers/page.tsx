@@ -21,7 +21,7 @@ export default function DevelopersPage() {
           <Field label="Workspace ID" hint="Quote this when you contact support.">
             <CopyField value={workspace.id} onCopied={() => toast('Workspace ID copied')} />
           </Field>
-          <Field label="Webhook and Edge Function base URL" hint="Telnyx and Stripe webhooks are served from this address.">
+          <Field label="Webhook and Edge Function base URL" hint="Twilio and Stripe webhooks are served from this address.">
             <CopyField value={base} onCopied={() => toast('URL copied')} />
           </Field>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 // Plays a recording from the private `recordings` bucket through a 1-hour signed
-// URL (never a provider URL). The waveform is a placeholder until V2 transcription.
+// URL (never a Twilio URL). The waveform is a placeholder until V2 transcription.
 import { Pause, Play } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { track } from '@/lib/analytics';

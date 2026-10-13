@@ -34,8 +34,8 @@ const FAQS: FaqItem[] = [
       'Yes. B2B cold calling is lawful in the UK under PECR provided you screen numbers against the TPS and CTPS registers and honour opt-outs. Under UK GDPR the usual lawful basis is legitimate interest, supported by a documented assessment. Decibel enforces the screening and opt-out steps for you, but this is not legal advice and other countries have stricter rules.',
   },
   {
-    question: 'Do I need my own phone system?',
-    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Telnyx, Twilio or phone system account. Calls from the browser dialler are unlimited, subject to fair use: 1,000 minutes per seat each month, then minutes at cost.',
+    question: 'Do I need my own Twilio?',
+    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Twilio account. Calls from the browser dialler are unlimited, subject to fair use: 1,000 minutes per seat each month, then minutes at cost.',
   },
   {
     question: 'Can I bring my own list?',

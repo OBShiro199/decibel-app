@@ -11,7 +11,7 @@ import { ChevronDown, Circle, Grid3x3, Mic, MicOff, Pause, Phone, PhoneOff, Play
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { OUTCOMES } from '@/lib/constants';
-import { isLive, needsOutcome, PHASE_LABEL, type SoftphoneState } from '@/lib/softphone/call-machine';
+import { isLive, needsOutcome, PHASE_LABEL, type SoftphoneState } from '@/lib/twilio/call-machine';
 import { cn, formatDuration, formatPhone } from '@/lib/utils';
 import { DialPad } from '@/components/app/quick-dial';
 import { Button } from '@/components/ui/button';

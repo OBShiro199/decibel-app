@@ -3,7 +3,7 @@
 // Used in onboarding step 5 and Settings → Audio devices.
 import { Mic, Volume2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getAudioPrefs, setInputDevice, setOutputDevice } from '@/lib/softphone/device';
+import { getAudioPrefs, setInputDevice, setOutputDevice } from '@/lib/twilio/device';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/display';
 import { Field, Select } from '@/components/ui/form';

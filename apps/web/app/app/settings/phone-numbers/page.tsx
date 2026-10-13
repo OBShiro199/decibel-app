@@ -16,15 +16,15 @@ import { cn, formatPhone } from '@/lib/utils';
 import { AdminOnly, Notice, Section, SettingsPage } from '../_components';
 
 const KIND: Record<PhoneNumberKind, string> = {
-  local: 'Local',
-  national: 'National',
-  mobile: 'Mobile',
+  twilio_local: 'Local',
+  twilio_national: 'National',
+  twilio_mobile: 'Mobile',
   verified_caller_id: 'Verified caller ID',
 };
 const STATUS: Record<PhoneNumberStatus, { label: string; tone: Tone }> = {
   active: { label: 'Active', tone: 'success' },
   pending_review: { label: 'Pending review', tone: 'warning' },
-  pending_bundle: { label: 'Needs details', tone: 'warning' },
+  pending_bundle: { label: 'Pending bundle', tone: 'warning' },
   rejected: { label: 'Rejected', tone: 'danger' },
   released: { label: 'Released', tone: 'neutral' },
 };
@@ -47,7 +47,7 @@ export default function PhoneNumbersPage() {
     setBusyId(n.id);
     setError(null);
     try {
-      await invoke('telnyx-numbers', { workspace_id: workspace.id, action, id: n.id, ...extra });
+      await invoke('twilio-numbers', { workspace_id: workspace.id, action, id: n.id, ...extra });
       await refresh();
       toast(done);
       return true;
@@ -59,28 +59,8 @@ export default function PhoneNumbersPage() {
     }
   }
 
-  const anyPending = (numbers.data ?? []).some((n) => n.status === 'pending_review');
-  async function checkStatus() {
-    setBusyId('refresh');
-    setError(null);
-    try {
-      await invoke('telnyx-numbers', { workspace_id: workspace.id, action: 'refresh' });
-      await refresh();
-      toast('Status updated');
-    } catch (e) {
-      setError(describeError(e));
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   const actions = (
     <>
-      {anyPending ? (
-        <Button disabled={!isAdmin} loading={busyId === 'refresh'} onClick={checkStatus}>
-          Check status
-        </Button>
-      ) : null}
       <Button disabled={!isAdmin} onClick={() => setVerifyOpen(true)}>
         Verify my number
       </Button>
@@ -156,9 +136,8 @@ export default function PhoneNumbersPage() {
                       <td>
                         <Badge>{KIND[n.kind] ?? n.kind}</Badge>
                       </td>
-                      <td title={n.status_detail ?? undefined}>
+                      <td>
                         <Badge tone={status.tone}>{status.label}</Badge>
-                        {n.status_detail && n.status !== 'active' ? <p className="t-caption mt-1 max-w-[260px] whitespace-normal text-black-700">{n.status_detail}</p> : null}
                       </td>
                       <td>
                         {isAdmin ? (

@@ -1,8 +1,7 @@
 'use client';
-// Softphone: one call at a time, driven by the Telnyx WebRTC SDK plus Realtime
+// Softphone: one call at a time, driven by the Twilio Voice SDK plus Realtime
 // updates on the calls row. The browser chooses the call's row id before
-// dialling and telnyx-call authorises it (writing the row with the number the
-// server chose), so notes and the outcome always have a row to attach to.
+// dialling, so notes and the outcome always have a row to attach to.
 //
 // Three contexts keep re-renders local:
 //  - actions: stable functions (callPerson, hangUp, finish…). Never changes.
@@ -12,9 +11,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { BLOCK_REASONS, OUTCOMES } from '@/lib/constants';
-import { invoke, supabase } from '@/lib/supabase/client';
-import { initialState, isLive, needsOutcome, reducer, type Callee, type Phase, type SoftphoneState } from '@/lib/softphone/call-machine';
-import { getDevice, isVoiceSupported, onIncoming, placeCall, qualityFromWarnings, warmDevice, type Call } from '@/lib/softphone/device';
+import { supabase } from '@/lib/supabase/client';
+import { initialState, isLive, needsOutcome, reducer, type Callee, type Phase, type SoftphoneState } from '@/lib/twilio/call-machine';
+import { getDevice, isVoiceSupported, onIncoming, qualityFromWarnings, warmDevice, type Call } from '@/lib/twilio/device';
 import type { Call as CallRow, CallOutcome, Person, RecordingPolicy } from '@/lib/types';
 import { useToast } from '@/components/ui/overlay';
 import { SoftphonePanel } from './drawer';
@@ -30,8 +29,7 @@ interface Actions {
   /** `testRoute`: ring this number (the rep's own) instead of the person's mobile; everything else is a normal call. */
   callPerson: (person: Dialable, opts?: { listId?: string | null; testRoute?: string }) => Promise<boolean>;
   /** Onboarding step 5: call the user's own mobile and play the test message. Resolves true if answered. */
-  /** `toUserId`: ring a teammate's browser instead (internal, no number needed). */
-  testCall: (e164: string, opts?: { practice?: boolean; name?: string; company?: string; toUserId?: string }) => Promise<boolean>;
+  testCall: (e164: string, opts?: { practice?: boolean; name?: string; company?: string }) => Promise<boolean>;
   hangUp: () => void;
   accept: () => void;
   decline: () => void;
@@ -122,7 +120,7 @@ function writePending(list: PendingOutcome[]) {
 }
 
 function readableError(message: string): string {
-  if (/telephony_not_configured/.test(message)) return 'Calling is not set up yet: the telephony settings are missing on the server.';
+  if (/twilio_not_configured/.test(message)) return 'Calling is not set up yet: Twilio credentials are missing on the server.';
   if (/Failed to send a request|Failed to fetch|not found/i.test(message)) return 'Could not reach the calling service. Check your connection and try again.';
   if (/rate_limited/.test(message)) return 'Too many attempts. Wait a minute and try again.';
   return message || 'The call could not be started.';
@@ -160,7 +158,7 @@ export function SoftphoneProvider({
     setRecordPrefState(saved);
   }, []);
 
-  // ---- realtime: Telnyx webhooks land in Postgres, the panel follows ------------
+  // ---- realtime: Twilio status callbacks land in Postgres, the panel follows --
   useEffect(() => {
     const channel = supabase()
       .channel(`softphone:${userId}`)
@@ -200,7 +198,7 @@ export function SoftphoneProvider({
     const end = (error?: string) => {
       if (callRef.current !== call) return;
       callRef.current = null;
-      if (error && !reached && !stateRef.current.reachedServer) dispatch({ type: 'FAILED', message: readableError(error) });
+      if (error && !reached && !stateRef.current.reachedTwilio) dispatch({ type: 'FAILED', message: readableError(error) });
       else dispatch({ type: 'ENDED' });
       onEnd?.(answered);
     };
@@ -227,27 +225,15 @@ export function SoftphoneProvider({
     async (callee: Callee, kind: 'standard' | 'test', callId: string, onEnd?: (answered: boolean) => void) => {
       dispatch({ type: 'CONNECTING' });
       try {
-        // the server checks the call and writes its row; only then does the browser place its leg
-        const auth = await invoke<{ call_id?: string; destination?: string; blocked?: string }>('telnyx-call', {
-          workspace_id: workspaceId,
-          call_id: callId,
-          kind,
-          person_id: callee.personId,
-          list_id: callee.listId ?? null,
-          to: callee.number,
-          to_user_id: callee.toUserId ?? null,
-          test_route: !!callee.testRoute,
-          practice: kind === 'test' && practiceRef.current,
-          record: recordingPolicy === 'rep_choice' && recordRef.current,
-        });
-        if (auth.blocked) {
-          const reason = BLOCK_REASONS[auth.blocked];
-          dispatch({ type: 'BLOCKED', message: reason ? `${reason.title}. ${reason.fix}` : 'This number cannot be called.' });
-          track('call_ended', { blocked_reason: auth.blocked });
-          onEnd?.(false);
-          return false;
-        }
-        const call = await placeCall(workspaceId, auth.destination!, callId);
+        const device = await getDevice(workspaceId);
+        const params: Record<string, string> = { To: callee.number, WorkspaceId: workspaceId, UserId: userId, CallId: callId };
+        if (callee.personId) params.PersonId = callee.personId;
+        if (callee.listId) params.ListId = callee.listId;
+        if (callee.testRoute) params.TestRoute = 'true';
+        if (kind === 'test') params.Kind = 'test';
+        if (kind === 'test' && practiceRef.current) params.Practice = 'true';
+        if (recordingPolicy === 'rep_choice' && recordRef.current) params.Record = 'true';
+        const call = await device.connect({ params });
         bind(call, onEnd);
         track('call_started', { kind });
         return true;
@@ -257,7 +243,7 @@ export function SoftphoneProvider({
         return false;
       }
     },
-    [bind, recordingPolicy, workspaceId],
+    [bind, recordingPolicy, userId, workspaceId],
   );
 
   const busy = () => {
@@ -320,7 +306,7 @@ export function SoftphoneProvider({
         void (async () => {
           if (busy()) return resolve(false);
           const callId = crypto.randomUUID();
-          const callee: Callee = { personId: null, name: opts?.name ?? 'Test call', company: opts?.company ?? 'Your mobile', number: e164, toUserId: opts?.toUserId };
+          const callee: Callee = { personId: null, name: opts?.name ?? 'Test call', company: opts?.company ?? 'Your mobile', number: e164 };
           dispatch({ type: 'CHECK', callee, kind: 'test', callId });
           practiceRef.current = !!opts?.practice;
           const prep = await prepare();
@@ -356,23 +342,14 @@ export function SoftphoneProvider({
         cancelIdle = () => window.clearTimeout(id);
       }
     }, 2500);
-    const off = onIncoming(async (call) => {
+    const off = onIncoming((call) => {
       if (isLive(stateRef.current.phase) || needsOutcome(stateRef.current)) {
         call.reject();
         return;
       }
-      // telnyx-webhook wrote the inbound row (caller, matched person) before ringing this browser
-      const { data: row } = await supabase()
-        .from('calls')
-        .select('id,person_id,from_e164')
-        .eq('user_id', userId)
-        .eq('direction', 'inbound')
-        .eq('status', 'ringing')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const from = row?.from_e164 ?? call.from;
-      dispatch({ type: 'INCOMING', callId: row?.id ?? null, callee: { personId: row?.person_id ?? null, name: from, number: from } });
+      const from = call.parameters?.From ?? 'Unknown';
+      const callId = call.customParameters?.get('CallId') || null;
+      dispatch({ type: 'INCOMING', callId, callee: { personId: call.customParameters?.get('PersonId') || null, name: from, number: from } });
       bind(call);
     });
     return () => {
@@ -380,7 +357,7 @@ export function SoftphoneProvider({
       cancelIdle?.();
       off();
     };
-  }, [bind, listen, userId, workspaceId]);
+  }, [bind, listen, workspaceId]);
 
   // ---- saving outcomes: optimistic, queued, retried, never dropped -------------
   const flushing = useRef(false);
@@ -514,8 +491,8 @@ export function SoftphoneProvider({
         if (notesTimer.current) clearTimeout(notesTimer.current);
         notesTimer.current = setTimeout(() => {
           const id = stateRef.current.callId;
-          // until the call has reached the server there is nothing to update; the final save carries the notes
-          if (!id || !stateRef.current.reachedServer) {
+          // until twilio-voice has created the row there is nothing to update; the final save carries the notes
+          if (!id || !stateRef.current.reachedTwilio) {
             onStatus?.('deferred');
             return;
           }
