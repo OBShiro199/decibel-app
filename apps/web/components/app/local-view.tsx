@@ -13,9 +13,9 @@ import { useApp } from '@/lib/app-context';
 import { diallerListName } from '@/lib/dialler';
 import { useDebounced, useStages } from '@/lib/hooks';
 import {
-  COUNT_CAP,
   facetsQuery,
   formatCount,
+  pageCount,
   LOCAL_FILTERS,
   localCountQuery,
   localRowsForFilters,
@@ -113,13 +113,13 @@ export function LocalView({
   const count = useQuery({ ...localCountQuery(workspace.id, server), placeholderData: (prev) => prev });
 
   useEffect(() => {
-    if (count.data !== undefined && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data, source: 'local' });
+    if (count.data?.exact && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data?.n ?? null, exact: count.data?.exact, source: 'local' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count.data, JSON.stringify(server)]);
 
   const rows = results.data ?? [];
   const total = count.data;
-  const pages = total === undefined || total === null ? 100 : Math.max(1, Math.ceil(Math.min(total, COUNT_CAP) / PAGE_SIZE));
+  const pages = pageCount(total);
   const allSelected = rows.length > 0 && rows.every((b) => selected.has(b.place_id));
   const chosen = rows.filter((b) => selected.has(b.place_id));
 
@@ -272,7 +272,7 @@ export function LocalView({
           />
         </div>
         <h1 className="whitespace-nowrap text-sm text-black-700">
-          <span className="text-black-400">{formatCount(total, page * PAGE_SIZE + rows.length)}</span> businesses
+          <span className="text-black-400">{formatCount(total)}</span> businesses
         </h1>
         {savedList ? (
           <Link href="/app/lists" className="tag tag-1 max-w-[260px] truncate" title="A saved search from Lists">
@@ -473,7 +473,7 @@ export function LocalView({
 
       <div className="flex h-12 shrink-0 items-center justify-between border-t border-white-800 bg-panel px-4">
         <span className="t-label">
-          {rows.length ? `Businesses ${(page * PAGE_SIZE + 1).toLocaleString('en-GB')}–${(page * PAGE_SIZE + rows.length).toLocaleString('en-GB')} of ${formatCount(total, page * PAGE_SIZE + rows.length)}` : results.isLoading ? 'Loading' : 'No businesses'}
+          {rows.length ? `Businesses ${(page * PAGE_SIZE + 1).toLocaleString('en-GB')}–${(page * PAGE_SIZE + rows.length).toLocaleString('en-GB')} of ${formatCount(total)}` : results.isLoading ? 'Loading' : 'No businesses'}
         </span>
         <div className="flex gap-2">
           <Button size="compact" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>

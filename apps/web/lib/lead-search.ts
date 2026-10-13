@@ -7,8 +7,8 @@ import { queryOptions } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 
 export const PAGE_SIZE = 100;
-/** count_leads / count_local count exactly up to this, then report "10,000+" */
-export const COUNT_CAP = 10000;
+/** search_leads / search_local page no further than this many rows (offset 10,000) */
+export const PAGE_CAP = 10000;
 
 // ---- filter definitions ------------------------------------------------------
 
@@ -278,11 +278,24 @@ export const leadSearchQuery = (workspaceId: string, filters: Filters, page: num
     queryFn: () => rpc<LeadRow[]>('search_leads', { p_workspace_id: workspaceId, p_filters: filters, p_limit: PAGE_SIZE, p_offset: page * PAGE_SIZE }),
   });
 
+/**
+ * A match count (migration 0029): exact, or the planner's estimate while the exact count is worked
+ * out in the background, in which case the query polls until it's exact.
+ */
+export interface MatchCount {
+  n: number | null;
+  exact: boolean;
+}
+// an older server answered with a bare number (or null when it ran out of time)
+const toCount = (v: unknown): MatchCount => (typeof v === 'number' ? { n: v, exact: true } : v && typeof v === 'object' ? (v as MatchCount) : { n: null, exact: false });
+const pollUntilExact = (q: { state: { data?: MatchCount } }) => (q.state.data && !q.state.data.exact ? 2500 : false);
+
 export const leadCountQuery = (workspaceId: string, filters: Filters) =>
   queryOptions({
     queryKey: ['lead-count', workspaceId, filters],
     staleTime: 5 * 60_000,
-    queryFn: () => rpc<number | null>('count_leads', { p_workspace_id: workspaceId, p_filters: filters }),
+    queryFn: async () => toCount(await rpc<unknown>('count_leads', { p_workspace_id: workspaceId, p_filters: filters })),
+    refetchInterval: pollUntilExact,
   });
 
 export const localSearchQuery = (workspaceId: string, filters: Filters, page: number) =>
@@ -296,7 +309,8 @@ export const localCountQuery = (workspaceId: string, filters: Filters) =>
   queryOptions({
     queryKey: ['local-count', workspaceId, filters],
     staleTime: 5 * 60_000,
-    queryFn: () => rpc<number | null>('count_local', { p_workspace_id: workspaceId, p_filters: filters }),
+    queryFn: async () => toCount(await rpc<unknown>('count_local', { p_workspace_id: workspaceId, p_filters: filters })),
+    refetchInterval: pollUntilExact,
   });
 
 export type Facets = Record<string, { value: string; n: number }[]>;
@@ -320,12 +334,13 @@ export async function localRowsForFilters(workspaceId: string, filters: Filters,
   return rpc<LocalRow[]>('search_local', { p_workspace_id: workspaceId, p_filters: filters, p_limit: Math.min(limit, 500), p_offset: 0 });
 }
 
-/**
- * The match count for the toolbar. Counts are exact up to 10,000; a count that took too long
- * comes back null, and then the page shows what it knows ("100+" when a full page loaded).
- */
-export function formatCount(n: number | null | undefined, shown = 0): string {
-  if (n === undefined) return '…';
-  if (n === null) return shown >= PAGE_SIZE ? `${shown.toLocaleString('en-GB')}+` : shown.toLocaleString('en-GB');
-  return n > COUNT_CAP ? `${COUNT_CAP.toLocaleString('en-GB')}+` : n.toLocaleString('en-GB');
+/** The match count for the toolbar: the full number, or "about …" for the moment it's an estimate. */
+export function formatCount(c: MatchCount | undefined): string {
+  if (!c || c.n === null) return '…';
+  if (c.exact) return c.n.toLocaleString('en-GB');
+  const round = c.n >= 1000 ? 10 ** (Math.floor(Math.log10(c.n)) - 2) : 1;
+  return `about ${(Math.round(c.n / round) * round).toLocaleString('en-GB')}`;
 }
+
+/** Pages to offer: up to the paging limit, or 100 while the count isn't known. */
+export const pageCount = (c: MatchCount | undefined) => (c?.n == null ? 100 : Math.max(1, Math.ceil(Math.min(c.n, PAGE_CAP) / PAGE_SIZE)));

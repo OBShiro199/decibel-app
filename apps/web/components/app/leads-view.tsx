@@ -14,9 +14,9 @@ import { prefetchPerson } from '@/lib/queries';
 import { diallerListName } from '@/lib/dialler';
 import { useDebounced, useLists } from '@/lib/hooks';
 import {
-  COUNT_CAP,
   facetsQuery,
   formatCount,
+  pageCount,
   LEAD_FILTERS,
   leadCountQuery,
   leadIdsForFilters,
@@ -110,7 +110,7 @@ export function LeadsView({
   const count = useQuery({ ...leadCountQuery(workspace.id, server), placeholderData: (prev) => prev });
 
   useEffect(() => {
-    if (count.data !== undefined && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data, source: 'leads' });
+    if (count.data?.exact && !count.isPlaceholderData) track('search_run', { filters: server, result_count: count.data?.n ?? null, exact: count.data?.exact, source: 'leads' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count.data, JSON.stringify(server)]);
 
@@ -122,7 +122,7 @@ export function LeadsView({
   const costLabel = unrevealed.length ? ` (${cost(unrevealed.length)})` : '';
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.lead_id));
   const total = count.data;
-  const pages = total === undefined || total === null ? 100 : Math.max(1, Math.ceil(Math.min(total, COUNT_CAP) / PAGE_SIZE));
+  const pages = pageCount(total);
   const countries = (filters.countries as string[] | undefined) ?? [];
   const strictMarket = countries.some((c) => c === 'Germany' || c === 'Austria');
 
@@ -281,7 +281,7 @@ export function LeadsView({
             />
           </div>
           <h1 className="whitespace-nowrap text-sm text-black-700">
-            <span className="text-black-400">{formatCount(total, page * PAGE_SIZE + rows.length)}</span> leads
+            <span className="text-black-400">{formatCount(total)}</span> leads
           </h1>
           {savedList ? (
             <Link href="/app/lists" className="tag tag-1 max-w-[260px] truncate" title="A saved search from Lists">
@@ -482,7 +482,7 @@ export function LeadsView({
 
         <div className="flex h-12 shrink-0 items-center justify-between border-t border-white-800 bg-panel px-4">
           <span className="t-label">
-            {rows.length ? `Leads ${(page * PAGE_SIZE + 1).toLocaleString('en-GB')}–${(page * PAGE_SIZE + rows.length).toLocaleString('en-GB')} of ${formatCount(total, page * PAGE_SIZE + rows.length)}` : results.isLoading ? 'Loading' : 'No leads'}
+            {rows.length ? `Leads ${(page * PAGE_SIZE + 1).toLocaleString('en-GB')}–${(page * PAGE_SIZE + rows.length).toLocaleString('en-GB')} of ${formatCount(total)}` : results.isLoading ? 'Loading' : 'No leads'}
           </span>
           <div className="flex gap-2">
             <Button size="compact" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>

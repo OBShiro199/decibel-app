@@ -307,11 +307,12 @@ async function main() {
     const wrong = (back ?? []).filter((r) => !leadMatches(r, f)).length;
     const ordered = got.every((r, i) => i === 0 || got[i - 1].lead_id < r.lead_id);
     const cnt = await timed(`leads count: ${name}`, () => a.client.rpc('count_leads', { p_workspace_id: wsA, p_filters: f }));
-    const countOk = !cnt.error && (cnt.data === null || (got.length < 500 ? cnt.data === got.length : cnt.data >= 500));
+    // exact counts must agree with the rows; an estimate (exact: false, counted in the background) only has to be a number
+    const countOk = !cnt.error && (!cnt.data?.exact || (got.length < 500 ? cnt.data.n === got.length : cnt.data.n >= 500));
     check(
       `leads: ${name}`,
       exhaustive && !missing.length && !extra.length && !wrong && ordered && countOk,
-      `${got.length} returned, ${expected.size} expected in sample, missing ${missing.length}, extra ${extra.length}, wrong ${wrong}, count ${cnt.data ?? cnt.error?.message}`,
+      `${got.length} returned, ${expected.size} expected in sample, missing ${missing.length}, extra ${extra.length}, wrong ${wrong}, count ${cnt.data ? `${cnt.data.n}${cnt.data.exact ? '' : ' (estimate)'}` : cnt.error?.message}`,
     );
   }
 
@@ -343,11 +344,12 @@ async function main() {
     const { data: back } = await admin.from('google_businesses').select('*').in('Place ID', got.slice(0, 200).map((g) => g.place_id));
     const wrong = (back ?? []).filter((g) => !localMatches(g, f)).length;
     const cnt = await timed(`local count: ${name}`, () => a.client.rpc('count_local', { p_workspace_id: wsA, p_filters: f }));
-    const countOk = !cnt.error && (cnt.data === null || (got.length < 500 ? cnt.data === got.length : cnt.data >= 500));
+    // exact counts must agree with the rows; an estimate (exact: false, counted in the background) only has to be a number
+    const countOk = !cnt.error && (!cnt.data?.exact || (got.length < 500 ? cnt.data.n === got.length : cnt.data.n >= 500));
     check(
       `local: ${name}`,
       exhaustive && !missing.length && !extra.length && !wrong && countOk,
-      `${got.length} returned, ${expected.size} expected in sample, missing ${missing.length}, extra ${extra.length}, wrong ${wrong}, count ${cnt.data ?? cnt.error?.message}`,
+      `${got.length} returned, ${expected.size} expected in sample, missing ${missing.length}, extra ${extra.length}, wrong ${wrong}, count ${cnt.data ? `${cnt.data.n}${cnt.data.exact ? '' : ' (estimate)'}` : cnt.error?.message}`,
     );
   }
 
