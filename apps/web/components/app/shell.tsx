@@ -3,7 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
 import { Check, ChevronsUpDown, Coins, LogOut, Mail, Phone, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
 import { FOUNDER } from '@/lib/site';
-import { AddressBook, Lightning, ListBullets, PhoneCall, PhoneX, ShieldCheck } from '@phosphor-icons/react';
+import { SETTINGS_PAGES, settingsHref } from '@/lib/settings-nav';
+import { AddressBook, CaretRight, GearSix, Lightning, ListBullets, PhoneCall, PhoneX, ShieldCheck, UsersThree } from '@phosphor-icons/react';
 import { GoogleIcon } from '@/components/ui/google-icon';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -191,7 +192,7 @@ function AccountMenu() {
         {(close) => (
           <>
             <p className="truncate px-2 py-1.5 text-sm text-black-700">{profile.email}</p>
-            <Link href="/app/settings/profile" onClick={close} className="flex h-8 items-center gap-2 rounded-sm px-2 text-base hover:bg-white-300">
+            <Link href="/app/settings/general" onClick={close} className="flex h-8 items-center gap-2 rounded-sm px-2 text-base hover:bg-white-300">
               <Settings size={16} strokeWidth={1.5} /> Settings
             </Link>
             <Link href="/app/settings/billing" onClick={close} className="flex h-8 items-center gap-2 rounded-sm px-2 text-base hover:bg-white-300">
@@ -306,7 +307,7 @@ function Sidebar() {
         </Popover>
       </div>
 
-      <div className="flex flex-1 flex-col gap-4 px-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2">
         {NAV_GROUPS.map((group) => (
           <div key={group.label ?? 'main'}>
             {group.label ? (
@@ -347,21 +348,85 @@ function Sidebar() {
         ))}
       </div>
 
+      {/* team and settings sit at the bottom, above the phone */}
+      <div className="flex shrink-0 flex-col gap-0.5 px-2 pb-2">
+        <Link
+          href="/app/team"
+          prefetch
+          title="Team"
+          aria-current={pathname.startsWith('/app/team') ? 'page' : undefined}
+          className={cn('nav-item flex h-8 items-center gap-2 px-2 text-sm transition-colors max-[1100px]:justify-center', pathname.startsWith('/app/team') ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
+        >
+          <UsersThree size={17} weight={pathname.startsWith('/app/team') ? 'duotone' : 'regular'} className="shrink-0" style={{ color: pathname.startsWith('/app/team') ? NAV_HUE : undefined }} />
+          <span className="truncate max-[1100px]:hidden">Team</span>
+        </Link>
+        <SettingsNav pathname={pathname} />
+      </div>
+
       {/* the phone: opens the dial pad, and shows the live call status during a call */}
-      <div className="px-2 pb-1.5">
+      <div className="shrink-0 px-2 pb-1.5">
         <SoftphoneToggle />
       </div>
-      <CreditsMeter />
-      <div className="flex items-center gap-1 border-t border-white-800 p-2 max-[1100px]:flex-col">
+      <div className="shrink-0">
+        <CreditsMeter />
+      </div>
+      <div className="flex shrink-0 items-center gap-1 border-t border-white-800 p-2 max-[1100px]:flex-col">
         <AccountMenu />
-        <Link href="/app/settings" title="Settings" aria-label="Settings" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-black-700 hover:bg-white-300">
-          <Settings size={16} strokeWidth={1.5} />
-        </Link>
       </div>
     </nav>
   );
 }
 
+
+/** Settings opens in place in the sidebar: one row that expands to the settings pages. */
+function SettingsNav({ pathname }: { pathname: string }) {
+  const inSettings = pathname.startsWith('/app/settings');
+  const [open, setOpen] = useState(inSettings);
+  useEffect(() => {
+    if (inSettings) setOpen(true);
+  }, [inSettings]);
+  return (
+    <div>
+      {/* collapsed sidebar: just a link to Settings */}
+      <Link href={settingsHref('general')} title="Settings" aria-label="Settings" className={cn('nav-item hidden h-8 items-center justify-center px-2 max-[1100px]:flex', inSettings ? 'text-black-400' : 'text-black-700 hover:bg-white-300')}>
+        <GearSix size={17} weight={inSettings ? 'duotone' : 'regular'} style={{ color: inSettings ? NAV_HUE : undefined }} />
+      </Link>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn('nav-item flex h-8 w-full items-center gap-2 px-2 text-sm transition-colors max-[1100px]:hidden', inSettings ? 'text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
+      >
+        <GearSix size={17} weight={inSettings ? 'duotone' : 'regular'} className="shrink-0" style={{ color: inSettings ? NAV_HUE : undefined }} />
+        <span className="flex-1 truncate text-left">Settings</span>
+        <CaretRight size={12} className={cn('shrink-0 text-black-700 transition-transform duration-150', open && 'rotate-90')} />
+      </button>
+      {/* slides open: the grid row animates from 0fr to 1fr, so any number of items animates smoothly */}
+      <div
+        className={cn('grid transition-[grid-template-rows,opacity] duration-200 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none max-[1100px]:hidden', open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}
+        aria-hidden={!open}
+      >
+        <ul className="flex min-h-0 flex-col gap-0.5 overflow-hidden pt-0.5" aria-label="Settings pages">
+          {SETTINGS_PAGES.map((p) => {
+            const href = settingsHref(p.route);
+            const active = pathname === href || pathname.startsWith(href + '/');
+            return (
+              <li key={p.route}>
+                <Link
+                  href={href}
+                  tabIndex={open ? undefined : -1}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn('nav-item flex h-7 items-center pl-[33px] pr-2 text-sm transition-colors', active ? 'bg-white-300 text-black-400' : 'text-black-700 hover:bg-white-300 hover:text-black-400')}
+                >
+                  <span className="truncate">{p.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 const SHORTCUTS: [string, string][] = [
   ['j / k', 'Move down / up a table'],

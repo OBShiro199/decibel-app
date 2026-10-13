@@ -1,18 +1,10 @@
 'use client';
-import { Monitor, Moon, Sun } from 'lucide-react';
-import { Badge, OptionCard } from '@/components/ui/display';
-import { Section, SettingsPage } from '../_components';
+// Merged into another settings page when settings were simplified (2026-10-13).
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export default function AppearancePage() {
-  return (
-    <SettingsPage title="Appearance" description="Choose how Decibel looks on this device.">
-      <Section title="Theme" description="Decibel is light only for now. Dark and system themes will follow.">
-        <div role="radiogroup" aria-label="Theme" className="grid gap-3 sm:grid-cols-3">
-          <OptionCard icon={Sun} title="Light" description="The default." selected onSelect={() => {}} radio />
-          <OptionCard icon={Moon} title="Dark" description="Not available yet." selected={false} onSelect={() => {}} radio disabled badge={<Badge>Later</Badge>} />
-          <OptionCard icon={Monitor} title="System" description="Not available yet." selected={false} onSelect={() => {}} radio disabled badge={<Badge>Later</Badge>} />
-        </div>
-      </Section>
-    </SettingsPage>
-  );
+export default function Moved() {
+  const router = useRouter();
+  useEffect(() => router.replace('/app/settings/general'), [router]);
+  return null;
 }

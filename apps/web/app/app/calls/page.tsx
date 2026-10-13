@@ -28,7 +28,7 @@ export default function CallsPage() {
   const names = useMemberNames();
   const { data: members } = useMembers();
   const { data: lists } = useLists();
-  const [rep, setRep] = useState('');
+  const [rep, setRep] = useState(() => (typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('rep') ?? ''));
   const [outcome, setOutcome] = useState('');
   const [listId, setListId] = useState('');
   const [from, setFrom] = useState('');

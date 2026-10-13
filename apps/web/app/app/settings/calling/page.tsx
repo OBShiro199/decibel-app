@@ -174,6 +174,28 @@ export default function CallingPage() {
           </div>
         )}
       </Section>
+      <Section title="Compliance documents" description="What you need for UK and EU outbound calling. Your DNC list has its own page in the sidebar.">
+        <div className="card divide-y divide-white-800">
+          <div className="flex flex-wrap items-center gap-4 p-6">
+            <div className="min-w-0 flex-1">
+              <p>Legitimate interests assessment template</p>
+              <p className="t-small mt-0.5 text-black-700">A starting point for the LIA you need before B2B cold calling.</p>
+            </div>
+            <a href="/lia-template.txt" download className="inline-flex h-9 shrink-0 items-center rounded-sm border border-white-800 bg-white-100 px-3 hover:border-black-700">
+              Download
+            </a>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 p-6">
+            <div className="min-w-0 flex-1">
+              <p>Data processing agreement</p>
+              <p className="t-small mt-0.5 text-black-700">The DPA between your company and Decibel, with our sub-processors.</p>
+            </div>
+            <a href="/dpa" className="inline-flex h-9 shrink-0 items-center rounded-sm border border-white-800 bg-white-100 px-3 hover:border-black-700">
+              View DPA
+            </a>
+          </div>
+        </div>
+      </Section>
     </SettingsPage>
   );
 }

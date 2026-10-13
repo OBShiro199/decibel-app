@@ -2,7 +2,7 @@
 //   checkout   { plan: 'starter'|'growth', interval: 'monthly'|'annual' } -> { url }   (owner)
 //   credits    { pack: '500'|'2000'|'10000' }                             -> { url }   (owner/admin)
 //   portal     {}                                                         -> { url }   (owner)
-//   sync_seats {}                                                         -> { seats } (owner/admin)
+//   sync_seats {}                                                         -> { seats } (any member)
 //   invoices   {}                                                         -> { invoices } (owner/admin)
 import { admin, APP_URL, corsHeaders, fail, getRole, getUser, isAdmin, json } from '../_shared/http.ts';
 import { CREDIT_PACKS, PRICES, stripe, STRIPE_KEY } from '../_shared/stripe.ts';
@@ -15,7 +15,8 @@ Deno.serve(async (req) => {
   const { workspace_id, action } = input;
   if (!workspace_id || !action) return fail('workspace_id and action required');
   const role = await getRole(user.id, workspace_id);
-  if (!isAdmin(role)) return fail('forbidden', 403);
+  // recounting seats only reads the member count, so any member may trigger it (e.g. right after joining)
+  if (!role || (action !== 'sync_seats' && !isAdmin(role))) return fail('forbidden', 403);
   if (!STRIPE_KEY) return fail('stripe_not_configured', 503);
 
   const db = admin();

@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
   // independent lookups run together: this function sits between "connect" and the phone ringing
   const [numbersRes, checkRes, personRes, memberRes, ownRes] = await Promise.all([
-    db.from('phone_numbers').select('id,e164,is_default').eq('workspace_id', ws.id).eq('status', 'active').order('is_default', { ascending: false }).limit(1),
+    db.from('phone_numbers').select('id,e164,is_default,assigned_user_id').eq('workspace_id', ws.id).eq('status', 'active'),
     kind === 'standard' && personId
       ? db.rpc('can_dial_for', { p_workspace_id: ws.id, p_person_id: personId, p_user_id: userId }).single()
       : Promise.resolve({ data: null }),
@@ -50,7 +50,9 @@ Deno.serve(async (req) => {
         ])
       : Promise.resolve(null),
   ]);
-  const caller = numbersRes.data?.[0] ?? null;
+  // the rep's own number when they have one, otherwise the workspace default
+  const owned = (numbersRes.data ?? []) as { id: string; e164: string; is_default: boolean; assigned_user_id: string | null }[];
+  const caller = owned.find((n) => n.assigned_user_id === userId) ?? owned.find((n) => n.is_default) ?? owned[0] ?? null;
 
   let to = body.To ?? '';
   let blocked: string | null = null;

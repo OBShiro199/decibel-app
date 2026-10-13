@@ -18,7 +18,8 @@
     "test:tps-ui": "node scripts/tps-ui.mjs",
     "test:dnc": "node scripts/dnc.mjs",
     "test:dnc-ui": "node scripts/dnc-ui.mjs",
-    "test:twilio": "node scripts/twilio-smoke.mjs"
+    "test:twilio": "node scripts/twilio-smoke.mjs",
+    "test:team": "node scripts/team.mjs"
   },
   "dependencies": {
     "@decibels/design-tokens": "workspace:*",

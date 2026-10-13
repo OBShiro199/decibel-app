@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
   const { workspace_id, action } = input;
   if (!workspace_id || !action) return fail('workspace_id and action required');
   if (!isAdmin(await getRole(user.id, workspace_id))) return fail('forbidden', 403);
+  // a number can be bought for a teammate (Team page); otherwise it goes to the admin buying it
+  const assignee: string = input.assign_to && (await getRole(String(input.assign_to), workspace_id)) ? String(input.assign_to) : user.id;
 
   const row = await loadWorkspace(workspace_id);
   if (!row) return fail('workspace_not_found', 404);
@@ -67,7 +69,7 @@ Deno.serve(async (req) => {
             twilio_sid: bought.sid,
             regulatory_bundle_sid: bundle ?? null,
             address_sid: address ?? null,
-            assigned_user_id: user.id,
+            assigned_user_id: assignee,
             is_default: !(await hasDefault()),
             monthly_cost_pence: COST[type],
             purchased_at: new Date().toISOString(),
@@ -246,7 +248,7 @@ Deno.serve(async (req) => {
               status: 'pending_review',
               regulatory_bundle_sid: bundle.sid,
               address_sid: address.sid,
-              assigned_user_id: user.id,
+              assigned_user_id: assignee,
               monthly_cost_pence: COST[type],
             },
             { onConflict: 'workspace_id,e164' },

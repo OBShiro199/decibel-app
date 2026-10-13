@@ -8,6 +8,7 @@ import { useApp } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
 import { AdminOnly, Notice, Section, SettingsPage } from '../_components';
 import { HOME } from '@/lib/constants';
+import { ProfileSections } from '@/components/app/profile-settings';
 
 const SLUG = /^[a-z0-9]([a-z0-9-]{1,38}[a-z0-9])?$/;
 const TEAM_SIZES = ['1', '2–5', '6–20', '21–50', '51+'];
@@ -80,7 +81,8 @@ export default function GeneralPage() {
   }
 
   return (
-    <SettingsPage title="General" description="Your workspace name, URL and branding.">
+    <SettingsPage title="General" description="Your profile, password and workspace.">
+      <ProfileSections />
       <Section title="Workspace">
         <form onSubmit={save} className="card space-y-5 p-6">
           {!isAdmin ? <AdminOnly /> : null}

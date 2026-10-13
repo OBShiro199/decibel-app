@@ -6,6 +6,7 @@ import { track } from '@/lib/analytics';
 import { invoke, supabase } from '@/lib/supabase/client';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/display';
+import { Field, Input } from '@/components/ui/form';
 import { HOME } from '@/lib/constants';
 
 interface Invite {
@@ -15,6 +16,7 @@ interface Invite {
   role: string;
   status: 'pending' | 'accepted' | 'revoked' | 'expired';
   expires_at: string;
+  has_account: boolean;
 }
 
 export default function InvitePage() {
@@ -24,6 +26,8 @@ export default function InvitePage() {
   const [me, setMe] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     const db = supabase();
@@ -51,6 +55,28 @@ export default function InvitePage() {
     if (wsId) void invoke('billing', { workspace_id: wsId, action: 'sync_seats' }).catch(() => {});
     router.replace('/onboarding/test?invited=1');
     router.refresh();
+  };
+
+  // new to Decibel: the account is created from the invite (the link proves the inbox), then signed in
+  const createAndJoin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!invite) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await invoke('team', { action: 'signup', token, full_name: name.trim(), password });
+      const { data, error: signInErr } = await supabase().auth.signInWithPassword({ email: invite.email, password });
+      if (signInErr || !data.session) throw new Error('Your account was created. Log in to continue.');
+      track('invite_accepted', { role: invite.role, new_account: true });
+      const { data: prof } = await supabase().from('profiles').select('last_workspace_id').eq('id', data.session.user.id).single();
+      if (prof?.last_workspace_id) void invoke('billing', { workspace_id: prof.last_workspace_id, action: 'sync_seats' }).catch(() => {});
+      router.replace('/onboarding/test?invited=1');
+      router.refresh();
+    } catch (err) {
+      const m = String((err as Error & { data?: { message?: string } }).data?.message ?? (err as Error).message);
+      setError(/account_exists/.test(m) ? 'You already have a Decibel account. Log in to accept the invite.' : m);
+      setBusy(false);
+    }
   };
 
   const signOut = async () => {
@@ -115,13 +141,28 @@ export default function InvitePage() {
             </Button>
           </div>
         )
-      ) : (
+      ) : invite.has_account ? (
         <div className="mt-6 flex flex-col gap-2">
-          <ButtonLink variant="primary" href={`/signup?next=${next}&email=${email}`}>
-            Create account to join
+          <ButtonLink variant="primary" href={`/login?next=${next}&email=${email}`}>
+            Log in to join
           </ButtonLink>
-          <ButtonLink href={`/login?next=${next}&email=${email}`}>I already have an account</ButtonLink>
+          <p className="t-caption text-center text-black-700">You already have a Decibel account with this email.</p>
         </div>
+      ) : (
+        <form onSubmit={createAndJoin} className="mt-6 flex flex-col gap-4">
+          <Field label="Email" htmlFor="inv-email">
+            <Input id="inv-email" value={invite.email} disabled readOnly />
+          </Field>
+          <Field label="Your name" htmlFor="inv-name">
+            <Input id="inv-name" autoFocus autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
+          </Field>
+          <Field label="Password" htmlFor="inv-password" hint="At least 8 characters.">
+            <Input id="inv-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </Field>
+          <Button type="submit" variant="primary" className="w-full" loading={busy} disabled={!name.trim() || password.length < 8}>
+            Join {invite.workspace_name}
+          </Button>
+        </form>
       )}
       <p className="t-caption mt-4 text-center text-black-700">
         <Link href="/" className="hover:underline">What is Decibel?</Link>

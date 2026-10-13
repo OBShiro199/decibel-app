@@ -12,6 +12,7 @@ import { useMemberNames, useMembers } from '@/lib/hooks';
 import { invoke, supabase } from '@/lib/supabase/client';
 import type { PlanTier, Subscription } from '@/lib/types';
 import { cn, daysLeft, formatDate, formatTalkTime } from '@/lib/utils';
+import { ProPlanSection } from '@/components/app/settings-extras';
 import { AdminOnly, describeBillingError, fetchAll, isBillingNotConfigured, Notice, Section, SettingsPage } from '../_components';
 
 interface CreditTx {
@@ -143,7 +144,7 @@ export default function BillingPage() {
   const errorNotice = error ? <Notice tone={error.calm ? 'neutral' : 'danger'}>{error.message}</Notice> : null;
 
   return (
-    <SettingsPage title="Billing" description="Your plan, credits, minutes and invoices.">
+    <SettingsPage title="Plan & billing" description="Your plan, seats, credits, minutes and invoices.">
       {!creditsOpen ? errorNotice : null}
 
       <Section title="Plan">
@@ -176,7 +177,7 @@ export default function BillingPage() {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <ButtonLink href="/app/settings/plans">{trial ? 'Choose a plan' : 'Change plan'}</ButtonLink>
+              <ButtonLink href="#pro">{trial ? 'Choose a plan' : 'See plan'}</ButtonLink>
               {isOwner ? (
                 <Button loading={busy === 'portal'} disabled={busy !== null} onClick={() => go('portal', { action: 'portal' })}>
                   Manage in Stripe
@@ -188,6 +189,8 @@ export default function BillingPage() {
         )}
         {!isOwner ? <p className="t-small mt-3 text-black-700">Only the workspace owner can manage the subscription in Stripe.</p> : null}
       </Section>
+
+      <ProPlanSection />
 
       <Section
         title="Credits and minutes"
