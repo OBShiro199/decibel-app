@@ -272,15 +272,15 @@ async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
 }
 
 /**
- * Which engine Leads searches with. Typesense (search/typesense) is being tested: add ?search=typesense
- * to the Leads URL to switch this browser over (remembered), ?search=postgres to switch back.
+ * Which engine Leads searches with. Typesense (search/typesense) is being tested: add ?engine=typesense
+ * to the Leads URL to switch this browser over (remembered), ?engine=postgres to switch back.
  */
 export type SearchEngine = 'postgres' | 'typesense';
 const ENGINE_KEY = 'decibel.search-engine';
 export function searchEngine(): SearchEngine {
   if (typeof window === 'undefined') return 'postgres';
   try {
-    const asked = new URLSearchParams(window.location.search).get('search');
+    const asked = new URLSearchParams(window.location.search).get('engine');
     if (asked === 'typesense' || asked === 'postgres') window.localStorage.setItem(ENGINE_KEY, asked);
     return window.localStorage.getItem(ENGINE_KEY) === 'typesense' ? 'typesense' : 'postgres';
   } catch {

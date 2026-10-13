@@ -289,7 +289,7 @@ export function LeadsView({
             <span className="text-black-400">{formatCount(total)}</span> leads
           </h1>
           {engine === 'typesense' ? (
-            <span className="tag tag-1" title="This browser searches Leads with Typesense. Add ?search=postgres to the URL to switch back.">
+            <span className="tag tag-1" title="This browser searches Leads with Typesense. Add ?engine=postgres to the URL to switch back.">
               Typesense test
             </span>
           ) : null}
