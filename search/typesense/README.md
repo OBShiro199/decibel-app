@@ -15,5 +15,9 @@ Caddy 2.10.2 on 443 with Let's Encrypt), `.env` (API key), `reader.env` (read-on
 `decibel_search_reader`, can only select from `search_export.leads`). SSH is key-only (`~/.ssh/decibel_search`).
 Supabase secrets: `TYPESENSE_URL`, `TYPESENSE_API_KEY`.
 
-Run a load by hand on the server: `cd /opt/typesense && python3 load-leads.py --max-rate 4000`
-(run it at night: it reads all of data_list).
+New leads reach search automatically: a systemd timer (`decibel-leads-nightly`) runs
+`load-leads.py --in-place --max-rate 1500` at 01:00 UTC, adding new leads and refreshing existing ones in
+the live collection (log: `/var/log/decibel-leads-nightly.log`). To send them over straight away after an
+import, on the server: `cd /opt/typesense && python3 load-leads.py --in-place --max-rate 1500` (~30 min,
+read-only on Supabase; the app stayed fast at this rate). A full rebuild into a fresh collection (drops
+leads deleted from data_list) is the same command without `--in-place`; it briefly needs twice the memory.

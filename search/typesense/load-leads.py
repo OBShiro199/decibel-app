@@ -8,6 +8,7 @@ collection, so a reload never interrupts search. Runs on the search server:
     python3 load-leads.py                    # everything (run overnight)
     python3 load-leads.py --limit 20000      # a sample
     python3 load-leads.py --max-rate 2000    # cap rows per second (gentler on Supabase)
+    python3 load-leads.py --in-place         # add new leads / refresh existing ones in the live collection
 
 Needs /opt/typesense/.env (TYPESENSE_API_KEY) and /opt/typesense/reader.env (PG*).
 Phone numbers and emails never reach this server: the view only has yes/no flags
@@ -95,15 +96,21 @@ def main():
     ap.add_argument('--schema', default=os.path.join(HERE, 'leads-schema.json'))
     ap.add_argument('--alias', default='leads', help='alias to point at the new collection')
     ap.add_argument('--max-memory-gb', type=float, default=6.0, help='stop (and keep the current collection) above this')
+    ap.add_argument('--in-place', action='store_true', help='upsert into the collection behind the alias instead of building a new one (new leads are added, existing ones refreshed; memory stays flat)')
     a = ap.parse_args()
 
     schema = json.load(open(a.schema))
     keep = {f['name'] for f in schema['fields']}
     types = {f['name']: f['type'] for f in schema['fields']}
-    name = a.alias + '_' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')
-    schema['name'] = name
-    ts('POST', '/collections', schema)
-    print(f'created {name}', flush=True)
+    if a.in_place:
+        name = json.loads(ts('GET', f'/aliases/{a.alias}'))['collection_name']
+        before = json.loads(ts('GET', f'/collections/{name}'))['num_documents']
+        print(f'updating {name} in place ({before:,} leads now)', flush=True)
+    else:
+        name = a.alias + '_' + datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')
+        schema['name'] = name
+        ts('POST', '/collections', schema)
+        print(f'created {name}', flush=True)
 
     sql = f"select {', '.join(COLS)} from search_export.leads" + (f' limit {a.limit}' if a.limit else '')
     pg = subprocess.Popen(['psql', '-X', '-q', '-c', f'\\copy ({sql}) to stdout with csv'], stdout=subprocess.PIPE,
@@ -132,7 +139,8 @@ def main():
                 if mem > a.max_memory_gb * 1024 ** 3:
                     print(f'stopping: Typesense is using {mem / 1024 ** 3:.1f} GB (limit {a.max_memory_gb} GB); keeping the current collection', flush=True)
                     pg.kill()
-                    ts('DELETE', f'/collections/{name}')
+                    if not a.in_place:
+                        ts('DELETE', f'/collections/{name}')
                     sys.exit(2)
             if n % 50000 < a.batch:
                 print(f'{n:,} rows, {n / (time.time() - t0):,.0f}/s, {failed} failed', flush=True)
@@ -143,11 +151,15 @@ def main():
     flush()
     if pg.wait() != 0:
         print('psql failed; keeping the current collection', flush=True)
-        ts('DELETE', f'/collections/{name}')
+        if not a.in_place:
+            ts('DELETE', f'/collections/{name}')
         sys.exit(1)
 
     stats = json.loads(ts('GET', f'/collections/{name}'))
     print(f'loaded {n:,} rows into {name} ({stats["num_documents"]:,} unique leads, {failed} failed) in {time.time() - t0:,.0f}s', flush=True)
+    if a.in_place:
+        print(f'{stats["num_documents"] - before:,} new leads added', flush=True)
+        return
     try:
         old = json.loads(ts('GET', f'/aliases/{a.alias}'))['collection_name']
     except Exception:
