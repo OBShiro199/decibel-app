@@ -38,6 +38,7 @@ import { EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/displ
 import { Checkbox, Input } from '@/components/ui/form';
 import { LinkedinLogo } from '@/components/ui/linkedin-logo';
 import { QUICK_KEYS, QuickFilters } from '@/components/app/quick-filters';
+import { useAdminExport, useIsPlatformAdmin } from '@/components/app/admin-export';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
@@ -106,6 +107,8 @@ export function LeadsView({
   const [saveOpen, setSaveOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<null | { title: string; body: string; action: string; run: () => Promise<void> }>(null);
+  const isPlatformAdmin = useIsPlatformAdmin();
+  const adminExport = useAdminExport();
 
   const server = useMemo(() => toServer(filters, q), [filters, q]);
   const facets = useQuery(facetsQuery('leads'));
@@ -332,6 +335,16 @@ export function LeadsView({
                   >
                     Export matching leads (up to {EXPORT_MAX})
                   </MenuItem>
+                  {isPlatformAdmin && total?.n ? (
+                    <MenuItem
+                      onClick={() => {
+                        close();
+                        void adminExport.start(server, total.n!);
+                      }}
+                    >
+                      Export all {total.n.toLocaleString('en-GB')} matching leads (admin, free)
+                    </MenuItem>
+                  ) : null}
                   <MenuItem
                     onClick={() => {
                       close();
@@ -551,6 +564,7 @@ export function LeadsView({
         title={picker === 'save-filtered' ? 'Save matching leads to a list' : `Add ${ids.length} to list${costLabel}`}
         busyLabel="Revealing…"
       />
+      {adminExport.dialog}
       <Dialog open={!!confirm} onClose={() => setConfirm(null)} title={confirm?.title ?? ''}>
         <p className="text-black-700">{confirm?.body}</p>
         <div className="mt-5 flex justify-end gap-2">

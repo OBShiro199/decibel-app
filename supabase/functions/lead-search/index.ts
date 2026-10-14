@@ -1,6 +1,7 @@
 // Lead search on Typesense. POST with the user's JWT:
-//   { workspace_id, filters, offset?, limit? (0–500, 0 = count only) }
-//   -> { rows, count: { n, exact: true }, took_ms }
+//   { workspace_id, filters, offset?, limit? (0–500, 0 = count only), ids_only? }
+//   -> { rows, count: { n, exact: true }, took_ms }        or, with ids_only (limit up to 1,000): { ids, count }
+// Typesense returns at most 250 hits per request, so bigger pages are fetched in 250-hit steps.
 //
 // Typesense (search/typesense) finds the matching lead ids and the exact total from the same
 // filter keys Leads already sends (lib/lead-search.ts). The full rows for the page come from
@@ -119,7 +120,8 @@ Deno.serve(async (req) => {
   const input = await req.json().catch(() => ({}));
   const workspaceId = String(input.workspace_id ?? '');
   const filters: Filters = input.filters && typeof input.filters === 'object' ? input.filters : {};
-  const limit = Math.min(Math.max(Number.isFinite(input.limit) ? Math.round(input.limit) : 100, 0), 500);
+  const idsOnly = input.ids_only === true;
+  const limit = Math.min(Math.max(Number.isFinite(input.limit) ? Math.round(input.limit) : 100, 0), idsOnly ? 1000 : 500);
   const offset = Math.min(Math.max(Number.isFinite(input.offset) ? Math.round(input.offset) : 0, 0), 1_000_000);
 
   const [role, rate] = await Promise.all([
@@ -130,29 +132,39 @@ Deno.serve(async (req) => {
   if (rate.data === false) return fail('rate_limited', 429);
 
   const t = toTypesense(filters);
-  const params = new URLSearchParams({
-    q: t.q,
-    filter_by: t.filterBy,
-    sort_by: t.text ? '_text_match:desc,rank:asc' : 'rank:asc',
-    offset: String(offset),
-    limit: String(limit),
-    include_fields: 'id',
-    num_typos: '0',
-    prefix: 'true',
-    drop_tokens_threshold: '0',
-    typo_tokens_threshold: '0',
-    exhaustive_search: 'true',
-  });
-  if (t.queryBy) params.set('query_by', t.queryBy);
   const started = Date.now();
-  const res = await fetch(`${TS_URL}/collections/leads/documents/search?${params}`, { headers: { 'X-TYPESENSE-API-KEY': TS_KEY } });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    console.error('typesense', res.status, body?.message, t.filterBy);
-    return fail('search_failed', 502, { message: 'Search is unavailable right now. Try again in a moment.' });
+  const ids: string[] = [];
+  let found = 0;
+  // at least one request (it carries the count), then 250-hit steps until the page is full or the results run out
+  for (;;) {
+    const step = Math.min(250, limit - ids.length);
+    const params = new URLSearchParams({
+      q: t.q,
+      filter_by: t.filterBy,
+      sort_by: t.text ? '_text_match:desc,rank:asc' : 'rank:asc',
+      offset: String(offset + ids.length),
+      limit: String(step),
+      include_fields: 'id',
+      num_typos: '0',
+      prefix: 'true',
+      drop_tokens_threshold: '0',
+      typo_tokens_threshold: '0',
+      exhaustive_search: 'true',
+    });
+    if (t.queryBy) params.set('query_by', t.queryBy);
+    const res = await fetch(`${TS_URL}/collections/leads/documents/search?${params}`, { headers: { 'X-TYPESENSE-API-KEY': TS_KEY } });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error('typesense', res.status, body?.message, t.filterBy);
+      return fail('search_failed', 502, { message: 'Search is unavailable right now. Try again in a moment.' });
+    }
+    found = body.found ?? 0;
+    const hits: string[] = (body.hits ?? []).map((h: { document: { id: string } }) => h.document.id);
+    ids.push(...hits);
+    if (step === 0 || hits.length < step || ids.length >= limit) break;
   }
-  const ids: string[] = (body.hits ?? []).map((h: { document: { id: string } }) => h.document.id);
-  const count = { n: body.found ?? 0, exact: true };
+  const count = { n: found, exact: true };
+  if (idsOnly) return json({ ids, count, took_ms: Date.now() - started });
   if (!ids.length) return json({ rows: [], count, took_ms: Date.now() - started });
 
   // full rows for this page, as the user (membership checked again by the function)
