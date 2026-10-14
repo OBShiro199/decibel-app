@@ -182,7 +182,7 @@ function ordered(key: string, facets: Facets) {
 }
 
 /** The filter keys the quick filters own (they get no chip of their own). */
-export const QUICK_KEYS = ['countries', 'sizes', 'revenues', 'hasMobile', 'hasEmail'];
+export const QUICK_KEYS = ['countries', 'sizes', 'revenues', 'hasMobile', 'hasEmail', 'hasLinkedin', 'hasWebsite'];
 
 export function QuickFilters({ filters, onChange, facets }: { filters: Filters; onChange: (f: Filters) => void; facets: Facets }) {
   const list = (k: string) => (Array.isArray(filters[k]) ? (filters[k] as string[]) : []);
@@ -206,6 +206,8 @@ export function QuickFilters({ filters, onChange, facets }: { filters: Filters; 
       <MultiPicker label="Revenue" values={list('revenues')} options={revenues} onChange={(v) => set('revenues', v)} width="w-52" />
       <HasPicker noun="mobile" value={typeof filters.hasMobile === 'boolean' ? filters.hasMobile : undefined} onChange={(v) => set('hasMobile', v)} />
       <HasPicker noun="email" value={typeof filters.hasEmail === 'boolean' ? filters.hasEmail : undefined} onChange={(v) => set('hasEmail', v)} />
+      <HasPicker noun="LinkedIn" value={typeof filters.hasLinkedin === 'boolean' ? filters.hasLinkedin : undefined} onChange={(v) => set('hasLinkedin', v)} />
+      <HasPicker noun="website" value={typeof filters.hasWebsite === 'boolean' ? filters.hasWebsite : undefined} onChange={(v) => set('hasWebsite', v)} />
     </div>
   );
 }

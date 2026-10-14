@@ -97,6 +97,7 @@ export const LEAD_FILTERS: FilterDef[] = [
   { key: 'emailStatus', label: 'Email status', group: 'Contact data', kind: 'multi', facet: 'email_status' },
   { key: 'hasPersonalEmail', label: 'Has personal email', group: 'Contact data', kind: 'bool', yes: 'Has personal email', no: 'No personal email' },
   { key: 'hasLinkedin', label: 'Has LinkedIn', group: 'Contact data', kind: 'bool', yes: 'Has LinkedIn', no: 'No LinkedIn' },
+  { key: 'hasWebsite', label: 'Has company website', group: 'Company', kind: 'bool', yes: 'Has website', no: 'No website' },
   // signals
   { key: 'tags', label: 'Signals', group: 'Signals', kind: 'multi', facet: 'tag', hint: 'Career and company signals, such as one year at the company.' },
 ];

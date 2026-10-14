@@ -64,7 +64,7 @@ export function toTypesense(f: Filters): { q: string; queryBy: string; filterBy:
   c.push(exact('funding_h', list(f, 'funding')));
   for (const [key, field] of [
     ['hasMobile', 'has_mobile'], ['hasEmail', 'has_email'], ['hasPersonalEmail', 'has_personal_email'], ['hasLinkedin', 'has_linkedin'],
-    ['openToWork', 'open_to_work'], ['isHiring', 'is_hiring'], ['hasFunding', 'has_funding'],
+    ['openToWork', 'open_to_work'], ['isHiring', 'is_hiring'], ['hasFunding', 'has_funding'], ['hasWebsite', 'has_website'],
   ]) {
     const v = bool(f, key);
     if (v !== null) c.push(`${field}:=${v}`);

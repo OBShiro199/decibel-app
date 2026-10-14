@@ -147,6 +147,11 @@
   {
    "name": "has_funding",
    "type": "bool"
+  },
+  {
+   "name": "has_website",
+   "type": "bool",
+   "optional": true
   }
  ],
  "token_separators": [

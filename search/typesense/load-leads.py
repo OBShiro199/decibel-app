@@ -66,6 +66,7 @@ def doc(row):
     for k in ('has_mobile', 'has_email', 'has_personal_email', 'has_linkedin', 'open_to_work', 'is_hiring'):
         d[k] = b(k)
     d['has_funding'] = bool(r['funding'])
+    d['has_website'] = bool((r['website'] or '').strip() or (r['company_domain'] or '').strip())
     p = r['mobile_prefix'] or ''
     if p.startswith('+') and len(p) > 1:
         # every leading part of the dialling code, so "+44" matches exactly
