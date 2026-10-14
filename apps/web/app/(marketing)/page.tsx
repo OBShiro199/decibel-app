@@ -115,10 +115,13 @@ export default function LandingPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
 
       {/* hero */}
-      <section className="rail dotgrid relative overflow-hidden">
+      <section className="rail hero-grid relative overflow-hidden">
+        <div aria-hidden className="hero-grid-lines" />
+        <div aria-hidden className="hero-grid-nodes" />
+        <div aria-hidden className="hero-tunnel" />
         <Corner className="left-5 top-5">[ UK + EU ]</Corner>
         <Corner className="right-5 top-5">[ 1M+ verified mobiles* ]</Corner>
-        <div className="mx-auto max-w-[760px] px-5 pb-12 pt-16 text-center md:pt-24">
+        <div className="relative mx-auto max-w-[760px] px-5 pb-12 pt-16 text-center md:pt-[136px]">
           <Reveal eager>
             <LivePill>Unlimited calls &amp; mobile exports</LivePill>
           </Reveal>

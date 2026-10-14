@@ -657,3 +657,42 @@ html:has([data-page-scroll]) {
 @media (prefers-reduced-motion: reduce) { .tps-stripes, .tps-in, .tps-pulse { animation: none; } }
 .tps-stripes-fill { position: absolute; inset: 0 auto 0 -18px; width: calc(100% + 18px); background-image: repeating-linear-gradient(-45deg, #9db6ef 0 6px, #b9cbf5 6px 12.7px); animation: tps-stripes 0.9s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .tps-stripes-fill { animation: none; } }
+
+/* Marketing hero: a faint square grid with dots where the lines cross, fading out lower down, and a
+   clear centre "tunnel" (no lines) behind the headline. Cells are 98px so 12 fit
+   the 1180px rail and the tunnel's edges sit on grid lines. */
+.hero-grid {
+  --cell: 98px;
+}
+.hero-grid-lines,
+.hero-grid-nodes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: var(--cell) var(--cell);
+  background-position: 0 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 55%, transparent 92%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 55%, transparent 92%);
+}
+.hero-grid-lines {
+  background-image: linear-gradient(#e7e7e3 1px, transparent 1px), linear-gradient(90deg, #e7e7e3 1px, transparent 1px);
+}
+.hero-grid-nodes {
+  background-image: radial-gradient(circle at 0.5px 0.5px, #cfcfca 1.8px, transparent 2.3px);
+}
+.hero-tunnel {
+  position: absolute;
+  top: var(--cell);
+  left: calc(2 * var(--cell));
+  width: calc(100% - 4 * var(--cell));
+  width: round(down, calc(100% - 4 * var(--cell)), var(--cell));
+  height: calc(6 * var(--cell));
+  pointer-events: none;
+  background-color: var(--color-white-200);
+  outline: 1px solid #e7e7e3;
+}
+@media (max-width: 767px) {
+  .hero-tunnel {
+    display: none;
+  }
+}
