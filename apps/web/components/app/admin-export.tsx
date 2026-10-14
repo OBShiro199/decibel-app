@@ -155,7 +155,8 @@ export function useAdminExport() {
 }
 
 // ---- find missing emails through treg (platform admins, migration 0035, lead-enrich function) ------------------------
-const ENRICH_BATCH = 12;
+const ENRICH_BATCH = 8;
+type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number }[]; cost_micro: number; pending?: string[] };
 
 /** "Find missing emails (treg)": choose how many and the cost cap, then a progress dialog. */
 export function useAdminEnrich() {
@@ -165,7 +166,7 @@ export function useAdminEnrich() {
   const [howMany, setHowMany] = useState(200);
   const [maxCost, setMaxCost] = useState(0.03);
   const [verify, setVerify] = useState(true);
-  const [run, setRun] = useState<null | { done: number; total: number; saved: number; costMicro: number; error?: string; finished?: boolean }>(null);
+  const [run, setRun] = useState<null | { done: number; total: number; saved: number; costMicro: number; failed?: number; error?: string; finished?: boolean }>(null);
   const cancelled = useRef(false);
 
   async function open(filters: Filters) {
@@ -199,14 +200,37 @@ export function useAdminEnrich() {
         if (!r.ids.length) break;
         ids.push(...r.ids);
       }
-      for (let i = 0; i < ids.length && !cancelled.current; i += ENRICH_BATCH) {
-        const r = await invoke<{ results: { saved: boolean; cost_micro: number }[]; cost_micro: number }>('lead-enrich', { ids: ids.slice(i, i + ENRICH_BATCH), max_cost: maxCost, verify });
-        done += Math.min(ENRICH_BATCH, ids.length - i);
+      // the function hands back the leads it ran out of time for (pending); a failed call is tried once more
+      // (treg answers a repeat of the same lookup from its store, unbilled), then its leads are skipped
+      const queue = [...ids];
+      let failed = 0;
+      while (queue.length && !cancelled.current) {
+        const batch = queue.splice(0, ENRICH_BATCH);
+        let r: EnrichResponse | null = null;
+        for (let attempt = 0; attempt < 2 && !r; attempt++) {
+          try {
+            r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, max_cost: maxCost, verify });
+          } catch (e) {
+            const status = (e as { status?: number }).status;
+            if (status === 402 || status === 403) throw e;
+            if (attempt === 0) await new Promise((ok) => setTimeout(ok, 3000));
+          }
+        }
+        if (!r) {
+          done += batch.length;
+          failed += batch.length;
+          setRun({ done, total: ids.length, saved, costMicro, failed });
+          continue;
+        }
+        const pending = r.pending ?? [];
+        queue.unshift(...pending);
+        done += batch.length - pending.length;
         saved += r.results.filter((x) => x.saved).length;
+        failed += r.results.filter((x) => x.verdict === 'error' || x.verdict === 'timeout').length;
         costMicro += r.cost_micro;
-        setRun({ done, total: ids.length, saved, costMicro });
+        setRun({ done, total: ids.length, saved, costMicro, failed });
       }
-      setRun({ done, total: ids.length, saved, costMicro, finished: true });
+      setRun({ done, total: ids.length, saved, costMicro, failed, finished: true });
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
       setRun({ done, total, saved, costMicro, error: msg, finished: true });
@@ -315,6 +339,7 @@ export function useAdminEnrich() {
             ) : run.finished ? (
               <p className="mt-3 text-black-700">
                 Done: {n(run.saved)} emails found for {n(run.done)} leads{run.done ? `, ${usd(run.costMicro / run.done)} a lead on average` : ''}.
+                {run.failed ? ` ${n(run.failed)} lookups did not finish and were skipped.` : ''}
               </p>
             ) : null}
           </div>
