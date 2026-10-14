@@ -37,7 +37,6 @@ import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
 import { Checkbox, Input } from '@/components/ui/form';
 import { LinkedinLogo } from '@/components/ui/linkedin-logo';
-import { QuickFilters } from '@/components/app/quick-filters';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
@@ -290,8 +289,6 @@ export function LeadsView({
           <h1 className="whitespace-nowrap text-sm text-black-700">
             <span className="text-black-400">{formatCount(total)}</span> leads
           </h1>
-          <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-white-800" />
-          <QuickFilters filters={filters} onChange={update} facets={facets.data ?? {}} />
           {engine === 'postgres' ? (
             <span className="tag tag-3" title="This browser uses the old search. Add ?engine=typesense to the URL to switch back.">
               Old search
