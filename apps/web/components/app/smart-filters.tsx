@@ -186,6 +186,8 @@ export function SmartFilterBar({
   onChange,
   facets,
   tone = 'tag-1',
+  hideKeys = [],
+  children,
 }: {
   defs: FilterDef[];
   filters: Filters;
@@ -193,8 +195,12 @@ export function SmartFilterBar({
   facets: Facets;
   /** chip colour class, so each table has its own look */
   tone?: string;
+  /** filters shown by their own controls (the quick filters), so they get no chip */
+  hideKeys?: string[];
+  /** extra controls after "Add filter" */
+  children?: React.ReactNode;
 }) {
-  const active = defs.filter((d) => isSet(d, filters));
+  const active = defs.filter((d) => isSet(d, filters) && !hideKeys.includes(d.key));
   const available = defs.filter((d) => !isSet(d, filters));
   const [picked, setPicked] = useState<FilterDef | null>(null);
   const [find, setFind] = useState('');
@@ -294,6 +300,12 @@ export function SmartFilterBar({
           )
         }
       </Popover>
+      {children ? (
+        <>
+          <span aria-hidden className="h-4 w-px shrink-0 bg-white-800" />
+          {children}
+        </>
+      ) : null}
 
       <button onClick={() => onChange({})} className={cn('ml-auto shrink-0 text-xs text-black-700 hover:text-black-400', !active.length && 'invisible')}>
         Clear all

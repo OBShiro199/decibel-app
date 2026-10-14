@@ -37,6 +37,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorCard, TableSkeleton, Tag } from '@/components/ui/display';
 import { Checkbox, Input } from '@/components/ui/form';
 import { LinkedinLogo } from '@/components/ui/linkedin-logo';
+import { QUICK_KEYS, QuickFilters } from '@/components/app/quick-filters';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
@@ -345,7 +346,9 @@ export function LeadsView({
             </Popover>
           </div>
         </div>
-        <SmartFilterBar defs={LEAD_FILTERS} filters={filters} onChange={update} facets={facets.data ?? {}} tone="tag-1" />
+        <SmartFilterBar defs={LEAD_FILTERS} filters={filters} onChange={update} facets={facets.data ?? {}} tone="tag-1" hideKeys={QUICK_KEYS}>
+          <QuickFilters filters={filters} onChange={update} facets={facets.data ?? {}} />
+        </SmartFilterBar>
 
         <div className="min-h-0 flex-1 overflow-auto">
           {results.error ? (
