@@ -116,7 +116,8 @@ export default function LandingPage() {
 
       {/* hero */}
       <section className="rail hero-grid relative overflow-hidden">
-        <div aria-hidden className="hero-grid-lines" />
+        <div aria-hidden className="hero-grid-v" />
+        <div aria-hidden className="hero-grid-h" />
         <div aria-hidden className="hero-grid-nodes" />
         <div aria-hidden className="hero-tunnel" />
         <Corner className="left-5 top-5">[ UK + EU ]</Corner>
