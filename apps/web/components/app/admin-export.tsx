@@ -153,3 +153,175 @@ export function useAdminExport() {
 
   return { start, dialog, running: !!run };
 }
+
+// ---- find missing emails through treg (platform admins, migration 0035, lead-enrich function) ------------------------
+const ENRICH_BATCH = 12;
+
+/** "Find missing emails (treg)": choose how many and the cost cap, then a progress dialog. */
+export function useAdminEnrich() {
+  const { workspace } = useApp();
+  const toast = useToast();
+  const [setup, setSetup] = useState<null | { filters: Filters; missing: number | null }>(null);
+  const [howMany, setHowMany] = useState(200);
+  const [maxCost, setMaxCost] = useState(0.03);
+  const [verify, setVerify] = useState(true);
+  const [run, setRun] = useState<null | { done: number; total: number; saved: number; costMicro: number; error?: string; finished?: boolean }>(null);
+  const cancelled = useRef(false);
+
+  async function open(filters: Filters) {
+    const target = { ...filters, hasEmail: false };
+    setSetup({ filters: target, missing: null });
+    try {
+      const r = await invoke<{ count: { n: number } }>('lead-search', { workspace_id: workspace.id, filters: target, limit: 0 });
+      setSetup({ filters: target, missing: r.count.n });
+      setHowMany(Math.min(r.count.n, 200));
+    } catch (e) {
+      toast((e as Error).message);
+      setSetup(null);
+    }
+  }
+
+  async function start() {
+    if (!setup) return;
+    const total = Math.min(howMany, setup.missing ?? 0);
+    const filters = setup.filters;
+    setSetup(null);
+    cancelled.current = false;
+    setRun({ done: 0, total, saved: 0, costMicro: 0 });
+    let done = 0;
+    let saved = 0;
+    let costMicro = 0;
+    try {
+      // the targets are fixed up front: found emails drop leads out of "no email", which would shift the pages
+      const ids: string[] = [];
+      for (let offset = 0; ids.length < total; offset += BATCH) {
+        const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset, limit: Math.min(BATCH, total - ids.length), ids_only: true });
+        if (!r.ids.length) break;
+        ids.push(...r.ids);
+      }
+      for (let i = 0; i < ids.length && !cancelled.current; i += ENRICH_BATCH) {
+        const r = await invoke<{ results: { saved: boolean; cost_micro: number }[]; cost_micro: number }>('lead-enrich', { ids: ids.slice(i, i + ENRICH_BATCH), max_cost: maxCost, verify });
+        done += Math.min(ENRICH_BATCH, ids.length - i);
+        saved += r.results.filter((x) => x.saved).length;
+        costMicro += r.cost_micro;
+        setRun({ done, total: ids.length, saved, costMicro });
+      }
+      setRun({ done, total: ids.length, saved, costMicro, finished: true });
+    } catch (e) {
+      const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
+      setRun({ done, total, saved, costMicro, error: msg, finished: true });
+    }
+  }
+
+  const usd = (micro: number) => `$${(micro / 1e6).toFixed(micro < 1e6 ? 3 : 2)}`;
+  const dialog = (
+    <>
+      <Dialog
+        open={!!setup}
+        onClose={() => setSetup(null)}
+        title="Find missing emails"
+        description="Looks up work emails through treg for matching leads that have none. Only emails the mailbox check rates valid (or catch-all) are saved. Billed to your treg balance, not Decibel credits."
+        footer={
+          <>
+            <Button onClick={() => setSetup(null)}>Cancel</Button>
+            <Button variant="primary" disabled={!setup?.missing || howMany < 1} onClick={() => void start()}>
+              Find emails for {n(Math.min(howMany, setup?.missing ?? 0))} leads
+            </Button>
+          </>
+        }
+      >
+        {setup ? (
+          <div className="space-y-4">
+            <p className="text-black-700">
+              <span className="font-medium tabular-nums text-black-400">{setup.missing === null ? '…' : n(setup.missing)}</span> matching leads have no work email.
+            </p>
+            <label className="block">
+              <span className="mb-1 block text-black-700">How many to look up</span>
+              <input
+                type="number"
+                min={1}
+                max={setup.missing ?? undefined}
+                value={howMany}
+                onChange={(e) => setHowMany(Math.max(1, Math.round(Number(e.target.value) || 1)))}
+                className="control h-9 w-40 tabular-nums"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-black-700">Most to spend per lead</span>
+              <select value={maxCost} onChange={(e) => setMaxCost(Number(e.target.value))} className="control h-9 w-40">
+                {[0.01, 0.02, 0.03, 0.05].map((v) => (
+                  <option key={v} value={v}>
+                    ${v.toFixed(2)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} />
+              <span>Check each email's mailbox before saving (recommended)</span>
+            </label>
+            <p className="text-black-700">
+              Typically about $0.008 a lead (misses cost a little too). At most {usd(Math.min(howMany, setup.missing ?? 0) * maxCost * 1e6)} for this run.
+            </p>
+          </div>
+        ) : null}
+      </Dialog>
+      <Dialog
+        open={!!run}
+        onClose={() => {
+          if (run?.finished) setRun(null);
+        }}
+        title="Finding emails"
+        description="Keep this tab open. Emails appear in Leads as they are found."
+        footer={
+          run?.finished ? (
+            <Button onClick={() => setRun(null)}>Done</Button>
+          ) : (
+            <Button
+              onClick={() => {
+                cancelled.current = true;
+              }}
+            >
+              Stop
+            </Button>
+          )
+        }
+      >
+        {run ? (
+          <div>
+            <p className="flex items-baseline justify-between text-black-700">
+              <span>
+                <span className="font-medium tabular-nums text-black-400">{n(run.done)}</span> of {n(run.total)} looked up
+              </span>
+              <span className="tabular-nums">{run.total ? Math.floor((run.done / run.total) * 100) : 0}%</span>
+            </p>
+            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={run.total ? Math.floor((run.done / run.total) * 100) : 0}>
+              <div className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300" style={{ width: `${run.total ? Math.max(2, (run.done / run.total) * 100) : 2}%` }} />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-md border border-white-800 px-3 py-2">
+                <p className="text-black-700">Emails saved</p>
+                <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{n(run.saved)}</p>
+              </div>
+              <div className="rounded-md border border-white-800 px-3 py-2">
+                <p className="text-black-700">treg cost so far</p>
+                <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{usd(run.costMicro)}</p>
+              </div>
+            </div>
+            {run.error ? (
+              <p role="alert" className="mt-3 text-danger-700">
+                {run.error}
+              </p>
+            ) : run.finished ? (
+              <p className="mt-3 text-black-700">
+                Done: {n(run.saved)} emails found for {n(run.done)} leads{run.done ? `, ${usd(run.costMicro / run.done)} a lead on average` : ''}.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </Dialog>
+    </>
+  );
+
+  return { open, dialog };
+}

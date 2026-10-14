@@ -58,3 +58,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.team]
 verify_jwt = false
+[functions.lead-enrich]
+verify_jwt = false

@@ -9,24 +9,13 @@
 // Exact-match values are stored in Typesense as crc32 numbers (fields ending _h); hashed here the
 // same way as load-leads.py.
 import { admin, corsHeaders, fail, getRole, getUser, json, SUPABASE_URL } from '../_shared/http.ts';
+import { crc } from '../_shared/crc.ts';
 
 const TS_URL = (Deno.env.get('TYPESENSE_URL') ?? '').replace(/\/$/, '');
 const TS_KEY = Deno.env.get('TYPESENSE_API_KEY') ?? '';
 const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
 type Filters = Record<string, unknown>;
-
-// ---- crc32 (same as Python's zlib.crc32 & 0x7fffffff) ----------------------------------
-const TABLE = new Uint32Array(256).map((_, n) => {
-  let c = n;
-  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-  return c >>> 0;
-});
-export function crc(value: string): number {
-  let c = 0xffffffff;
-  for (const b of new TextEncoder().encode(value)) c = TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
-  return ((c ^ 0xffffffff) >>> 0) & 0x7fffffff;
-}
 
 // ---- filters -> Typesense --------------------------------------------------------------
 const list = (f: Filters, k: string): string[] =>
