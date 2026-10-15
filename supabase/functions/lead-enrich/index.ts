@@ -147,8 +147,9 @@ Deno.serve(async (req) => {
   const input = await req.json().catch(() => ({}));
   const ids: string[] = (Array.isArray(input.ids) ? input.ids : []).filter((x: unknown) => typeof x === 'string').slice(0, 12);
   const mobile = input.kind === 'mobile';
+  // mobiles: 0 = only providers on our own keys (AI-Ark), which treg does not charge for
   const maxCost = mobile
-    ? Math.min(Math.max(Number(input.max_cost) || 0.005, 0.005), 0.75)
+    ? Math.min(Math.max(Number.isFinite(Number(input.max_cost)) && input.max_cost !== null ? Number(input.max_cost) : 0.005, 0), 0.75)
     : Math.min(Math.max(Number(input.max_cost) || 0.03, 0.005), 0.15);
   const verify = mobile ? input.verify === true : input.verify !== false;
   const round = Math.min(Math.max(Math.round(Number(input.round) || 0), 0), 3);

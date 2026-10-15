@@ -198,13 +198,14 @@ const ENRICH = {
     missing: 'matching leads have no mobile.',
     caps: [
       // AI-Ark runs on our own key (connected in treg, paid in AI-Ark credits), so treg tries it first at any cap
+      { v: 0, label: 'Your AI-Ark key only (nothing charged on treg)' },
       { v: 0.005, label: '$0.005 (your AI-Ark key, then QuickEnrich)' },
       { v: 0.05, label: '$0.05 (adds Tomba)' },
       { v: 0.1, label: '$0.10 (adds Dropleads, Aviato, LeadMagic)' },
       { v: 0.25, label: '$0.25 (adds Prospeo, Limadata, ContactOut)' },
       { v: 0.75, label: '$0.75 (everyone, including Lusha)' },
     ],
-    cap: 0.005,
+    cap: 0,
     verify: false,
     verifyLabel: 'Check the line is live before saving (about $0.01 more per number found)',
     typical: 'Misses are free: each number found costs what the provider that found it charges, up to the cap.',
@@ -329,7 +330,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
         }
       };
       const seen = new Set<string>();
-      // four calls at a time; each takes the next batch from the earliest round with leads left
+      // several calls at a time (see `lanes`); each takes the next batch from the earliest round with leads left
       const lane = async () => {
         for (;;) {
           if (cancelled.current) return;
@@ -373,7 +374,10 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           report();
         }
       };
-      await Promise.all([gather(), lane(), lane(), lane(), lane()]);
+      // on our own AI-Ark key alone there is no shared rate limit: 16 calls at a time ran ~2,700 leads/min with no
+      // errors (2026-10-15); runs that use treg's shared providers stay at 4
+      const lanes = kind === 'mobile' && maxCost === 0 ? 16 : 4;
+      await Promise.all([gather(), ...Array.from({ length: lanes }, lane)]);
       setRun({ done, total: gathered, saved, costMicro, failed, unsaved, ownKey, tried, finished: true, stopped: cancelled.current && done < gathered });
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
@@ -468,7 +472,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
               <span>{k.verifyLabel}</span>
             </label>
             <p className="text-black-700">
-              {k.typical} At most {usd(lookupCount * maxCost * 1e6)} for this run.
+              {k.typical} {maxCost ? `At most ${usd(lookupCount * maxCost * 1e6)} on treg for this run.` : 'Nothing is charged on treg; AI-Ark uses about 5 credits per number found.'}
             </p>
           </div>
         ) : null}
