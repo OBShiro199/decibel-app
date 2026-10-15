@@ -13,6 +13,9 @@ from Supabase as before.
 Server layout (`/opt/typesense`, root only): `docker-compose.yml` (Typesense 30.2 on 127.0.0.1:8108,
 Caddy 2.10.2 on 443 with Let's Encrypt), `.env` (API key), `reader.env` (read-only database login
 `decibel_search_reader`, can only select from `search_export.leads`). SSH is key-only (`~/.ssh/decibel_search`).
+The Typesense service sets `ulimits: nofile: 1048576` (soft and hard): with Docker's default of 1024 open
+files, a snapshot at 3.1M leads failed with "Too many open files" and the node went into an error state
+(search down) on 2026-10-15.
 Supabase secrets: `TYPESENSE_URL`, `TYPESENSE_API_KEY`.
 
 New leads reach search automatically: a systemd timer (`decibel-leads-nightly`) runs
