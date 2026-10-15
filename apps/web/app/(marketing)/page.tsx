@@ -6,6 +6,7 @@ import { AsciiCanvas, HeroConsole, LivePill, PipelinePanel, PricingCard, Reveal,
 import { CompliancePills } from '@/components/marketing/compliance-pills';
 import { EuFlag, UkFlag } from '@/components/marketing/flags';
 import { Faq, type FaqItem } from '@/components/marketing/faq';
+import { WebsiteVisitorsSection } from '@/components/marketing/visitors-section';
 import { LocalBusinessesSection } from '@/components/marketing/local-section';
 import { FreeToolsSection } from '@/components/marketing/tools-section';
 import { LogoMarquee } from '@/components/marketing/logo-marquee';
@@ -224,6 +225,11 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      <div aria-hidden className="rail h-14 md:h-20" />
+
+      {/* website visitors: the companies on your site, and the decision makers there */}
+      <WebsiteVisitorsSection />
 
       <div aria-hidden className="rail h-14 md:h-20" />
 

@@ -6,6 +6,7 @@ export type MarketingLink = { href: string; label: string; blurb: string; glyph:
 /** Product dropdown: what Decibel does. `glyph` is a small ASCII mark shown beside the label. */
 export const PRODUCT_LINKS: MarketingLink[] = [
   { href: '/features/verified-mobiles', label: 'Verified mobiles', blurb: 'UK and EU decision makers, one credit per mobile', glyph: '[#]' },
+  { href: '/features/website-visitors', label: 'Website visitors', blurb: 'See which companies visit your site', glyph: '(@)' },
   { href: '/features/power-dialler', label: 'Power dialler', blurb: 'Call down a list from your browser', glyph: '>>>' },
   { href: '/features/call-recording', label: 'Call recording', blurb: 'Every call recorded, with the notice handled', glyph: '(o)' },
   { href: '/features/pipeline', label: 'Lists and pipeline', blurb: 'Outcomes move deals on their own', glyph: '|||' },

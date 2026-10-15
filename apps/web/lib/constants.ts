@@ -116,6 +116,7 @@ export const PRO_FEATURES = [
   `Every call recorded, kept ${PRO.recordings}`,
   'TPS and CTPS screening on every dial',
   'Lists, pipeline, CSV import and per-rep dashboards',
+  'Website visitor identification: the companies on your site and their decision makers (coming soon)',
 ];
 /** Welcome credits for every new account, granted once (enforced in the database, migration 0010). */
 export const TRIAL_CREDITS = 5000;
