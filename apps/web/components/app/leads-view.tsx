@@ -230,7 +230,8 @@ export function LeadsView({
     });
   };
 
-  const exportSelected = () => exportLeads(rows.filter((r) => selected.has(r.lead_id)), `${selected.size.toLocaleString('en-GB')} selected leads`);
+  const exportSelected = () =>
+    exportLeads(rows.filter((r) => selected.has(r.lead_id)), `${selected.size.toLocaleString('en-GB')} selected ${selected.size === 1 ? 'lead' : 'leads'}`);
 
   const exportFiltered = async () => {
     setBusy('filtered');
@@ -548,17 +549,18 @@ export function LeadsView({
       </div>
 
       <BulkBar count={selected.size} onClear={() => setSelected(new Set())} width={1100}>
-        <BulkAction disabled={!!busy || !callable.length} onClick={startDialler}>
+        <BulkAction disabled={!!busy || !callable.length} onClick={startDialler} minWidth={196}>
           <Phone size={16} strokeWidth={1.5} /> {busy === 'dial' ? 'Opening dialler…' : `Start dialler with ${callable.length.toLocaleString('en-GB')} ${callable.length === 1 ? 'lead' : 'leads'}`}
         </BulkAction>
-        <BulkAction disabled={!!busy} onClick={() => (targetList ? void addToList(targetList) : setPicker('add'))}>
+        <BulkAction disabled={!!busy} onClick={() => (targetList ? void addToList(targetList) : setPicker('add'))} minWidth={174}>
           <ListPlus size={16} strokeWidth={1.5} /> {targetList ? `Add to ${targetName ?? 'list'}` : 'Add to list'}
           {costLabel}
         </BulkAction>
-        <BulkAction disabled={!!busy} onClick={() => setPicker('create')}>
+        <BulkAction disabled={!!busy} onClick={() => setPicker('create')} minWidth={202}>
           <Plus size={16} strokeWidth={1.5} /> Create new list{costLabel}
         </BulkAction>
         <BulkAction
+          minWidth={154}
           disabled={!!busy || !unrevealed.length}
           onClick={async () => {
             const { people } = await reveal(unrevealed);
@@ -568,7 +570,7 @@ export function LeadsView({
         >
           <Eye size={16} strokeWidth={1.5} /> Reveal ({cost(unrevealed.length)})
         </BulkAction>
-        <BulkAction disabled={!!busy} onClick={exportSelected}>
+        <BulkAction disabled={!!busy} onClick={exportSelected} minWidth={182}>
           <Download size={16} strokeWidth={1.5} /> Export CSV{costLabel}
         </BulkAction>
       </BulkBar>

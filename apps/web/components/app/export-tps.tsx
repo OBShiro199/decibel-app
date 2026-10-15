@@ -152,14 +152,15 @@ export function ExportDialog({ request, onClose }: { request: ExportRequest | nu
   const pct = results ? 100 : total ? Math.round((done / total) * 100) : 0;
   const ready = !!results && !error;
 
-  const confirming = !!request && !items && !preparing && !!request.body;
-  const step = confirming ? 'confirm' : !items ? 'reveal' : error ? 'error' : ready ? 'done' : 'check';
+  // confirm and reveal are one view (the button shows the reveal); the content only changes between views
+  const step = !items ? (preparing ? 'reveal' : 'confirm') : error ? 'error' : ready ? 'done' : 'check';
+  const view = step === 'reveal' ? 'confirm' : step;
 
   return (
     <Dialog
       open={!!request}
       morph
-      width={step === 'confirm' || step === 'reveal' ? 460 : 520}
+      width={500}
       onClose={() => (step === 'check' ? void stop() : step === 'reveal' ? undefined : onClose())}
       title={step === 'confirm' || step === 'reveal' ? request?.title : step === 'done' ? 'TPS/CTPS check done' : 'Checking TPS/CTPS'}
       description={
@@ -178,9 +179,13 @@ export function ExportDialog({ request, onClose }: { request: ExportRequest | nu
             </Button>
           </>
         ) : step === 'reveal' ? (
-          <Button variant="primary" disabled>
-            Revealing…
-          </Button>
+          <>
+            <Button disabled>Cancel</Button>
+            <Button variant="primary" disabled>
+              <span className="tps-pulse h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+              Revealing…
+            </Button>
+          </>
         ) : step === 'done' ? (
           <>
             <Button onClick={() => download('failed')} disabled={!counts.failed}>
@@ -207,8 +212,8 @@ export function ExportDialog({ request, onClose }: { request: ExportRequest | nu
         )
       }
     >
-      <div key={step} className="dialog-step-in">
-        {step === 'confirm' || step === 'reveal' ? (
+      <div key={view} className="dialog-step-in">
+        {view === 'confirm' ? (
           <div className="space-y-3">
             <p className="text-black-700">{request?.body ?? 'Getting your leads ready…'}</p>
             <p className="flex items-center gap-1.5 text-black-700">
@@ -216,11 +221,11 @@ export function ExportDialog({ request, onClose }: { request: ExportRequest | nu
               Next, every mobile is checked against TPS and CTPS before you download.
             </p>
           </div>
-        ) : step === 'error' ? (
+        ) : view === 'error' ? (
           <p role="alert" className="text-[#94402f]">
             {error?.text} Nothing has been exported.
           </p>
-        ) : step === 'done' ? (
+        ) : view === 'done' ? (
           <div className="space-y-2.5">
             <Line dot={OUTCOMES.valid.bar} label="Passed: not on TPS or CTPS" value={counts.passed} />
             <Line dot={OUTCOMES.tps.bar} label="Failed: on TPS or CTPS (do not call)" value={counts.failed} />
@@ -237,25 +242,20 @@ export function ExportDialog({ request, onClose }: { request: ExportRequest | nu
           <div>
             <p className="flex items-baseline justify-between text-black-700">
               <span>
-                {j ? (
-                  <>
-                    <span className="font-medium tabular-nums text-black-400">{n(done)}</span> of {n(total)} numbers checked
-                  </>
-                ) : (
-                  'Starting the check…'
-                )}
+                <span className="font-medium tabular-nums text-black-400">{n(done)}</span> of {j ? n(total) : '…'} numbers checked
               </span>
               <span className="tabular-nums">{pct}%</span>
             </p>
             <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
-              <div className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300" style={{ width: `${Math.max(2, pct)}%` }} />
+              <div className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-500 ease-[cubic-bezier(0.2,0,0,1)]" style={{ width: `${Math.max(2, pct)}%` }} />
             </div>
-            {j?.numbers_reused ? (
-              <p className="mt-3 text-black-700">
-                {n(j.numbers_reused)} {j.numbers_reused === 1 ? 'number was' : 'numbers were'} found clear in the last 30 days, so {j.numbers_reused === 1 ? 'it is' : 'they are'} not checked again (free).
-              </p>
-            ) : null}
-            {j ? <p className="mt-1 text-black-700">Uses {n(j.credits_reserved)} check {j.credits_reserved === 1 ? 'credit' : 'credits'}. You can export when the check is done.</p> : null}
+            <p className="mt-3 min-h-[44px] text-black-700">
+              {j
+                ? `Uses ${n(j.credits_reserved)} check ${j.credits_reserved === 1 ? 'credit' : 'credits'}${
+                    j.numbers_reused ? `; ${n(j.numbers_reused)} ${j.numbers_reused === 1 ? 'number was' : 'numbers were'} clear in the last 30 days, so free` : ''
+                  }. You can export when the check is done.`
+                : 'Starting the check. You can export when it is done.'}
+            </p>
           </div>
         )}
       </div>

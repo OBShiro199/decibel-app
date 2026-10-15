@@ -94,9 +94,15 @@ export function BulkBar({ count, onClear, children, width }: { count: number; on
   );
 }
 
-export function BulkAction({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+/** One action in the selection bar. `minWidth` keeps it the same size whatever count its label shows. */
+export function BulkAction({ children, onClick, disabled, minWidth }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; minWidth?: number }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm px-2.5 text-sm hover:bg-white-300 disabled:opacity-50">
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={minWidth ? { minWidth } : undefined}
+      className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm px-2.5 text-sm hover:bg-white-300 disabled:opacity-50"
+    >
       {children}
     </button>
   );
