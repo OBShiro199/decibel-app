@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
   const ids: string[] = (Array.isArray(input.ids) ? input.ids : []).filter((x: unknown) => typeof x === 'string').slice(0, 12);
   const mobile = input.kind === 'mobile';
   const maxCost = mobile
-    ? Math.min(Math.max(Number(input.max_cost) || 0.005, 0.005), 0.3)
+    ? Math.min(Math.max(Number(input.max_cost) || 0.005, 0.005), 0.75)
     : Math.min(Math.max(Number(input.max_cost) || 0.03, 0.005), 0.15);
   const verify = mobile ? input.verify === true : input.verify !== false;
   if (!ids.length) return json({ results: [], cost_micro: 0 });
