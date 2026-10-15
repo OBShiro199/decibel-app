@@ -83,6 +83,11 @@ async function treg(endpoint: string, body: Record<string, string>, maxCost: num
     return { ok: false as const, cost, callId, servedBy: null, d: null };
   }
   const d = await res.json().catch(() => ({}));
+  // a routed call can skip providers for lack of balance and still answer 200; that is the balance running out,
+  // not a miss (logging it as a miss would keep the lead out of later runs)
+  const tried: { outcome?: string; detail?: string }[] = d?._treg?.tried ?? [];
+  if (!d?.output?.email && !d?.output?.phone && tried.some((t) => /balance|insufficient|top.?up/i.test(t.detail ?? '')))
+    throw new Error('treg_balance');
   return { ok: true as const, cost, callId, servedBy: (d?._treg?.served_by ?? res.headers.get('X-Treg-Served-By')) as string | null, d };
 }
 
