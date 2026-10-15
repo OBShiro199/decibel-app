@@ -18,6 +18,8 @@ const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 type Filters = Record<string, unknown>;
 
 // ---- filters -> Typesense --------------------------------------------------------------
+/** every per-lead cap the email/mobile finders offer, now or before (USD) */
+const CHECK_CAPS = [0, 0.005, 0.01, 0.02, 0.03, 0.05, 0.1, 0.15, 0.25, 0.3, 0.75];
 const list = (f: Filters, k: string): string[] =>
   Array.isArray(f[k]) ? (f[k] as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim() !== '').slice(0, 50) : [];
 const bool = (f: Filters, k: string): boolean | null => (typeof f[k] === 'boolean' ? (f[k] as boolean) : null);
@@ -68,6 +70,14 @@ export function toTypesense(f: Filters): { q: string; queryBy: string; filterBy:
   ]) {
     const v = bool(f, key);
     if (v !== null) c.push(`${field}:=${v}`);
+  }
+  // admin finders: leave out leads already looked up at this cap or higher (lead-enrich marks mobile_checked /
+  // email_checked with the cap in micro-dollars plus one); leads never looked up have no mark and stay in
+  for (const [key, field] of [['mobileUncheckedAt', 'mobile_checked'], ['emailUncheckedAt', 'email_checked']]) {
+    const cap = typeof f[key] === 'number' && Number.isFinite(f[key]) ? (f[key] as number) : null;
+    if (cap === null) continue;
+    const codes = CHECK_CAPS.filter((c) => c >= cap - 1e-9).map((c) => Math.round(c * 1e6) + 1);
+    if (codes.length) c.push(`${field}:!=[${codes.join(', ')}]`);
   }
   const tMin = int(f, 'tenureMin');
   const tMax = int(f, 'tenureMax');

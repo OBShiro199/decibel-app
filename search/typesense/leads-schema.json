@@ -152,6 +152,16 @@
    "name": "has_website",
    "type": "bool",
    "optional": true
+  },
+  {
+   "name": "mobile_checked",
+   "type": "int32",
+   "optional": true
+  },
+  {
+   "name": "email_checked",
+   "type": "int32",
+   "optional": true
   }
  ],
  "token_separators": [

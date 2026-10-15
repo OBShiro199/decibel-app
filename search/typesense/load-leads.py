@@ -147,7 +147,10 @@ def main():
         nonlocal failed
         if not batch:
             return
-        res = ts('POST', f'/collections/{name}/documents/import?action=upsert&batch_size={a.batch}', raw='\n'.join(json.dumps(x) for x in batch).encode())
+        # in place, emplace merges into existing documents, so fields only the app writes (mobile_checked,
+        # email_checked: which leads the finders have looked up) survive a top-up; a new collection takes them fresh
+        action = 'emplace' if a.in_place else 'upsert'
+        res = ts('POST', f'/collections/{name}/documents/import?action={action}&batch_size={a.batch}', raw='\n'.join(json.dumps(x) for x in batch).encode())
         bad = [l for l in res.splitlines() if '"success":false' in l]
         failed += len(bad)
         if bad and failed <= 5:

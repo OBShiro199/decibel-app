@@ -2,7 +2,8 @@
 //   { ids: string[] (≤ 12), kind?: 'email' | 'mobile', max_cost?: number (USD per lead, default 0.03 for email,
 //     0.005 for mobile = QuickEnrich alone), verify?: boolean (default true for email, false for mobile) }
 //   -> { results: [{ id, email, verdict, saved, cost_micro }], cost_micro, pending: string[], retry: string[] }
-// `retry` (mobiles): leads where a provider was rate-limited or failed; send them again with round: 1, 2…
+// `retry`: leads where a provider refused (rate limit) or failed; send them again with round: 1, 2…
+// Optional `concurrency` (1–4) limits lookups running at once in the call.
 // A treg lookup with verification can take most of a minute when it falls back across providers, and the
 // gateway drops a request after about two, so each call stops starting new leads after START_BUDGET_MS and
 // returns the ones it did not start as `pending` for the browser to send again; each lookup is cut off at
@@ -80,7 +81,7 @@ async function treg(endpoint: string, body: Record<string, string>, maxCost: num
     const text = await res.text();
     // out of treg balance stops the whole run
     if (res.status === 402 && !text.includes('route_max_cost')) throw new Error('treg_balance');
-    return { ok: false as const, cost, callId, servedBy: null, d: null };
+    return { ok: false as const, status: res.status, cost, callId, servedBy: null, d: null };
   }
   const d = await res.json().catch(() => ({}));
   // a routed call can skip providers for lack of balance and still answer 200; that is the balance running out,
@@ -88,8 +89,14 @@ async function treg(endpoint: string, body: Record<string, string>, maxCost: num
   const tried: { outcome?: string; detail?: string }[] = d?._treg?.tried ?? [];
   if (!d?.output?.email && !d?.output?.phone && tried.some((t) => /balance|insufficient|top.?up/i.test(t.detail ?? '')))
     throw new Error('treg_balance');
-  return { ok: true as const, cost, callId, servedBy: (d?._treg?.served_by ?? res.headers.get('X-Treg-Served-By')) as string | null, d };
+  return { ok: true as const, status: res.status, cost, callId, servedBy: (d?._treg?.served_by ?? res.headers.get('X-Treg-Served-By')) as string | null, d };
 }
+
+const refused = (status: number) => status === 429 || status >= 500;
+
+/** the value stored in the search index's mobile_checked / email_checked: the cap in micro-dollars plus one
+ * (so a lookup on our own key alone, cap 0, is 1); lead-search leaves out leads checked at the chosen cap or higher */
+const checkedCode = (cap: number) => Math.round(cap * 1e6) + 1;
 
 /** who the lead is, in the shapes treg's finders accept */
 function identity(lead: Input): Record<string, string> {
@@ -113,7 +120,8 @@ async function findMobile(lead: Input, maxCost: number, verify: boolean, round: 
   const key = `decibel-mobile-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}${round ? `-r${round}` : ''}`;
   const r = await treg('treg.people.phone.find', body, maxCost, verify, key);
   if (!r) return { phone: null, verdict: 'timeout', served_by: null, cost_micro: 0, call_id: null };
-  if (!r.ok) return { phone: null, verdict: 'miss', served_by: null, cost_micro: r.cost, call_id: r.callId };
+  // refused (429, or 502 route_failed when AI-Ark is at its rate limit) or failed: try again later, not a miss
+  if (!r.ok) return { phone: null, verdict: refused(r.status) ? 'retry' : 'miss', served_by: null, cost_micro: r.cost, call_id: r.callId };
   const phone: string | null = r.d?.output?.phone ?? null;
   // no number because a provider refused or failed (rate limit, outage), not because it had none: try again later
   const tried: { outcome?: string; status?: number | null }[] = r.d?._treg?.tried ?? [];
@@ -125,12 +133,13 @@ async function findMobile(lead: Input, maxCost: number, verify: boolean, round: 
   return { phone, line_type: r.d?.output?.line_type ?? null, verdict, served_by: r.servedBy, cost_micro: r.cost, call_id: r.callId };
 }
 
-async function findEmail(lead: Input, maxCost: number, verify: boolean): Promise<Found> {
+async function findEmail(lead: Input, maxCost: number, verify: boolean, round: number): Promise<Found> {
   const body = identity(lead);
   if (!Object.keys(body).length) return { email: null, verdict: 'miss', served_by: null, cost_micro: 0, call_id: null };
-  const r = await treg('treg.people.email.find', body, maxCost, verify, `decibel-enrich-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}`);
+  const key = `decibel-enrich-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}${round ? `-r${round}` : ''}`;
+  const r = await treg('treg.people.email.find', body, maxCost, verify, key);
   if (!r) return { email: null, verdict: 'timeout', served_by: null, cost_micro: 0, call_id: null };
-  if (!r.ok) return { email: null, verdict: 'miss', served_by: null, cost_micro: r.cost, call_id: r.callId };
+  if (!r.ok) return { email: null, verdict: refused(r.status) ? 'retry' : 'miss', served_by: null, cost_micro: r.cost, call_id: r.callId };
   const email: string | null = r.d?.output?.email ?? null;
   const v = r.d?._treg?.verification;
   // with verification on, trust the mailbox check; without it, a provider-verified hit counts as valid
@@ -153,6 +162,8 @@ Deno.serve(async (req) => {
     : Math.min(Math.max(Number(input.max_cost) || 0.03, 0.005), 0.15);
   const verify = mobile ? input.verify === true : input.verify !== false;
   const round = Math.min(Math.max(Math.round(Number(input.round) || 0), 0), 3);
+  // lookups running at once in this call; AI-Ark on our own key refuses beyond about 3 at a time
+  const concurrency = Math.min(Math.max(Math.round(Number(input.concurrency) || CONCURRENCY), 1), CONCURRENCY);
   if (!ids.length) return json({ results: [], cost_micro: 0 });
 
   try {
@@ -168,53 +179,61 @@ Deno.serve(async (req) => {
       while (next < todo.length && !stop && Date.now() - started < START_BUDGET_MS) {
         const lead = todo[next++];
         try {
-          if (mobile) {
-            const r = await findMobile(lead, maxCost, verify, round);
-            if (r.verdict === 'retry') {
-              retry.push(lead.contact_id);
-              results.push({ id: lead.contact_id, phone: null, verdict: 'retry', saved: false, cost_micro: r.cost_micro });
-              continue;
-            }
-            const phone = await rpc<string | null>(req, 'admin_save_mobile', {
-              p_contact_id: lead.contact_id,
-              p_phone: r.phone,
-              p_line_type: r.line_type,
-              p_verdict: r.verdict,
-              p_served_by: r.served_by,
-              p_cost_micro: r.cost_micro,
-              p_call_id: r.call_id,
-              p_max_cost: maxCost,
-            });
-            if (phone && TS_URL && TS_KEY) {
-              // the same dialling-code prefixes the loader indexes ("+4", "+44", "+447", "+4474")
-              const p = phone.replace(/[^0-9+]/g, '').slice(0, 5);
-              await fetch(`${TS_URL}/collections/leads/documents/${lead.contact_id}`, {
-                method: 'PATCH',
-                headers: { 'X-TYPESENSE-API-KEY': TS_KEY, 'content-type': 'application/json' },
-                body: JSON.stringify({ has_mobile: true, mobile_codes_h: Array.from({ length: p.length - 1 }, (_, n) => crc(p.slice(0, n + 2))) }),
-              }).catch(() => {});
-            }
-            results.push({ id: lead.contact_id, phone, verdict: r.verdict, saved: !!phone, cost_micro: r.cost_micro, served_by: r.served_by });
+          const r = mobile ? await findMobile(lead, maxCost, verify, round) : await findEmail(lead, maxCost, verify, round);
+          if (r.verdict === 'retry') {
+            retry.push(lead.contact_id);
+            results.push({ id: lead.contact_id, verdict: 'retry', saved: false, cost_micro: r.cost_micro });
             continue;
           }
-          const r = await findEmail(lead, maxCost, verify);
-          const saved = await rpc<boolean>(req, 'admin_save_enrichment', {
-            p_contact_id: lead.contact_id,
-            p_email: r.email,
-            p_verdict: r.verdict,
-            p_served_by: r.served_by,
-            p_cost_micro: r.cost_micro,
-            p_call_id: r.call_id,
-            p_max_cost: maxCost,
-          });
-          if (saved && TS_URL && TS_KEY) {
+          // every argument is sent, as null when empty: JSON drops undefined, and PostgREST then finds no matching function
+          let saved = false;
+          let phone: string | null = null;
+          const patch: Record<string, unknown> = {};
+          if (mobile) {
+            phone = await rpc<string | null>(req, 'admin_save_mobile', {
+              p_contact_id: lead.contact_id,
+              p_phone: r.phone ?? null,
+              p_line_type: r.line_type ?? null,
+              p_verdict: r.verdict,
+              p_served_by: r.served_by ?? null,
+              p_cost_micro: r.cost_micro ?? 0,
+              p_call_id: r.call_id ?? null,
+              p_max_cost: maxCost,
+            });
+            saved = !!phone;
+            if (phone) {
+              // the same dialling-code prefixes the loader indexes ("+4", "+44", "+447", "+4474")
+              const p = phone.replace(/[^0-9+]/g, '').slice(0, 5);
+              patch.has_mobile = true;
+              patch.mobile_codes_h = Array.from({ length: p.length - 1 }, (_, n) => crc(p.slice(0, n + 2)));
+            }
+          } else {
+            saved = await rpc<boolean>(req, 'admin_save_enrichment', {
+              p_contact_id: lead.contact_id,
+              p_email: r.email ?? null,
+              p_verdict: r.verdict,
+              p_served_by: r.served_by ?? null,
+              p_cost_micro: r.cost_micro ?? 0,
+              p_call_id: r.call_id ?? null,
+              p_max_cost: maxCost,
+            });
+            if (saved) {
+              patch.has_email = true;
+              patch.email_status_h = crc(r.verdict === 'valid' ? 'VALID' : 'CATCH_ALL');
+            }
+          }
+          // checked at this cap (a timed-out lookup is not), so later runs start at leads not yet looked up
+          if (r.verdict !== 'timeout') patch[mobile ? 'mobile_checked' : 'email_checked'] = checkedCode(maxCost);
+          if (Object.keys(patch).length && TS_URL && TS_KEY) {
             await fetch(`${TS_URL}/collections/leads/documents/${lead.contact_id}`, {
               method: 'PATCH',
               headers: { 'X-TYPESENSE-API-KEY': TS_KEY, 'content-type': 'application/json' },
-              body: JSON.stringify({ has_email: true, email_status_h: crc(r.verdict === 'valid' ? 'VALID' : 'CATCH_ALL') }),
+              body: JSON.stringify(patch),
             }).catch(() => {});
           }
-          results.push({ id: lead.contact_id, email: saved ? r.email : null, verdict: r.verdict, saved, cost_micro: r.cost_micro });
+          results.push(mobile
+            ? { id: lead.contact_id, phone, verdict: r.verdict, saved, cost_micro: r.cost_micro, served_by: r.served_by }
+            : { id: lead.contact_id, email: saved ? r.email ?? null : null, verdict: r.verdict, saved, cost_micro: r.cost_micro });
         } catch (e) {
           if ((e as Error).message === 'treg_balance') stop = e as Error;
           else console.error('lead-enrich', lead.contact_id, (e as Error).message);
@@ -222,7 +241,7 @@ Deno.serve(async (req) => {
         }
       }
     };
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, todo.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(concurrency, todo.length) }, worker));
     const cost = results.reduce((a, r) => a + r.cost_micro, 0);
     if (stop) return fail('treg_balance', 402, { message: 'The treg balance has run out. Top it up in treg (Team → Billing) to continue.', results, cost_micro: cost });
     const pending = todo.slice(next).map((l) => l.contact_id);

@@ -166,7 +166,8 @@ const ENRICH = {
     what: 'emails',
     description:
       'Looks up work emails through treg for matching leads that have none. Only emails the mailbox check rates valid (or catch-all) are saved. Billed to your treg balance, not Decibel credits.',
-    missing: 'matching leads have no work email.',
+    missing: 'matching leads have no work email and have not been looked up at this cap.',
+    unchecked: 'emailUncheckedAt',
     caps: [
       { v: 0.01, label: '$0.01' },
       { v: 0.02, label: '$0.02' },
@@ -195,7 +196,8 @@ const ENRICH = {
     what: 'mobiles',
     description:
       'Looks up mobile numbers through treg for matching leads that have none. Only mobile numbers are saved, into leads with no mobile yet. You pay only when a number is found. Billed to your treg balance, not Decibel credits.',
-    missing: 'matching leads have no mobile.',
+    missing: 'matching leads have no mobile and have not been looked up at this cap.',
+    unchecked: 'mobileUncheckedAt',
     caps: [
       // AI-Ark runs on our own key (connected in treg, paid in AI-Ark credits), so treg tries it first at any cap
       { v: 0, label: 'Your AI-Ark key only (nothing charged on treg)' },
@@ -249,9 +251,14 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
     const page = picked.page ?? [];
     setScope(selected.length ? 'selected' : 'search');
     setSetup({ filters: target, missing: null, selected, page });
+    await recount(target, maxCost, selected, page);
+  }
+
+  /** leads in the search not yet looked up at this cap (the count changes with the cap) */
+  async function recount(target: Filters, cap: number, selected: string[], page: string[]) {
     try {
-      const r = await invoke<{ count: { n: number } }>('lead-search', { workspace_id: workspace.id, filters: target, limit: 0 });
-      setSetup({ filters: target, missing: r.count.n, selected, page });
+      const r = await invoke<{ count: { n: number } }>('lead-search', { workspace_id: workspace.id, filters: { ...target, [k.unchecked]: cap }, limit: 0 });
+      setSetup((s) => (s && s.filters === target ? { filters: target, missing: r.count.n, selected, page } : s));
       // the whole filtered search by default; the dialog shows the most it can cost first
       setHowMany(r.count.n);
     } catch (e) {
@@ -264,7 +271,8 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
     if (!setup) return;
     const fixed = scope === 'selected' ? setup.selected : scope === 'page' ? setup.page : null;
     const total = fixed ? fixed.length : Math.min(howMany, setup.missing ?? 0);
-    const filters = setup.filters;
+    // leads already looked up at this cap or higher are left out by the search itself, so the run starts at new ones
+    const filters = { ...setup.filters, [k.unchecked]: maxCost };
     setSetup(null);
     cancelled.current = false;
     setRun({ done: 0, total, saved: 0, costMicro: 0 });
@@ -287,6 +295,10 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       // times). Lookups start straight away while the rest of the leads are still being gathered.
       const rounds: string[][] = [[], [], []];
       let gathered = 0;
+      // ids read from the search so far, and how many of those have since been looked up (and dropped out of it)
+      let read = 0;
+      let marked = 0;
+      const perCall = kind === 'mobile' && maxCost === 0 ? 3 : 4;
       let gathering = true;
       let tried = 0;
       let failed = 0;
@@ -308,10 +320,11 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
               report();
             }
           } else {
-            // leads this run saves an email/mobile for drop out of the search, and they all sit on pages already read,
-            // so the next page starts that many places earlier
-            for (let pages = 0; gathered < total && !cancelled.current; pages++) {
-              const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset: Math.max(0, pages * BATCH - saved), limit: BATCH, ids_only: true });
+            // every lead this run looks up is marked checked and drops out of the search, and they all sit on pages
+            // already read, so the next page starts that many places earlier
+            for (; gathered < total && !cancelled.current; ) {
+              const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset: Math.max(0, read - marked), limit: BATCH, ids_only: true });
+              read += r.ids.length;
               if (!r.ids.length) break;
               const fresh = (await untried(r.ids)).filter((id) => !seen.has(id));
               fresh.forEach((id) => seen.add(id));
@@ -341,10 +354,12 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
             continue;
           }
           const batch = rounds[round].splice(0, ENRICH_BATCH);
+          // leads sent back as refused (rate limit) get a pause before they go again
+          if (round > 0) await new Promise((ok) => setTimeout(ok, 4000));
           let r: EnrichResponse | null = null;
           for (let attempt = 0; attempt < 2 && !r; attempt++) {
             try {
-              r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify, round });
+              r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify, round, concurrency: perCall });
             } catch (e) {
               const status = (e as { status?: number }).status;
               if (status === 402 || status === 403) {
@@ -362,6 +377,8 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           }
           const pending = r.pending ?? [];
           const retry = r.retry ?? [];
+          // looked up and marked as checked, so they have dropped out of the search behind the gathering offset
+          marked += r.results.filter((x) => !['retry', 'timeout', 'error'].includes(x.verdict)).length;
           rounds[round].unshift(...pending);
           if (round + 1 < rounds.length) rounds[round + 1].push(...retry);
           else failed += retry.length;
@@ -376,7 +393,10 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       };
       // on our own AI-Ark key alone there is no shared rate limit: 16 calls at a time ran ~2,700 leads/min with no
       // errors (2026-10-15); runs that use treg's shared providers stay at 4
-      const lanes = kind === 'mobile' && maxCost === 0 ? 16 : 4;
+      // our own AI-Ark key alone (cap 0) refuses beyond about 3 lookups at a time (measured 2026-10-15: 3 → 0% refused,
+      // ~220/min; 6 → 16%; 10 → 45%), so that runs one call of 3; runs on treg's providers keep 4 calls of 4
+      const ownKeyOnly = kind === 'mobile' && maxCost === 0;
+      const lanes = ownKeyOnly ? 1 : 4;
       await Promise.all([gather(), ...Array.from({ length: lanes }, lane)]);
       setRun({ done, total: gathered, saved, costMicro, failed, unsaved, ownKey, tried, finished: true, stopped: cancelled.current && done < gathered });
     } catch (e) {
@@ -459,7 +479,16 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
             ) : null}
             <label className="block">
               <span className="mb-1 block text-black-700">Most to spend per lead</span>
-              <select value={maxCost} onChange={(e) => setMaxCost(Number(e.target.value))} className="control h-9 w-full max-w-xs">
+              <select
+                value={maxCost}
+                onChange={(e) => {
+                  const cap = Number(e.target.value);
+                  setMaxCost(cap);
+                  setSetup({ ...setup, missing: null });
+                  void recount(setup.filters, cap, setup.selected, setup.page);
+                }}
+                className="control h-9 w-full max-w-xs"
+              >
                 {k.caps.map((c) => (
                   <option key={c.v} value={c.v}>
                     {c.label}
