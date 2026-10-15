@@ -110,6 +110,7 @@ export function LeadsView({
   const isPlatformAdmin = useIsPlatformAdmin();
   const adminExport = useAdminExport();
   const adminEnrich = useAdminEnrich();
+  const adminMobiles = useAdminEnrich('mobile');
 
   const server = useMemo(() => toServer(filters, q), [filters, q]);
   const facets = useQuery(facetsQuery('leads'));
@@ -356,6 +357,16 @@ export function LeadsView({
                       Find missing emails (treg, admin)
                     </MenuItem>
                   ) : null}
+                  {isPlatformAdmin ? (
+                    <MenuItem
+                      onClick={() => {
+                        close();
+                        void adminMobiles.open(server);
+                      }}
+                    >
+                      Find missing mobiles (treg, admin)
+                    </MenuItem>
+                  ) : null}
                   <MenuItem
                     onClick={() => {
                       close();
@@ -577,6 +588,7 @@ export function LeadsView({
       />
       {adminExport.dialog}
       {adminEnrich.dialog}
+      {adminMobiles.dialog}
       <Dialog open={!!confirm} onClose={() => setConfirm(null)} title={confirm?.title ?? ''}>
         <p className="text-black-700">{confirm?.body}</p>
         <div className="mt-5 flex justify-end gap-2">

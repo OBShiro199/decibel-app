@@ -1,5 +1,6 @@
-// Find missing work emails through treg, for platform admins (migration 0035). POST with the user's JWT:
-//   { ids: string[] (≤ 12), max_cost?: number (USD per lead, default 0.03), verify?: boolean (default true) }
+// Find missing work emails (migration 0035) or mobiles (0036) through treg, for platform admins. POST with the user's JWT:
+//   { ids: string[] (≤ 12), kind?: 'email' | 'mobile', max_cost?: number (USD per lead, default 0.03 for email,
+//     0.005 for mobile = QuickEnrich alone), verify?: boolean (default true for email, false for mobile) }
 //   -> { results: [{ id, email, verdict, saved, cost_micro }], cost_micro, pending: string[] }
 // A treg lookup with verification can take most of a minute when it falls back across providers, and the
 // gateway drops a request after about two, so each call stops starting new leads after START_BUDGET_MS and
@@ -8,6 +9,8 @@
 // Each lead goes to treg.people.email.find (LinkedIn URL plus name and domain, so treg can fall back
 // across providers within the per-lead cap). Only emails the mailbox check rates valid or catch-all are
 // saved, into leads with no work email yet; the search index is updated straight away.
+// Mobiles go to treg.people.phone.find; misses are free there, so the cap decides which providers are asked
+// (cheapest first). With verify, a found number gets a live-line check and a dead line is not saved.
 import { corsHeaders, fail, getUser, json, SUPABASE_URL } from '../_shared/http.ts';
 import { crc } from '../_shared/crc.ts';
 
@@ -27,6 +30,17 @@ interface Input {
   domain: string | null;
   linkedin_url: string | null;
   work_email: string | null;
+  mobile_phone?: string | null;
+}
+
+interface Found {
+  email?: string | null;
+  phone?: string | null;
+  line_type?: string | null;
+  verdict: string;
+  served_by: string | null;
+  cost_micro: number;
+  call_id: string | null;
 }
 
 async function rpc<T>(req: Request, fn: string, args: Record<string, unknown>): Promise<T> {
@@ -40,7 +54,39 @@ async function rpc<T>(req: Request, fn: string, args: Record<string, unknown>): 
   return body as T;
 }
 
-async function find(lead: Input, maxCost: number, verify: boolean) {
+/** one routed treg call with the per-lead cap; null when it ran past LOOKUP_TIMEOUT_MS */
+async function treg(endpoint: string, body: Record<string, string>, maxCost: number, verify: boolean, key: string) {
+  const res = await fetch(`https://treg.to/call/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'X-Treg-Token': TREG,
+      'content-type': 'application/json',
+      'X-Treg-Route-Max-Cost': String(maxCost),
+      ...(verify ? { 'X-Treg-Route-Verify': 'true' } : {}),
+      // a retry of this exact lookup returns the stored answer instead of paying again
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+  }).catch((e) => {
+    if ((e as Error).name === 'TimeoutError' || (e as Error).name === 'AbortError') return null;
+    throw e;
+  });
+  if (!res) return null;
+  const cost = Number(res.headers.get('X-Treg-Cost-Micro') ?? 0) || 0;
+  const callId = res.headers.get('X-Treg-Call-Id');
+  if (!res.ok) {
+    const text = await res.text();
+    // out of treg balance stops the whole run
+    if (res.status === 402 && !text.includes('route_max_cost')) throw new Error('treg_balance');
+    return { ok: false as const, cost, callId, servedBy: null, d: null };
+  }
+  const d = await res.json().catch(() => ({}));
+  return { ok: true as const, cost, callId, servedBy: (d?._treg?.served_by ?? res.headers.get('X-Treg-Served-By')) as string | null, d };
+}
+
+/** who the lead is, in the shapes treg's finders accept */
+function identity(lead: Input): Record<string, string> {
   const body: Record<string, string> = {};
   if (lead.linkedin_url) body.linkedin_url = lead.linkedin_url;
   if (lead.domain) {
@@ -50,38 +96,34 @@ async function find(lead: Input, maxCost: number, verify: boolean) {
       body.last_name = lead.last_name;
     } else if (lead.full_name) body.full_name = lead.full_name;
   }
+  return body;
+}
+
+async function findMobile(lead: Input, maxCost: number, verify: boolean): Promise<Found> {
+  const body = identity(lead);
+  if (lead.work_email) body.email = lead.work_email;
+  if (!Object.keys(body).length) return { phone: null, verdict: 'miss', served_by: null, cost_micro: 0, call_id: null };
+  const r = await treg('treg.people.phone.find', body, maxCost, verify, `decibel-mobile-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}`);
+  if (!r) return { phone: null, verdict: 'timeout', served_by: null, cost_micro: 0, call_id: null };
+  if (!r.ok) return { phone: null, verdict: 'miss', served_by: null, cost_micro: r.cost, call_id: r.callId };
+  const phone: string | null = r.d?.output?.phone ?? null;
+  const v = r.d?._treg?.verification;
+  // a live-line check that says dead is not saved; live or no answer is
+  const verdict = !phone ? 'miss' : verify && v?.checked && String(v.verdict) === 'dead' ? 'dead' : 'found';
+  return { phone, line_type: r.d?.output?.line_type ?? null, verdict, served_by: r.servedBy, cost_micro: r.cost, call_id: r.callId };
+}
+
+async function findEmail(lead: Input, maxCost: number, verify: boolean): Promise<Found> {
+  const body = identity(lead);
   if (!Object.keys(body).length) return { email: null, verdict: 'miss', served_by: null, cost_micro: 0, call_id: null };
-  const res = await fetch('https://treg.to/call/treg.people.email.find', {
-    method: 'POST',
-    headers: {
-      'X-Treg-Token': TREG,
-      'content-type': 'application/json',
-      'X-Treg-Route-Max-Cost': String(maxCost),
-      ...(verify ? { 'X-Treg-Route-Verify': 'true' } : {}),
-      // a retry of this exact lookup returns the stored answer instead of paying again
-      'Idempotency-Key': `decibel-enrich-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}`,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
-  }).catch((e) => {
-    if ((e as Error).name === 'TimeoutError' || (e as Error).name === 'AbortError') return null;
-    throw e;
-  });
-  if (!res) return { email: null, verdict: 'timeout', served_by: null, cost_micro: 0, call_id: null };
-  const cost = Number(res.headers.get('X-Treg-Cost-Micro') ?? 0) || 0;
-  const callId = res.headers.get('X-Treg-Call-Id');
-  if (!res.ok) {
-    const text = await res.text();
-    // out of treg balance stops the whole run
-    if (res.status === 402 && !text.includes('route_max_cost')) throw new Error('treg_balance');
-    return { email: null, verdict: 'miss', served_by: null, cost_micro: cost, call_id: callId };
-  }
-  const d = await res.json().catch(() => ({}));
-  const email: string | null = d?.output?.email ?? null;
-  const v = d?._treg?.verification;
+  const r = await treg('treg.people.email.find', body, maxCost, verify, `decibel-enrich-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}`);
+  if (!r) return { email: null, verdict: 'timeout', served_by: null, cost_micro: 0, call_id: null };
+  if (!r.ok) return { email: null, verdict: 'miss', served_by: null, cost_micro: r.cost, call_id: r.callId };
+  const email: string | null = r.d?.output?.email ?? null;
+  const v = r.d?._treg?.verification;
   // with verification on, trust the mailbox check; without it, a provider-verified hit counts as valid
-  const verdict: string = !email ? 'miss' : verify ? (v?.checked ? String(v.verdict) : 'unknown') : d?.output?.verified ? 'valid' : 'unknown';
-  return { email, verdict, served_by: d?._treg?.served_by ?? res.headers.get('X-Treg-Served-By'), cost_micro: cost, call_id: callId };
+  const verdict: string = !email ? 'miss' : verify ? (v?.checked ? String(v.verdict) : 'unknown') : r.d?.output?.verified ? 'valid' : 'unknown';
+  return { email, verdict, served_by: r.servedBy, cost_micro: r.cost, call_id: r.callId };
 }
 
 Deno.serve(async (req) => {
@@ -92,15 +134,18 @@ Deno.serve(async (req) => {
   if (!user) return fail('unauthorized', 401);
   const input = await req.json().catch(() => ({}));
   const ids: string[] = (Array.isArray(input.ids) ? input.ids : []).filter((x: unknown) => typeof x === 'string').slice(0, 12);
-  const maxCost = Math.min(Math.max(Number(input.max_cost) || 0.03, 0.005), 0.15);
-  const verify = input.verify !== false;
+  const mobile = input.kind === 'mobile';
+  const maxCost = mobile
+    ? Math.min(Math.max(Number(input.max_cost) || 0.005, 0.005), 0.3)
+    : Math.min(Math.max(Number(input.max_cost) || 0.03, 0.005), 0.15);
+  const verify = mobile ? input.verify === true : input.verify !== false;
   if (!ids.length) return json({ results: [], cost_micro: 0 });
 
   try {
     if (!(await rpc<boolean>(req, 'is_platform_admin', {}))) return fail('forbidden', 403);
-    const leads = await rpc<Input[]>(req, 'admin_enrich_inputs', { p_ids: ids });
-    const todo = leads.filter((l) => !l.work_email);
-    const results: { id: string; email: string | null; verdict: string; saved: boolean; cost_micro: number }[] = [];
+    const leads = await rpc<Input[]>(req, mobile ? 'admin_mobile_inputs' : 'admin_enrich_inputs', { p_ids: ids });
+    const todo = leads.filter((l) => (mobile ? !l.mobile_phone : !l.work_email));
+    const results: { id: string; email?: string | null; phone?: string | null; verdict: string; saved: boolean; cost_micro: number }[] = [];
     let next = 0;
     let stop: Error | null = null;
     const started = Date.now();
@@ -108,7 +153,30 @@ Deno.serve(async (req) => {
       while (next < todo.length && !stop && Date.now() - started < START_BUDGET_MS) {
         const lead = todo[next++];
         try {
-          const r = await find(lead, maxCost, verify);
+          if (mobile) {
+            const r = await findMobile(lead, maxCost, verify);
+            const phone = await rpc<string | null>(req, 'admin_save_mobile', {
+              p_contact_id: lead.contact_id,
+              p_phone: r.phone,
+              p_line_type: r.line_type,
+              p_verdict: r.verdict,
+              p_served_by: r.served_by,
+              p_cost_micro: r.cost_micro,
+              p_call_id: r.call_id,
+            });
+            if (phone && TS_URL && TS_KEY) {
+              // the same dialling-code prefixes the loader indexes ("+4", "+44", "+447", "+4474")
+              const p = phone.replace(/[^0-9+]/g, '').slice(0, 5);
+              await fetch(`${TS_URL}/collections/leads/documents/${lead.contact_id}`, {
+                method: 'PATCH',
+                headers: { 'X-TYPESENSE-API-KEY': TS_KEY, 'content-type': 'application/json' },
+                body: JSON.stringify({ has_mobile: true, mobile_codes_h: Array.from({ length: p.length - 1 }, (_, n) => crc(p.slice(0, n + 2))) }),
+              }).catch(() => {});
+            }
+            results.push({ id: lead.contact_id, phone, verdict: r.verdict, saved: !!phone, cost_micro: r.cost_micro });
+            continue;
+          }
+          const r = await findEmail(lead, maxCost, verify);
           const saved = await rpc<boolean>(req, 'admin_save_enrichment', {
             p_contact_id: lead.contact_id,
             p_email: r.email,

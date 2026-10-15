@@ -154,23 +154,66 @@ export function useAdminExport() {
   return { start, dialog, running: !!run };
 }
 
-// ---- find missing emails through treg (platform admins, migration 0035, lead-enrich function) ------------------------
+// ---- find missing emails or mobiles through treg (platform admins, migrations 0035/0036, lead-enrich function) ---------
 const ENRICH_BATCH = 8;
+const ENRICH = {
+  email: {
+    filter: 'hasEmail',
+    title: 'Find missing emails',
+    running: 'Finding emails',
+    what: 'emails',
+    description:
+      'Looks up work emails through treg for matching leads that have none. Only emails the mailbox check rates valid (or catch-all) are saved. Billed to your treg balance, not Decibel credits.',
+    missing: 'matching leads have no work email.',
+    caps: [
+      { v: 0.01, label: '$0.01' },
+      { v: 0.02, label: '$0.02' },
+      { v: 0.03, label: '$0.03' },
+      { v: 0.05, label: '$0.05' },
+    ],
+    cap: 0.03,
+    verify: true,
+    verifyLabel: "Check each email's mailbox before saving (recommended)",
+    typical: 'Typically about $0.008 a lead (misses cost a little too).',
+    shown: 'Emails appear in Leads as they are found.',
+  },
+  mobile: {
+    filter: 'hasMobile',
+    title: 'Find missing mobiles',
+    running: 'Finding mobiles',
+    what: 'mobiles',
+    description:
+      'Looks up mobile numbers through treg for matching leads that have none. Only mobile numbers are saved, into leads with no mobile yet. You pay only when a number is found. Billed to your treg balance, not Decibel credits.',
+    missing: 'matching leads have no mobile.',
+    caps: [
+      { v: 0.005, label: '$0.005 (QuickEnrich only)' },
+      { v: 0.03, label: '$0.03 (adds AI-Ark)' },
+      { v: 0.05, label: '$0.05 (adds Tomba)' },
+      { v: 0.25, label: '$0.25 (adds Prospeo, Limadata, ContactOut)' },
+    ],
+    cap: 0.005,
+    verify: false,
+    verifyLabel: 'Check the line is live before saving (about $0.01 more per number found)',
+    typical: 'Misses are free: each number found costs what the provider that found it charges, up to the cap.',
+    shown: 'Mobiles appear in Leads as they are found.',
+  },
+} as const;
 type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number }[]; cost_micro: number; pending?: string[] };
 
-/** "Find missing emails (treg)": choose how many and the cost cap, then a progress dialog. */
-export function useAdminEnrich() {
+/** "Find missing emails / mobiles (treg)": choose how many and the cost cap, then a progress dialog. */
+export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
+  const k = ENRICH[kind];
   const { workspace } = useApp();
   const toast = useToast();
   const [setup, setSetup] = useState<null | { filters: Filters; missing: number | null }>(null);
   const [howMany, setHowMany] = useState(200);
-  const [maxCost, setMaxCost] = useState(0.03);
-  const [verify, setVerify] = useState(true);
+  const [maxCost, setMaxCost] = useState<number>(k.cap);
+  const [verify, setVerify] = useState<boolean>(k.verify);
   const [run, setRun] = useState<null | { done: number; total: number; saved: number; costMicro: number; failed?: number; error?: string; finished?: boolean }>(null);
   const cancelled = useRef(false);
 
   async function open(filters: Filters) {
-    const target = { ...filters, hasEmail: false };
+    const target = { ...filters, [k.filter]: false };
     setSetup({ filters: target, missing: null });
     try {
       const r = await invoke<{ count: { n: number } }>('lead-search', { workspace_id: workspace.id, filters: target, limit: 0 });
@@ -193,7 +236,7 @@ export function useAdminEnrich() {
     let saved = 0;
     let costMicro = 0;
     try {
-      // the targets are fixed up front: found emails drop leads out of "no email", which would shift the pages
+      // the targets are fixed up front: found contacts drop leads out of "no email" / "no mobile", which would shift the pages
       const ids: string[] = [];
       for (let offset = 0; ids.length < total; offset += BATCH) {
         const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset, limit: Math.min(BATCH, total - ids.length), ids_only: true });
@@ -209,7 +252,7 @@ export function useAdminEnrich() {
         let r: EnrichResponse | null = null;
         for (let attempt = 0; attempt < 2 && !r; attempt++) {
           try {
-            r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, max_cost: maxCost, verify });
+            r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify });
           } catch (e) {
             const status = (e as { status?: number }).status;
             if (status === 402 || status === 403) throw e;
@@ -243,13 +286,13 @@ export function useAdminEnrich() {
       <Dialog
         open={!!setup}
         onClose={() => setSetup(null)}
-        title="Find missing emails"
-        description="Looks up work emails through treg for matching leads that have none. Only emails the mailbox check rates valid (or catch-all) are saved. Billed to your treg balance, not Decibel credits."
+        title={k.title}
+        description={k.description}
         footer={
           <>
             <Button onClick={() => setSetup(null)}>Cancel</Button>
             <Button variant="primary" disabled={!setup?.missing || howMany < 1} onClick={() => void start()}>
-              Find emails for {n(Math.min(howMany, setup?.missing ?? 0))} leads
+              Find {k.what} for {n(Math.min(howMany, setup?.missing ?? 0))} leads
             </Button>
           </>
         }
@@ -257,7 +300,7 @@ export function useAdminEnrich() {
         {setup ? (
           <div className="space-y-4">
             <p className="text-black-700">
-              <span className="font-medium tabular-nums text-black-400">{setup.missing === null ? '…' : n(setup.missing)}</span> matching leads have no work email.
+              <span className="font-medium tabular-nums text-black-400">{setup.missing === null ? '…' : n(setup.missing)}</span> {k.missing}
             </p>
             <label className="block">
               <span className="mb-1 block text-black-700">How many to look up</span>
@@ -272,20 +315,20 @@ export function useAdminEnrich() {
             </label>
             <label className="block">
               <span className="mb-1 block text-black-700">Most to spend per lead</span>
-              <select value={maxCost} onChange={(e) => setMaxCost(Number(e.target.value))} className="control h-9 w-40">
-                {[0.01, 0.02, 0.03, 0.05].map((v) => (
-                  <option key={v} value={v}>
-                    ${v.toFixed(2)}
+              <select value={maxCost} onChange={(e) => setMaxCost(Number(e.target.value))} className="control h-9 w-full max-w-xs">
+                {k.caps.map((c) => (
+                  <option key={c.v} value={c.v}>
+                    {c.label}
                   </option>
                 ))}
               </select>
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} />
-              <span>Check each email's mailbox before saving (recommended)</span>
+              <span>{k.verifyLabel}</span>
             </label>
             <p className="text-black-700">
-              Typically about $0.008 a lead (misses cost a little too). At most {usd(Math.min(howMany, setup.missing ?? 0) * maxCost * 1e6)} for this run.
+              {k.typical} At most {usd(Math.min(howMany, setup.missing ?? 0) * maxCost * 1e6)} for this run.
             </p>
           </div>
         ) : null}
@@ -295,8 +338,8 @@ export function useAdminEnrich() {
         onClose={() => {
           if (run?.finished) setRun(null);
         }}
-        title="Finding emails"
-        description="Keep this tab open. Emails appear in Leads as they are found."
+        title={k.running}
+        description={`Keep this tab open. ${k.shown}`}
         footer={
           run?.finished ? (
             <Button onClick={() => setRun(null)}>Done</Button>
@@ -324,7 +367,7 @@ export function useAdminEnrich() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-md border border-white-800 px-3 py-2">
-                <p className="text-black-700">Emails saved</p>
+                <p className="text-black-700">{kind === 'mobile' ? 'Mobiles saved' : 'Emails saved'}</p>
                 <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{n(run.saved)}</p>
               </div>
               <div className="rounded-md border border-white-800 px-3 py-2">
@@ -338,7 +381,7 @@ export function useAdminEnrich() {
               </p>
             ) : run.finished ? (
               <p className="mt-3 text-black-700">
-                Done: {n(run.saved)} emails found for {n(run.done)} leads{run.done ? `, ${usd(run.costMicro / run.done)} a lead on average` : ''}.
+                Done: {n(run.saved)} {k.what} found for {n(run.done)} leads{run.done ? `, ${usd(run.costMicro / run.done)} a lead on average` : ''}.
                 {run.failed ? ` ${n(run.failed)} lookups did not finish and were skipped.` : ''}
               </p>
             ) : null}
