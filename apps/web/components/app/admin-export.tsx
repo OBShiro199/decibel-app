@@ -178,6 +178,8 @@ const ENRICH = {
     verifyLabel: "Check each email's mailbox before saving (recommended)",
     typical: 'Typically about $0.008 a lead (misses cost a little too).',
     shown: 'Emails appear in Leads as they are found.',
+    one: 'email',
+    unsaved: 'more lookups were charged without saving an email: misses, and emails the mailbox check rated invalid or risky.',
   },
   mobile: {
     filter: 'hasMobile',
@@ -207,6 +209,8 @@ const ENRICH = {
     verifyLabel: 'Check the line is live before saving (about $0.01 more per number found)',
     typical: 'Misses are free: each number found costs what the provider that found it charges, up to the cap.',
     shown: 'Mobiles appear in Leads as they are found.',
+    one: 'mobile',
+    unsaved: 'more numbers found but not saved: landlines, 0800 numbers or not UK mobiles. The provider still charges for these.',
   },
 } as const;
 type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number }[]; cost_micro: number; pending?: string[] };
@@ -221,7 +225,17 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
   const [howMany, setHowMany] = useState(200);
   const [maxCost, setMaxCost] = useState<number>(k.cap);
   const [verify, setVerify] = useState<boolean>(k.verify);
-  const [run, setRun] = useState<null | { done: number; total: number; saved: number; costMicro: number; failed?: number; error?: string; finished?: boolean }>(null);
+  const [run, setRun] = useState<null | {
+    done: number;
+    total: number;
+    saved: number;
+    costMicro: number;
+    failed?: number;
+    unsaved?: number;
+    error?: string;
+    finished?: boolean;
+    stopped?: boolean;
+  }>(null);
   const cancelled = useRef(false);
 
   /** `selected` are the ticked leads and `page` the ones on screen; either can be looked up instead of the whole search */
@@ -267,6 +281,8 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       // (treg answers a repeat of the same lookup from its store, unbilled), then its leads are skipped
       const queue = [...ids];
       let failed = 0;
+      // found and paid for, but not saved (a landline or a non-UK number; an email the mailbox check failed)
+      let unsaved = 0;
       // three calls at a time; each takes the next batch off the shared queue
       const lane = async () => {
         while (queue.length && !cancelled.current) {
@@ -287,7 +303,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           if (!r) {
             done += batch.length;
             failed += batch.length;
-            setRun({ done, total: ids.length, saved, costMicro, failed });
+            setRun({ done, total: ids.length, saved, costMicro, failed, unsaved });
             continue;
           }
           const pending = r.pending ?? [];
@@ -295,12 +311,13 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           done += batch.length - pending.length;
           saved += r.results.filter((x) => x.saved).length;
           failed += r.results.filter((x) => x.verdict === 'error' || x.verdict === 'timeout').length;
+          unsaved += r.results.filter((x) => !x.saved && x.cost_micro > 0).length;
           costMicro += r.cost_micro;
-          setRun({ done, total: ids.length, saved, costMicro, failed });
+          setRun({ done, total: ids.length, saved, costMicro, failed, unsaved });
         }
       };
       await Promise.all([lane(), lane(), lane()]);
-      setRun({ done, total: ids.length, saved, costMicro, failed, finished: true });
+      setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, finished: true, stopped: cancelled.current && done < ids.length });
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
       setRun({ done, total, saved, costMicro, error: msg, finished: true });
@@ -441,13 +458,19 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
                 <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{usd(run.costMicro)}</p>
               </div>
             </div>
+            {run.unsaved ? (
+              <p className="mt-3 text-black-700">
+                <span className="tabular-nums">{n(run.unsaved)}</span> {k.unsaved}
+              </p>
+            ) : null}
             {run.error ? (
               <p role="alert" className="mt-3 text-danger-700">
                 {run.error}
               </p>
             ) : run.finished ? (
               <p className="mt-3 text-black-700">
-                Done: {n(run.saved)} {k.what} found for {n(run.done)} leads{run.done ? `, ${usd(run.costMicro / run.done)} a lead on average` : ''}.
+                {run.stopped ? 'Stopped' : 'Done'}: {n(run.saved)} {k.what} saved from {n(run.done)} leads
+                {run.saved ? `, ${usd(run.costMicro / run.saved)} per ${k.one} saved` : ''}.
                 {run.failed ? ` ${n(run.failed)} lookups did not finish and were skipped.` : ''}
               </p>
             ) : null}
