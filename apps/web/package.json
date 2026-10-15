@@ -19,7 +19,8 @@
     "test:dnc": "node scripts/dnc.mjs",
     "test:dnc-ui": "node scripts/dnc-ui.mjs",
     "test:twilio": "node scripts/twilio-smoke.mjs",
-    "test:team": "node scripts/team.mjs"
+    "test:team": "node scripts/team.mjs",
+    "test:export-tps": "node scripts/export-tps-ui.mjs http://localhost:3005"
   },
   "dependencies": {
     "@decibels/design-tokens": "workspace:*",

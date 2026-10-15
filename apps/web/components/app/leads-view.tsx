@@ -30,7 +30,7 @@ import {
 import { revealLeads } from '@/lib/reveal';
 import { supabase } from '@/lib/supabase/client';
 import type { Person } from '@/lib/types';
-import { cn, exportCsv, formatPhone } from '@/lib/utils';
+import { cn, formatPhone } from '@/lib/utils';
 import { prettyValue, SmartFilterBar } from '@/components/app/smart-filters';
 import { BulkAction, BulkBar, ListPickerDialog, PersonCell } from '@/components/app/records';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ import { Checkbox, Input } from '@/components/ui/form';
 import { LinkedinLogo } from '@/components/ui/linkedin-logo';
 import { QUICK_KEYS, QuickFilters } from '@/components/app/quick-filters';
 import { useAdminEnrich, useAdminExport, useIsPlatformAdmin } from '@/components/app/admin-export';
+import { ExportTpsDialog, type ExportItem } from '@/components/app/export-tps';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
@@ -109,6 +110,7 @@ export function LeadsView({
   const [confirm, setConfirm] = useState<null | { title: string; body: string; action: string; run: () => Promise<void> }>(null);
   const isPlatformAdmin = useIsPlatformAdmin();
   const adminExport = useAdminExport();
+  const [tpsExport, setTpsExport] = useState<ExportItem[] | null>(null);
   const adminEnrich = useAdminEnrich();
   const adminMobiles = useAdminEnrich('mobile');
 
@@ -170,11 +172,10 @@ export function LeadsView({
     setSelected(new Set());
   };
 
+  /** Revealed leads go through the TPS/CTPS check (ExportTpsDialog) before they can be downloaded. */
   const download = (leads: LeadRow[], people: Person[]) => {
     const lookup = new Map(leads.map((l) => [l.lead_id, l]));
-    const name = `decibel-leads-${new Date().toISOString().slice(0, 10)}.csv`;
-    exportCsv(workspace.id, 'leads', name, people.map((p) => csvRow(lookup.get(p.source_lead_id ?? ''), p)));
-    toast(`Exported ${people.length.toLocaleString('en-GB')} leads`);
+    setTpsExport(people.map((p) => ({ key: p.id, mobile: p.mobile_e164 ?? null, row: csvRow(lookup.get(p.source_lead_id ?? ''), p) })));
   };
 
   /** Export the given leads: reveal any not yet revealed (with a confirmation), then download. */
@@ -588,6 +589,7 @@ export function LeadsView({
       />
       {adminExport.dialog}
       {adminEnrich.dialog}
+      <ExportTpsDialog items={tpsExport} onClose={() => setTpsExport(null)} />
       {adminMobiles.dialog}
       <Dialog open={!!confirm} onClose={() => setConfirm(null)} title={confirm?.title ?? ''}>
         <p className="text-black-700">{confirm?.body}</p>

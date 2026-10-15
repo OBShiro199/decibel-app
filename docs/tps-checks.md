@@ -7,7 +7,7 @@ Members upload a list (CSV, XLSX, TSV or TXT, up to 1,000 rows with a header row
 | TPS status | `VALID`, `DNC (TPS)`, `DNC (CTPS)`, `DNC (TPS + CTPS)`, `INVALID NUMBER`, `NOT UK (NOT CHECKED)`, `NO NUMBER`, `NOT CHECKED` |
 | TPS registered | Date the number joined TPS, when known |
 | CTPS registered | Date the number joined CTPS, when known |
-| Checked on | Date of the check (results are treated as good for 28 days) |
+| Checked on | Date of the check (clear results are reused for 30 days) |
 
 The page lives at `/app/tps` (sidebar, Outbound section). Members can follow a check live, filter the results, and download the whole file or just the valid or do-not-call rows, as CSV or Excel. They can also re-download or delete any past check from Recent checks.
 
@@ -15,7 +15,7 @@ The page lives at `/app/tps` (sidebar, Outbound section). Members can follow a c
 
 - Every account gets **2,500 check credits once**. They are separate from the 5,000 data (reveal) credits.
 - **1 credit per unique UK number** in a file. Duplicates are checked once. Blank, invalid and non-UK numbers are free.
-- A number the workspace checked in the **last 28 days** is reused for free and keeps its original check date.
+- A number the workspace checked in the **last 30 days** and found **clear** (on neither register) is reused for free and keeps its original check date. A number that was listed is checked again (migration 0039).
 - Credits are **reserved when a check starts** and settled when it ends. Anything that did not produce a result is **refunded automatically**: invalid numbers, cancelled checks, and checks that stopped because the provider was unreachable.
 - **Top up** opens the founder chat and sends: "Hi, I'd like to top-up my TPS/CTPS number check credits." There is no Stripe yet, so grant credits by hand in the Supabase SQL editor:
 
@@ -24,6 +24,15 @@ The page lives at `/app/tps` (sidebar, Outbound section). Members can follow a c
   ```
 
   The reference must be unique, so running the same grant twice fails instead of doubling it. A negative amount records an adjustment.
+
+## Before a Leads export
+
+Exporting leads (selected, or the first 500 matching) reveals them, then opens a TPS/CTPS check of their mobiles
+(`components/app/export-tps.tsx`). It is an ordinary check named "Leads export …", so it uses check credits, reuses
+clear results from the last 30 days, and appears in Recent checks. Nothing can be downloaded until it ends; then the
+person picks **Export all**, **Passed only** (valid) or **Failed only** (TPS, CTPS or both). The file gets `tps_ctps`
+and `tps_checked_on` columns. `tps_apply_to_people` writes the results onto the people, so the dial-time TPS block
+sees them. Not enough check credits: the export stops with a Top up button. Browser test: `pnpm test:export-tps`.
 
 ## How it works
 
