@@ -204,7 +204,7 @@ const ENRICH = {
       { v: 0.25, label: '$0.25 (adds Prospeo, Limadata, ContactOut)' },
       { v: 0.75, label: '$0.75 (everyone, including Lusha)' },
     ],
-    cap: 0.005,
+    cap: 0.03,
     verify: false,
     verifyLabel: 'Check the line is live before saving (about $0.01 more per number found)',
     typical: 'Misses are free: each number found costs what the provider that found it charges, up to the cap.',
