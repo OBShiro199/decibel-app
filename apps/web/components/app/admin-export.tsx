@@ -233,6 +233,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
     failed?: number;
     unsaved?: number;
     tried?: number;
+    gathering?: boolean;
     error?: string;
     finished?: boolean;
     stopped?: boolean;
@@ -280,39 +281,61 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
         if (error) throw new Error(error.message);
         return (data ?? []) as string[];
       };
-      const ids: string[] = [];
+      // rounds[0] is the first pass; leads a provider rate-limited come back as `retry` and go round again (up to 2 more
+      // times). Lookups start straight away while the rest of the leads are still being gathered.
+      const rounds: string[][] = [[], [], []];
+      let gathered = 0;
+      let gathering = true;
       let tried = 0;
-      if (fixed) {
-        for (let i = 0; i < fixed.length; i += BATCH) {
-          const page = fixed.slice(i, i + BATCH);
-          const fresh = await untried(page);
-          tried += page.length - fresh.length;
-          ids.push(...fresh);
-        }
-      } else {
-        for (let offset = 0; ids.length < total; offset += BATCH) {
-          const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset, limit: BATCH, ids_only: true });
-          if (!r.ids.length) break;
-          const fresh = await untried(r.ids);
-          tried += r.ids.length - fresh.length;
-          ids.push(...fresh.slice(0, total - ids.length));
-          setRun({ done: 0, total, saved: 0, costMicro: 0, tried });
-          if (cancelled.current) break;
-        }
-      }
-      // the function hands back the leads it ran out of time for (pending); a failed call is tried once more
-      // (treg answers a repeat of the same lookup from its store, unbilled), then its leads are skipped
-      // rounds[0] is the first pass; leads a provider rate-limited come back as `retry` and go round again (up to 2 more times)
-      const rounds: string[][] = [[...ids], [], []];
       let failed = 0;
       // found and paid for, but not saved (a landline or a non-UK number; an email the mailbox check failed)
       let unsaved = 0;
+      const planned = () => (gathering ? total : gathered);
+      const report = () => setRun({ done, total: planned(), saved, costMicro, failed, unsaved, tried, gathering });
+      const gather = async () => {
+        try {
+          if (fixed) {
+            for (let i = 0; i < fixed.length && !cancelled.current; i += BATCH) {
+              const page = fixed.slice(i, i + BATCH);
+              const fresh = await untried(page);
+              tried += page.length - fresh.length;
+              gathered += fresh.length;
+              rounds[0].push(...fresh);
+              report();
+            }
+          } else {
+            // leads this run saves an email/mobile for drop out of the search, and they all sit on pages already read,
+            // so the next page starts that many places earlier
+            for (let pages = 0; gathered < total && !cancelled.current; pages++) {
+              const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset: Math.max(0, pages * BATCH - saved), limit: BATCH, ids_only: true });
+              if (!r.ids.length) break;
+              const fresh = (await untried(r.ids)).filter((id) => !seen.has(id));
+              fresh.forEach((id) => seen.add(id));
+              tried += r.ids.length - fresh.length;
+              const take = fresh.slice(0, total - gathered);
+              gathered += take.length;
+              rounds[0].push(...take);
+              report();
+            }
+          }
+        } catch (e) {
+          cancelled.current = true;
+          throw e;
+        } finally {
+          gathering = false;
+        }
+      };
+      const seen = new Set<string>();
       // four calls at a time; each takes the next batch from the earliest round with leads left
       const lane = async () => {
         for (;;) {
           if (cancelled.current) return;
           const round = rounds.findIndex((q) => q.length);
-          if (round < 0) return;
+          if (round < 0) {
+            if (!gathering) return;
+            await new Promise((ok) => setTimeout(ok, 250));
+            continue;
+          }
           const batch = rounds[round].splice(0, ENRICH_BATCH);
           let r: EnrichResponse | null = null;
           for (let attempt = 0; attempt < 2 && !r; attempt++) {
@@ -330,7 +353,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           if (!r) {
             done += batch.length;
             failed += batch.length;
-            setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, tried });
+            report();
             continue;
           }
           const pending = r.pending ?? [];
@@ -343,11 +366,11 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           failed += r.results.filter((x) => x.verdict === 'error' || x.verdict === 'timeout').length;
           unsaved += r.results.filter((x) => !x.saved && x.cost_micro > 0 && x.verdict !== 'retry').length;
           costMicro += r.cost_micro;
-          setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, tried });
+          report();
         }
       };
-      await Promise.all([lane(), lane(), lane(), lane()]);
-      setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, tried, finished: true, stopped: cancelled.current && done < ids.length });
+      await Promise.all([gather(), lane(), lane(), lane(), lane()]);
+      setRun({ done, total: gathered, saved, costMicro, failed, unsaved, tried, finished: true, stopped: cancelled.current && done < gathered });
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
       setRun({ done, total, saved, costMicro, error: msg, finished: true });
@@ -488,6 +511,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
                 <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{usd(run.costMicro)}</p>
               </div>
             </div>
+            {run.gathering && !run.finished ? <p className="mt-3 text-black-700">Lookups have started; still gathering the rest of the leads.</p> : null}
             {run.tried ? (
               <p className="mt-3 text-black-700">
                 <span className="tabular-nums">{n(run.tried)}</span> leads already looked up at this cap or higher were left out.
