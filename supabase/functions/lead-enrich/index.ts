@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
               p_served_by: r.served_by,
               p_cost_micro: r.cost_micro,
               p_call_id: r.call_id,
+              p_max_cost: maxCost,
             });
             if (phone && TS_URL && TS_KEY) {
               // the same dialling-code prefixes the loader indexes ("+4", "+44", "+447", "+4474")
@@ -198,6 +199,7 @@ Deno.serve(async (req) => {
             p_served_by: r.served_by,
             p_cost_micro: r.cost_micro,
             p_call_id: r.call_id,
+            p_max_cost: maxCost,
           });
           if (saved && TS_URL && TS_KEY) {
             await fetch(`${TS_URL}/collections/leads/documents/${lead.contact_id}`, {

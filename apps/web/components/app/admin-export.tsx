@@ -232,6 +232,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
     costMicro: number;
     failed?: number;
     unsaved?: number;
+    tried?: number;
     error?: string;
     finished?: boolean;
     stopped?: boolean;
@@ -271,11 +272,33 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       // the targets are fixed up front: found contacts drop leads out of "no email" / "no mobile", which would shift the pages
       // ticked or on-screen leads go as they are: the function skips any that already have one (or are outside
       // the finder's reach), unbilled
-      const ids: string[] = fixed ? [...fixed] : [];
-      for (let offset = 0; !fixed && ids.length < total; offset += BATCH) {
-        const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset, limit: Math.min(BATCH, total - ids.length), ids_only: true });
-        if (!r.ids.length) break;
-        ids.push(...r.ids);
+      // leads already looked up at this cap or higher (any earlier run) are left out, so a run always reaches new leads
+      const untried = async (page: string[]) => {
+        const { data, error } = await supabase().rpc('admin_untried', { p_ids: page, p_kind: kind, p_cap: maxCost });
+        // before migration 0038 there is nothing to filter by
+        if (error && /could not find the function/i.test(error.message)) return page;
+        if (error) throw new Error(error.message);
+        return (data ?? []) as string[];
+      };
+      const ids: string[] = [];
+      let tried = 0;
+      if (fixed) {
+        for (let i = 0; i < fixed.length; i += BATCH) {
+          const page = fixed.slice(i, i + BATCH);
+          const fresh = await untried(page);
+          tried += page.length - fresh.length;
+          ids.push(...fresh);
+        }
+      } else {
+        for (let offset = 0; ids.length < total; offset += BATCH) {
+          const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset, limit: BATCH, ids_only: true });
+          if (!r.ids.length) break;
+          const fresh = await untried(r.ids);
+          tried += r.ids.length - fresh.length;
+          ids.push(...fresh.slice(0, total - ids.length));
+          setRun({ done: 0, total, saved: 0, costMicro: 0, tried });
+          if (cancelled.current) break;
+        }
       }
       // the function hands back the leads it ran out of time for (pending); a failed call is tried once more
       // (treg answers a repeat of the same lookup from its store, unbilled), then its leads are skipped
@@ -307,7 +330,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           if (!r) {
             done += batch.length;
             failed += batch.length;
-            setRun({ done, total: ids.length, saved, costMicro, failed, unsaved });
+            setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, tried });
             continue;
           }
           const pending = r.pending ?? [];
@@ -320,11 +343,11 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           failed += r.results.filter((x) => x.verdict === 'error' || x.verdict === 'timeout').length;
           unsaved += r.results.filter((x) => !x.saved && x.cost_micro > 0 && x.verdict !== 'retry').length;
           costMicro += r.cost_micro;
-          setRun({ done, total: ids.length, saved, costMicro, failed, unsaved });
+          setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, tried });
         }
       };
       await Promise.all([lane(), lane(), lane(), lane()]);
-      setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, finished: true, stopped: cancelled.current && done < ids.length });
+      setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, tried, finished: true, stopped: cancelled.current && done < ids.length });
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
       setRun({ done, total, saved, costMicro, error: msg, finished: true });
@@ -465,6 +488,11 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
                 <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{usd(run.costMicro)}</p>
               </div>
             </div>
+            {run.tried ? (
+              <p className="mt-3 text-black-700">
+                <span className="tabular-nums">{n(run.tried)}</span> leads already looked up at this cap or higher were left out.
+              </p>
+            ) : null}
             {run.unsaved ? (
               <p className="mt-3 text-black-700">
                 <span className="tabular-nums">{n(run.unsaved)}</span> {k.unsaved}
