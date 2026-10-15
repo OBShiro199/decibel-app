@@ -3,7 +3,8 @@
 //     0.005 for mobile = QuickEnrich alone), verify?: boolean (default true for email, false for mobile) }
 //   -> { results: [{ id, email, verdict, saved, cost_micro }], cost_micro, pending: string[], retry: string[] }
 // `retry`: leads where a provider refused (rate limit) or failed; send them again with round: 1, 2…
-// Optional `concurrency` (1–4) limits lookups running at once in the call.
+// Optional `concurrency` (1–4, up to 8 with `rate`) limits lookups running at once; optional `rate` paces lookup
+// starts per second (up to 60 ids per call with it).
 // A treg lookup with verification can take most of a minute when it falls back across providers, and the
 // gateway drops a request after about two, so each call stops starting new leads after START_BUDGET_MS and
 // returns the ones it did not start as `pending` for the browser to send again; each lookup is cut off at
@@ -154,7 +155,9 @@ Deno.serve(async (req) => {
   const user = await getUser(req);
   if (!user) return fail('unauthorized', 401);
   const input = await req.json().catch(() => ({}));
-  const ids: string[] = (Array.isArray(input.ids) ? input.ids : []).filter((x: unknown) => typeof x === 'string').slice(0, 12);
+  // `rate` (lookups started per second, for a provider with a per-second limit) allows bigger batches
+  const rate = Math.min(Math.max(Number(input.rate) || 0, 0), 10);
+  const ids: string[] = (Array.isArray(input.ids) ? input.ids : []).filter((x: unknown) => typeof x === 'string').slice(0, rate ? 60 : 12);
   const mobile = input.kind === 'mobile';
   // mobiles: 0 = only providers on our own keys (AI-Ark), which treg does not charge for
   const maxCost = mobile
@@ -163,7 +166,7 @@ Deno.serve(async (req) => {
   const verify = mobile ? input.verify === true : input.verify !== false;
   const round = Math.min(Math.max(Math.round(Number(input.round) || 0), 0), 3);
   // lookups running at once in this call; AI-Ark on our own key refuses beyond about 3 at a time
-  const concurrency = Math.min(Math.max(Math.round(Number(input.concurrency) || CONCURRENCY), 1), CONCURRENCY);
+  const concurrency = Math.min(Math.max(Math.round(Number(input.concurrency) || CONCURRENCY), 1), rate ? 8 : CONCURRENCY);
   if (!ids.length) return json({ results: [], cost_micro: 0 });
 
   try {
@@ -175,9 +178,16 @@ Deno.serve(async (req) => {
     let stop: Error | null = null;
     const retry: string[] = [];
     const started = Date.now();
+    // with a rate, lookups start at an even pace (AI-Ark allows 5 a second per key) however long each one takes
+    let slot = Date.now();
     const worker = async () => {
       while (next < todo.length && !stop && Date.now() - started < START_BUDGET_MS) {
         const lead = todo[next++];
+        if (rate) {
+          const wait = slot - Date.now();
+          slot = Math.max(slot, Date.now()) + 1000 / rate;
+          if (wait > 0) await new Promise((ok) => setTimeout(ok, wait));
+        }
         try {
           const r = mobile ? await findMobile(lead, maxCost, verify, round) : await findEmail(lead, maxCost, verify, round);
           if (r.verdict === 'retry') {

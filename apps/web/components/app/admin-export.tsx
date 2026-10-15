@@ -298,7 +298,13 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       // ids read from the search so far, and how many of those have since been looked up (and dropped out of it)
       let read = 0;
       let marked = 0;
-      const perCall = kind === 'mobile' && maxCost === 0 ? 3 : 4;
+      // our own AI-Ark key alone (cap 0) allows 5 lookups a second: two overlapping calls of 40 leads, each starting
+      // lookups at 2.25 a second, ran ~256 leads/min with 2% refused (retried) (2026-10-16). Runs on treg's providers
+      // keep 4 calls of 8 leads, 4 at a time
+      const ownKeyOnly = kind === 'mobile' && maxCost === 0;
+      const perCall = ownKeyOnly ? 8 : 4;
+      const batchSize = ownKeyOnly ? 40 : ENRICH_BATCH;
+      const rate = ownKeyOnly ? 2.25 : 0;
       let gathering = true;
       let tried = 0;
       let failed = 0;
@@ -353,13 +359,13 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
             await new Promise((ok) => setTimeout(ok, 250));
             continue;
           }
-          const batch = rounds[round].splice(0, ENRICH_BATCH);
+          const batch = rounds[round].splice(0, batchSize);
           // leads sent back as refused (rate limit) get a pause before they go again
           if (round > 0) await new Promise((ok) => setTimeout(ok, 4000));
           let r: EnrichResponse | null = null;
           for (let attempt = 0; attempt < 2 && !r; attempt++) {
             try {
-              r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify, round, concurrency: perCall });
+              r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify, round, concurrency: perCall, ...(rate ? { rate } : {}) });
             } catch (e) {
               const status = (e as { status?: number }).status;
               if (status === 402 || status === 403) {
@@ -393,10 +399,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       };
       // on our own AI-Ark key alone there is no shared rate limit: 16 calls at a time ran ~2,700 leads/min with no
       // errors (2026-10-15); runs that use treg's shared providers stay at 4
-      // our own AI-Ark key alone (cap 0) refuses beyond about 3 lookups at a time (measured 2026-10-15: 3 → 0% refused,
-      // ~220/min; 6 → 16%; 10 → 45%), so that runs one call of 3; runs on treg's providers keep 4 calls of 4
-      const ownKeyOnly = kind === 'mobile' && maxCost === 0;
-      const lanes = ownKeyOnly ? 1 : 4;
+      const lanes = ownKeyOnly ? 2 : 4;
       await Promise.all([gather(), ...Array.from({ length: lanes }, lane)]);
       setRun({ done, total: gathered, saved, costMicro, failed, unsaved, ownKey, tried, finished: true, stopped: cancelled.current && done < gathered });
     } catch (e) {
