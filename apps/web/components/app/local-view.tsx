@@ -485,7 +485,7 @@ export function LocalView({
         </div>
       </div>
 
-      <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
+      <BulkBar count={selected.size} onClear={() => setSelected(new Set())} width={790}>
         <BulkAction disabled={busy || !callable.length} onClick={() => void startDialler()}>
           <Phone size={16} strokeWidth={1.5} /> Start dialler with {callable.length.toLocaleString('en-GB')} {callable.length === 1 ? 'business' : 'businesses'}
         </BulkAction>

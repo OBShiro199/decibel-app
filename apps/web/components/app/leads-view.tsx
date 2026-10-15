@@ -547,7 +547,7 @@ export function LeadsView({
         </div>
       </div>
 
-      <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
+      <BulkBar count={selected.size} onClear={() => setSelected(new Set())} width={1100}>
         <BulkAction disabled={!!busy || !callable.length} onClick={startDialler}>
           <Phone size={16} strokeWidth={1.5} /> {busy === 'dial' ? 'Opening dialler…' : `Start dialler with ${callable.length.toLocaleString('en-GB')} ${callable.length === 1 ? 'lead' : 'leads'}`}
         </BulkAction>

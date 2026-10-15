@@ -69,15 +69,24 @@ export function getRecordNav(): string[] {
 }
 
 /** Fixed bottom bar on selection: 48px, black-0 fill, white text, radius 8, 16 inset. */
-export function BulkBar({ count, onClear, children }: { count: number; onClear: () => void; children: React.ReactNode }) {
+/**
+ * The floating selection bar. `width` fixes its size, so counts in the labels ("1 lead", "12 leads",
+ * "(3 credits)") never make it grow or shrink while the selection changes; the close button sits at the end.
+ */
+export function BulkBar({ count, onClear, children, width }: { count: number; onClear: () => void; children: React.ReactNode; width?: number }) {
   if (!count) return null;
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-menu flex justify-center px-4">
-      <div className="popover-in pointer-events-auto flex h-12 max-w-full items-center gap-1 overflow-x-auto rounded-md border border-white-800 bg-white-100 px-2 text-black-400 shadow-popover" role="toolbar" aria-label="Bulk actions">
-        <span className="tabular whitespace-nowrap px-2 text-sm font-medium">{count} selected</span>
+      <div
+        style={width ? { width } : undefined}
+        className="popover-in pointer-events-auto flex h-12 max-w-full items-center gap-1 overflow-x-auto rounded-md border border-white-800 bg-white-100 px-2 text-black-400 tabular-nums shadow-popover"
+        role="toolbar"
+        aria-label="Bulk actions"
+      >
+        <span className="tabular min-w-[92px] whitespace-nowrap px-2 text-sm font-medium">{count.toLocaleString('en-GB')} selected</span>
         <span className="mx-1 h-5 w-px shrink-0 bg-white-800" />
         {children}
-        <button onClick={onClear} aria-label="Clear selection" className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-black-700 hover:bg-white-300">
+        <button onClick={onClear} aria-label="Clear selection" className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-sm text-black-700 hover:bg-white-300">
           <X size={16} strokeWidth={1.5} />
         </button>
       </div>
