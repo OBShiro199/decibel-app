@@ -213,7 +213,7 @@ const ENRICH = {
     unsaved: 'more numbers found but not saved: landlines, 0800 numbers or not UK mobiles. The provider still charges for these.',
   },
 } as const;
-type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number }[]; cost_micro: number; pending?: string[] };
+type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number }[]; cost_micro: number; pending?: string[]; retry?: string[] };
 
 /** "Find missing emails / mobiles (treg)": choose how many and the cost cap, then a progress dialog. */
 export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
@@ -279,18 +279,22 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       }
       // the function hands back the leads it ran out of time for (pending); a failed call is tried once more
       // (treg answers a repeat of the same lookup from its store, unbilled), then its leads are skipped
-      const queue = [...ids];
+      // rounds[0] is the first pass; leads a provider rate-limited come back as `retry` and go round again (up to 2 more times)
+      const rounds: string[][] = [[...ids], [], []];
       let failed = 0;
       // found and paid for, but not saved (a landline or a non-UK number; an email the mailbox check failed)
       let unsaved = 0;
-      // three calls at a time; each takes the next batch off the shared queue
+      // four calls at a time; each takes the next batch from the earliest round with leads left
       const lane = async () => {
-        while (queue.length && !cancelled.current) {
-          const batch = queue.splice(0, ENRICH_BATCH);
+        for (;;) {
+          if (cancelled.current) return;
+          const round = rounds.findIndex((q) => q.length);
+          if (round < 0) return;
+          const batch = rounds[round].splice(0, ENRICH_BATCH);
           let r: EnrichResponse | null = null;
           for (let attempt = 0; attempt < 2 && !r; attempt++) {
             try {
-              r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify });
+              r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify, round });
             } catch (e) {
               const status = (e as { status?: number }).status;
               if (status === 402 || status === 403) {
@@ -307,16 +311,19 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
             continue;
           }
           const pending = r.pending ?? [];
-          queue.unshift(...pending);
-          done += batch.length - pending.length;
+          const retry = r.retry ?? [];
+          rounds[round].unshift(...pending);
+          if (round + 1 < rounds.length) rounds[round + 1].push(...retry);
+          else failed += retry.length;
+          done += batch.length - pending.length - (round + 1 < rounds.length ? retry.length : 0);
           saved += r.results.filter((x) => x.saved).length;
           failed += r.results.filter((x) => x.verdict === 'error' || x.verdict === 'timeout').length;
-          unsaved += r.results.filter((x) => !x.saved && x.cost_micro > 0).length;
+          unsaved += r.results.filter((x) => !x.saved && x.cost_micro > 0 && x.verdict !== 'retry').length;
           costMicro += r.cost_micro;
           setRun({ done, total: ids.length, saved, costMicro, failed, unsaved });
         }
       };
-      await Promise.all([lane(), lane(), lane()]);
+      await Promise.all([lane(), lane(), lane(), lane()]);
       setRun({ done, total: ids.length, saved, costMicro, failed, unsaved, finished: true, stopped: cancelled.current && done < ids.length });
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);

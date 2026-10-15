@@ -1,7 +1,8 @@
 // Find missing work emails (migration 0035) or mobiles (0036) through treg, for platform admins. POST with the user's JWT:
 //   { ids: string[] (≤ 12), kind?: 'email' | 'mobile', max_cost?: number (USD per lead, default 0.03 for email,
 //     0.005 for mobile = QuickEnrich alone), verify?: boolean (default true for email, false for mobile) }
-//   -> { results: [{ id, email, verdict, saved, cost_micro }], cost_micro, pending: string[] }
+//   -> { results: [{ id, email, verdict, saved, cost_micro }], cost_micro, pending: string[], retry: string[] }
+// `retry` (mobiles): leads where a provider was rate-limited or failed; send them again with round: 1, 2…
 // A treg lookup with verification can take most of a minute when it falls back across providers, and the
 // gateway drops a request after about two, so each call stops starting new leads after START_BUDGET_MS and
 // returns the ones it did not start as `pending` for the browser to send again; each lookup is cut off at
@@ -99,14 +100,20 @@ function identity(lead: Input): Record<string, string> {
   return body;
 }
 
-async function findMobile(lead: Input, maxCost: number, verify: boolean): Promise<Found> {
+async function findMobile(lead: Input, maxCost: number, verify: boolean, round: number): Promise<Found> {
   const body = identity(lead);
   if (lead.work_email) body.email = lead.work_email;
   if (!Object.keys(body).length) return { phone: null, verdict: 'miss', served_by: null, cost_micro: 0, call_id: null };
-  const r = await treg('treg.people.phone.find', body, maxCost, verify, `decibel-mobile-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}`);
+  // a retry round gets its own key, or treg would replay the throttled answer
+  const key = `decibel-mobile-${lead.contact_id}-${maxCost}-${verify ? 'v' : 'n'}${round ? `-r${round}` : ''}`;
+  const r = await treg('treg.people.phone.find', body, maxCost, verify, key);
   if (!r) return { phone: null, verdict: 'timeout', served_by: null, cost_micro: 0, call_id: null };
   if (!r.ok) return { phone: null, verdict: 'miss', served_by: null, cost_micro: r.cost, call_id: r.callId };
   const phone: string | null = r.d?.output?.phone ?? null;
+  // no number because a provider refused or failed (rate limit, outage), not because it had none: try again later
+  const tried: { outcome?: string; status?: number | null }[] = r.d?._treg?.tried ?? [];
+  if (!phone && tried.some((t) => t.status === 429 || (t.status ?? 0) >= 500 || t.outcome === 'error' || t.outcome === 'timeout'))
+    return { phone: null, verdict: 'retry', served_by: null, cost_micro: r.cost, call_id: r.callId };
   const v = r.d?._treg?.verification;
   // a live-line check that says dead is not saved; live or no answer is
   const verdict = !phone ? 'miss' : verify && v?.checked && String(v.verdict) === 'dead' ? 'dead' : 'found';
@@ -139,6 +146,7 @@ Deno.serve(async (req) => {
     ? Math.min(Math.max(Number(input.max_cost) || 0.005, 0.005), 0.75)
     : Math.min(Math.max(Number(input.max_cost) || 0.03, 0.005), 0.15);
   const verify = mobile ? input.verify === true : input.verify !== false;
+  const round = Math.min(Math.max(Math.round(Number(input.round) || 0), 0), 3);
   if (!ids.length) return json({ results: [], cost_micro: 0 });
 
   try {
@@ -148,13 +156,19 @@ Deno.serve(async (req) => {
     const results: { id: string; email?: string | null; phone?: string | null; verdict: string; saved: boolean; cost_micro: number }[] = [];
     let next = 0;
     let stop: Error | null = null;
+    const retry: string[] = [];
     const started = Date.now();
     const worker = async () => {
       while (next < todo.length && !stop && Date.now() - started < START_BUDGET_MS) {
         const lead = todo[next++];
         try {
           if (mobile) {
-            const r = await findMobile(lead, maxCost, verify);
+            const r = await findMobile(lead, maxCost, verify, round);
+            if (r.verdict === 'retry') {
+              retry.push(lead.contact_id);
+              results.push({ id: lead.contact_id, phone: null, verdict: 'retry', saved: false, cost_micro: r.cost_micro });
+              continue;
+            }
             const phone = await rpc<string | null>(req, 'admin_save_mobile', {
               p_contact_id: lead.contact_id,
               p_phone: r.phone,
@@ -204,7 +218,7 @@ Deno.serve(async (req) => {
     const cost = results.reduce((a, r) => a + r.cost_micro, 0);
     if (stop) return fail('treg_balance', 402, { message: 'The treg balance has run out. Top it up in treg (Team → Billing) to continue.', results, cost_micro: cost });
     const pending = todo.slice(next).map((l) => l.contact_id);
-    return json({ results, cost_micro: cost, skipped: leads.length - todo.length, pending });
+    return json({ results, cost_micro: cost, skipped: leads.length - todo.length, pending, retry });
   } catch (e) {
     const m = (e as Error).message;
     console.error('lead-enrich', m);
