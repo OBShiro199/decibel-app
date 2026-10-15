@@ -197,14 +197,14 @@ const ENRICH = {
       'Looks up mobile numbers through treg for matching leads that have none. Only mobile numbers are saved, into leads with no mobile yet. You pay only when a number is found. Billed to your treg balance, not Decibel credits.',
     missing: 'matching leads have no mobile.',
     caps: [
-      { v: 0.005, label: '$0.005 (QuickEnrich only)' },
-      { v: 0.03, label: '$0.03 (adds AI-Ark)' },
+      // AI-Ark runs on our own key (connected in treg, paid in AI-Ark credits), so treg tries it first at any cap
+      { v: 0.005, label: '$0.005 (your AI-Ark key, then QuickEnrich)' },
       { v: 0.05, label: '$0.05 (adds Tomba)' },
       { v: 0.1, label: '$0.10 (adds Dropleads, Aviato, LeadMagic)' },
       { v: 0.25, label: '$0.25 (adds Prospeo, Limadata, ContactOut)' },
       { v: 0.75, label: '$0.75 (everyone, including Lusha)' },
     ],
-    cap: 0.03,
+    cap: 0.005,
     verify: false,
     verifyLabel: 'Check the line is live before saving (about $0.01 more per number found)',
     typical: 'Misses are free: each number found costs what the provider that found it charges, up to the cap.',
@@ -213,7 +213,7 @@ const ENRICH = {
     unsaved: 'more numbers found but not saved: landlines, 0800 numbers or not UK mobiles. The provider still charges for these.',
   },
 } as const;
-type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number }[]; cost_micro: number; pending?: string[]; retry?: string[] };
+type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number; served_by?: string | null }[]; cost_micro: number; pending?: string[]; retry?: string[] };
 
 /** "Find missing emails / mobiles (treg)": choose how many and the cost cap, then a progress dialog. */
 export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
@@ -232,6 +232,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
     costMicro: number;
     failed?: number;
     unsaved?: number;
+    ownKey?: number;
     tried?: number;
     gathering?: boolean;
     error?: string;
@@ -290,8 +291,10 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       let failed = 0;
       // found and paid for, but not saved (a landline or a non-UK number; an email the mailbox check failed)
       let unsaved = 0;
+      // numbers AI-Ark found on our own key: free on treg, paid in AI-Ark credits (5 per number found)
+      let ownKey = 0;
       const planned = () => (gathering ? total : gathered);
-      const report = () => setRun({ done, total: planned(), saved, costMicro, failed, unsaved, tried, gathering });
+      const report = () => setRun({ done, total: planned(), saved, costMicro, failed, unsaved, ownKey, tried, gathering });
       const gather = async () => {
         try {
           if (fixed) {
@@ -365,12 +368,13 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           saved += r.results.filter((x) => x.saved).length;
           failed += r.results.filter((x) => x.verdict === 'error' || x.verdict === 'timeout').length;
           unsaved += r.results.filter((x) => !x.saved && x.cost_micro > 0 && x.verdict !== 'retry').length;
+          ownKey += r.results.filter((x) => x.verdict === 'found' && x.cost_micro === 0 && (x.served_by ?? '').startsWith('aiark')).length;
           costMicro += r.cost_micro;
           report();
         }
       };
       await Promise.all([gather(), lane(), lane(), lane(), lane()]);
-      setRun({ done, total: gathered, saved, costMicro, failed, unsaved, tried, finished: true, stopped: cancelled.current && done < gathered });
+      setRun({ done, total: gathered, saved, costMicro, failed, unsaved, ownKey, tried, finished: true, stopped: cancelled.current && done < gathered });
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
       setRun({ done, total, saved, costMicro, error: msg, finished: true });
@@ -515,6 +519,12 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
             {run.tried ? (
               <p className="mt-3 text-black-700">
                 <span className="tabular-nums">{n(run.tried)}</span> leads already looked up at this cap or higher were left out.
+              </p>
+            ) : null}
+            {run.ownKey ? (
+              <p className="mt-3 text-black-700">
+                AI-Ark found <span className="tabular-nums">{n(run.ownKey)}</span> of these on your own key: free on treg, about{' '}
+                <span className="tabular-nums">{n(run.ownKey * 5)}</span> AI-Ark credits.
               </p>
             ) : null}
             {run.unsaved ? (

@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
     if (!(await rpc<boolean>(req, 'is_platform_admin', {}))) return fail('forbidden', 403);
     const leads = await rpc<Input[]>(req, mobile ? 'admin_mobile_inputs' : 'admin_enrich_inputs', { p_ids: ids });
     const todo = leads.filter((l) => (mobile ? !l.mobile_phone : !l.work_email));
-    const results: { id: string; email?: string | null; phone?: string | null; verdict: string; saved: boolean; cost_micro: number }[] = [];
+    const results: { id: string; email?: string | null; phone?: string | null; verdict: string; saved: boolean; cost_micro: number; served_by?: string | null }[] = [];
     let next = 0;
     let stop: Error | null = null;
     const retry: string[] = [];
@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
                 body: JSON.stringify({ has_mobile: true, mobile_codes_h: Array.from({ length: p.length - 1 }, (_, n) => crc(p.slice(0, n + 2))) }),
               }).catch(() => {});
             }
-            results.push({ id: lead.contact_id, phone, verdict: r.verdict, saved: !!phone, cost_micro: r.cost_micro });
+            results.push({ id: lead.contact_id, phone, verdict: r.verdict, saved: !!phone, cost_micro: r.cost_micro, served_by: r.served_by });
             continue;
           }
           const r = await findEmail(lead, maxCost, verify);
