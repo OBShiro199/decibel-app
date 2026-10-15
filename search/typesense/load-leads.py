@@ -9,6 +9,7 @@ collection, so a reload never interrupts search. Runs on the search server:
     python3 load-leads.py --limit 20000      # a sample
     python3 load-leads.py --max-rate 2000    # cap rows per second (gentler on Supabase)
     python3 load-leads.py --in-place         # add new leads / refresh existing ones in the live collection
+    python3 load-leads.py --ids-file ids.txt # just these leads (one contact_id per line), in place; no full read
 
 Needs /opt/typesense/.env (TYPESENSE_API_KEY) and /opt/typesense/reader.env (PG*).
 Phone numbers and emails never reach this server: the view only has yes/no flags
@@ -16,7 +17,7 @@ and the mobile dialling code. Exact-match values (country, industry, seniorityâ€
 stored as crc32 numbers (fields ending _h), about a sixth of the memory of text;
 the lead-search function hashes filter values the same way.
 """
-import argparse, csv, datetime, io, json, os, subprocess, sys, time, urllib.request, zlib
+import argparse, csv, datetime, io, json, os, re, subprocess, sys, time, urllib.request, zlib
 
 TS = os.environ.get('TYPESENSE_LOCAL', 'http://127.0.0.1:8108')
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -98,7 +99,16 @@ def main():
     ap.add_argument('--alias', default='leads', help='alias to point at the new collection')
     ap.add_argument('--max-memory-gb', type=float, default=6.0, help='stop (and keep the current collection) above this')
     ap.add_argument('--in-place', action='store_true', help='upsert into the collection behind the alias instead of building a new one (new leads are added, existing ones refreshed; memory stays flat)')
+    ap.add_argument('--ids-file', help='load only these contact_ids (one per line), in place, looked up 1,000 at a time by index instead of reading the whole table')
     a = ap.parse_args()
+    ids = None
+    if a.ids_file:
+        a.in_place = True
+        uuid = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+        ids = list(dict.fromkeys(l.strip() for l in open(a.ids_file) if uuid.match(l.strip())))
+        print(f'{len(ids):,} contact ids to load', flush=True)
+        if not ids:
+            sys.exit('no contact ids in the file')
 
     schema = json.load(open(a.schema))
     keep = {f['name'] for f in schema['fields']}
@@ -113,10 +123,24 @@ def main():
         ts('POST', '/collections', schema)
         print(f'created {name}', flush=True)
 
-    sql = f"select {', '.join(COLS)} from search_export.leads" + (f' limit {a.limit}' if a.limit else '')
-    pg = subprocess.Popen(['psql', '-X', '-q', '-c', f'\\copy ({sql}) to stdout with csv'], stdout=subprocess.PIPE,
-                          env={**os.environ, **env_file('/opt/typesense/reader.env')})
-    reader = csv.reader(io.TextIOWrapper(pg.stdout, encoding='utf-8', newline=''))
+    base = f"select {', '.join(COLS)} from search_export.leads"
+    if ids is None:
+        sqls = [base + (f' limit {a.limit}' if a.limit else '')]
+    else:
+        # ids are checked as uuids above, so they are safe to inline
+        sqls = [base + " where contact_id in (" + ', '.join(f"'{x}'" for x in ids[i:i + 1000]) + ")" for i in range(0, len(ids), 1000)]
+    pg = None
+
+    def rows():
+        nonlocal pg
+        for sql in sqls:
+            pg = subprocess.Popen(['psql', '-X', '-q', '-c', f'\\copy ({sql}) to stdout with csv'], stdout=subprocess.PIPE,
+                                  env={**os.environ, **env_file('/opt/typesense/reader.env')})
+            yield from csv.reader(io.TextIOWrapper(pg.stdout, encoding='utf-8', newline=''))
+            if pg.wait() != 0:
+                return
+
+    reader = rows()
     batch, n, failed, t0 = [], 0, 0, time.time()
 
     def flush():

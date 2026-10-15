@@ -22,5 +22,7 @@ New leads reach search automatically: a systemd timer (`decibel-leads-nightly`) 
 `load-leads.py --in-place --max-rate 1500` at 01:00 UTC, adding new leads and refreshing existing ones in
 the live collection (log: `/var/log/decibel-leads-nightly.log`). To send them over straight away after an
 import, on the server: `cd /opt/typesense && python3 load-leads.py --in-place --max-rate 1500` (~30 min,
-read-only on Supabase; the app stayed fast at this rate). A full rebuild into a fresh collection (drops
+read-only on Supabase; the app stayed fast at this rate). Quicker after an import: put the new contact_ids (one per line,
+e.g. the first column of the CSVs) in a file on the server and run `python3 load-leads.py --ids-file ids.txt`,
+which looks them up 1,000 at a time by index (87k leads in about 2 minutes, no full read of data_list). A full rebuild into a fresh collection (drops
 leads deleted from data_list) is the same command without `--in-place`; it briefly needs twice the memory.
