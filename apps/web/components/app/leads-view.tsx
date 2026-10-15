@@ -39,7 +39,7 @@ import { Checkbox, Input } from '@/components/ui/form';
 import { LinkedinLogo } from '@/components/ui/linkedin-logo';
 import { QUICK_KEYS, QuickFilters } from '@/components/app/quick-filters';
 import { useAdminEnrich, useAdminExport, useIsPlatformAdmin } from '@/components/app/admin-export';
-import { ExportTpsDialog, type ExportItem } from '@/components/app/export-tps';
+import { ExportDialog, type ExportRequest } from '@/components/app/export-tps';
 import { Dialog, MenuItem, Popover, useToast } from '@/components/ui/overlay';
 import { SaveSearchDialog, type SavedListRef } from '@/components/app/save-search';
 
@@ -110,7 +110,7 @@ export function LeadsView({
   const [confirm, setConfirm] = useState<null | { title: string; body: string; action: string; run: () => Promise<void> }>(null);
   const isPlatformAdmin = useIsPlatformAdmin();
   const adminExport = useAdminExport();
-  const [tpsExport, setTpsExport] = useState<ExportItem[] | null>(null);
+  const [exportReq, setExportReq] = useState<ExportRequest | null>(null);
   const adminEnrich = useAdminEnrich();
   const adminMobiles = useAdminEnrich('mobile');
 
@@ -172,29 +172,28 @@ export function LeadsView({
     setSelected(new Set());
   };
 
-  /** Revealed leads go through the TPS/CTPS check (ExportTpsDialog) before they can be downloaded. */
-  const download = (leads: LeadRow[], people: Person[]) => {
-    const lookup = new Map(leads.map((l) => [l.lead_id, l]));
-    setTpsExport(people.map((p) => ({ key: p.id, mobile: p.mobile_e164 ?? null, row: csvRow(lookup.get(p.source_lead_id ?? ''), p) })));
-  };
 
-  /** Export the given leads: reveal any not yet revealed (with a confirmation), then download. */
+
+  /** Export the given leads in one dialog (ExportDialog): confirm the reveal cost, reveal, check every mobile
+   * against TPS/CTPS, then download all, passed or failed. */
   const exportLeads = (leads: LeadRow[], label: string) => {
     const fresh = leads.filter((l) => !l.person_id && !l.on_dnc).length;
-    const run = async () => {
-      const { people, ok } = await reveal(
-        leads.map((l) => l.lead_id),
-        null,
-        'export',
-      );
-      if (ok && people.length) download(leads, people);
-    };
-    if (!fresh) return void run();
-    setConfirm({
+    const lookup = new Map(leads.map((l) => [l.lead_id, l]));
+    setExportReq({
       title: `Export ${label}`,
-      body: `${fresh.toLocaleString('en-GB')} of these ${leads.length.toLocaleString('en-GB')} leads are not revealed yet, so exporting them uses ${cost(fresh)}. Leads you have already revealed are free. You have ${workspace.credit_balance.toLocaleString('en-GB')} credits.`,
+      body: fresh
+        ? `${fresh.toLocaleString('en-GB')} of these ${leads.length.toLocaleString('en-GB')} leads are not revealed yet, so exporting them uses ${cost(fresh)}. Leads you have already revealed are free. You have ${workspace.credit_balance.toLocaleString('en-GB')} credits.`
+        : null,
       action: `Reveal and export (${cost(fresh)})`,
-      run,
+      prepare: async () => {
+        const { people, ok } = await reveal(
+          leads.map((l) => l.lead_id),
+          null,
+          'export',
+        );
+        if (!ok) return null;
+        return people.map((p) => ({ key: p.id, mobile: p.mobile_e164 ?? null, row: csvRow(lookup.get(p.source_lead_id ?? ''), p) }));
+      },
     });
   };
 
@@ -589,7 +588,7 @@ export function LeadsView({
       />
       {adminExport.dialog}
       {adminEnrich.dialog}
-      <ExportTpsDialog items={tpsExport} onClose={() => setTpsExport(null)} />
+      <ExportDialog request={exportReq} onClose={() => setExportReq(null)} />
       {adminMobiles.dialog}
       <Dialog open={!!confirm} onClose={() => setConfirm(null)} title={confirm?.title ?? ''}>
         <p className="text-black-700">{confirm?.body}</p>

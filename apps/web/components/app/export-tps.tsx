@@ -1,7 +1,8 @@
 'use client';
 
-// Leads export, last step: every mobile in the export is checked against the TPS and CTPS registers
-// before the file can be downloaded. It runs as an ordinary TPS/CTPS check (migration 0023, Provero), so
+// Leads export in one dialog that changes step in place (Dialog `morph`): confirm the reveal cost, reveal,
+// then every mobile in the export is checked against the TPS and CTPS registers before the file can be
+// downloaded. It runs as an ordinary TPS/CTPS check (migration 0023, Provero), so
 // it uses check credits, reuses clear results from the last 30 days for free (0039), and shows up in
 // Recent checks on /app/tps. When it ends, the results are written onto the people (tps_apply_to_people)
 // and the export can be downloaded whole, passed only, or failed only.
@@ -17,6 +18,15 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/overlay';
 import { openSupport } from '@/components/app/support-widget';
 
+/** What to export: the confirm step's text (body null = nothing to confirm, start straight away) and how to
+ * reveal the leads and build their rows. */
+export interface ExportRequest {
+  title: string;
+  body: string | null;
+  action: string;
+  prepare: () => Promise<ExportItem[] | null>;
+}
+
 export interface ExportItem {
   /** person id, kept in the check's first column */
   key: string;
@@ -29,9 +39,30 @@ const n = (v: number) => v.toLocaleString('en-GB');
 const day = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
 type Pick = 'all' | 'passed' | 'failed';
 
-export function ExportTpsDialog({ items, onClose }: { items: ExportItem[] | null; onClose: () => void }) {
+export function ExportDialog({ request, onClose }: { request: ExportRequest | null; onClose: () => void }) {
   const { workspace } = useApp();
   const qc = useQueryClient();
+  const [items, setItems] = useState<ExportItem[] | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const asked = useRef<ExportRequest | null>(null);
+
+  const go = async (req: ExportRequest) => {
+    setPreparing(true);
+    const got = await req.prepare();
+    setPreparing(false);
+    if (asked.current !== req) return;
+    if (!got?.length) return onClose();
+    setItems(got);
+  };
+
+  // a new export starts at its confirm step, or straight at the reveal when there is nothing to confirm
+  useEffect(() => {
+    if (!request || asked.current === request) return;
+    asked.current = request;
+    setItems(null);
+    if (!request.body) void go(request);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request]);
   const [jobId, setJobId] = useState<string | null>(null);
   const [error, setError] = useState<{ text: string; topUp?: boolean } | null>(null);
   const [results, setResults] = useState<ResultRow[] | null>(null);
@@ -121,18 +152,36 @@ export function ExportTpsDialog({ items, onClose }: { items: ExportItem[] | null
   const pct = results ? 100 : total ? Math.round((done / total) * 100) : 0;
   const ready = !!results && !error;
 
+  const confirming = !!request && !items && !preparing && !!request.body;
+  const step = confirming ? 'confirm' : !items ? 'reveal' : error ? 'error' : ready ? 'done' : 'check';
+
   return (
     <Dialog
-      open={!!items}
-      onClose={() => (ready || error ? onClose() : void stop())}
-      title={ready ? 'TPS/CTPS check done' : 'Checking TPS/CTPS'}
+      open={!!request}
+      morph
+      width={step === 'confirm' || step === 'reveal' ? 460 : 520}
+      onClose={() => (step === 'check' ? void stop() : step === 'reveal' ? undefined : onClose())}
+      title={step === 'confirm' || step === 'reveal' ? request?.title : step === 'done' ? 'TPS/CTPS check done' : 'Checking TPS/CTPS'}
       description={
-        ready
+        step === 'done'
           ? 'Choose what to export. The file includes each lead’s TPS/CTPS result.'
-          : 'Every mobile in this export is checked against the TPS and Corporate TPS registers before you can download it.'
+          : step === 'check'
+            ? 'Every mobile in this export is checked against the TPS and Corporate TPS registers before you can download it.'
+            : undefined
       }
       footer={
-        ready ? (
+        step === 'confirm' ? (
+          <>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button variant="primary" onClick={() => request && void go(request)}>
+              {request?.action}
+            </Button>
+          </>
+        ) : step === 'reveal' ? (
+          <Button variant="primary" disabled>
+            Revealing…
+          </Button>
+        ) : step === 'done' ? (
           <>
             <Button onClick={() => download('failed')} disabled={!counts.failed}>
               Failed only ({n(counts.failed)})
@@ -144,10 +193,10 @@ export function ExportTpsDialog({ items, onClose }: { items: ExportItem[] | null
               Export all ({n(items?.length ?? 0)})
             </Button>
           </>
-        ) : error ? (
+        ) : step === 'error' ? (
           <>
             <Button onClick={onClose}>Close</Button>
-            {error.topUp ? (
+            {error?.topUp ? (
               <Button variant="primary" onClick={() => openSupport(TOP_UP_MESSAGE)}>
                 <Coins size={14} /> Top up check credits
               </Button>
@@ -158,48 +207,58 @@ export function ExportTpsDialog({ items, onClose }: { items: ExportItem[] | null
         )
       }
     >
-      {error ? (
-        <p role="alert" className="text-[#94402f]">
-          {error.text} Nothing has been exported.
-        </p>
-      ) : ready ? (
-        <div className="space-y-2.5">
-          <Line dot={OUTCOMES.valid.bar} label="Passed: not on TPS or CTPS" value={counts.passed} />
-          <Line dot={OUTCOMES.tps.bar} label="Failed: on TPS or CTPS (do not call)" value={counts.failed} />
-          <Line dot={OUTCOMES.missing.bar} label="No UK mobile, invalid or not checked" value={counts.other} hint="Included in Export all only." />
-          {j ? (
-            <p className="flex items-center gap-1.5 pt-1 text-black-700">
+      <div key={step} className="dialog-step-in">
+        {step === 'confirm' || step === 'reveal' ? (
+          <div className="space-y-3">
+            <p className="text-black-700">{request?.body ?? 'Getting your leads ready…'}</p>
+            <p className="flex items-center gap-1.5 text-black-700">
               <ShieldCheck size={14} className="text-[#3f8f5e]" />
-              {n(j.numbers_total - j.numbers_reused)} {j.numbers_total - j.numbers_reused === 1 ? 'number' : 'numbers'} checked now
-              {j.numbers_reused ? `, ${n(j.numbers_reused)} clear in the last 30 days (free)` : ''}.
+              Next, every mobile is checked against TPS and CTPS before you download.
             </p>
-          ) : null}
-        </div>
-      ) : (
-        <div>
-          <p className="flex items-baseline justify-between text-black-700">
-            <span>
-              {j ? (
-                <>
-                  <span className="font-medium tabular-nums text-black-400">{n(done)}</span> of {n(total)} numbers checked
-                </>
-              ) : (
-                'Starting the check…'
-              )}
-            </span>
-            <span className="tabular-nums">{pct}%</span>
-          </p>
-          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
-            <div className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300" style={{ width: `${Math.max(2, pct)}%` }} />
           </div>
-          {j?.numbers_reused ? (
-            <p className="mt-3 text-black-700">
-              {n(j.numbers_reused)} {j.numbers_reused === 1 ? 'number was' : 'numbers were'} found clear in the last 30 days, so {j.numbers_reused === 1 ? 'it is' : 'they are'} not checked again (free).
+        ) : step === 'error' ? (
+          <p role="alert" className="text-[#94402f]">
+            {error?.text} Nothing has been exported.
+          </p>
+        ) : step === 'done' ? (
+          <div className="space-y-2.5">
+            <Line dot={OUTCOMES.valid.bar} label="Passed: not on TPS or CTPS" value={counts.passed} />
+            <Line dot={OUTCOMES.tps.bar} label="Failed: on TPS or CTPS (do not call)" value={counts.failed} />
+            <Line dot={OUTCOMES.missing.bar} label="No UK mobile, invalid or not checked" value={counts.other} hint="Included in Export all only." />
+            {j ? (
+              <p className="flex items-center gap-1.5 pt-1 text-black-700">
+                <ShieldCheck size={14} className="text-[#3f8f5e]" />
+                {n(j.numbers_total - j.numbers_reused)} {j.numbers_total - j.numbers_reused === 1 ? 'number' : 'numbers'} checked now
+                {j.numbers_reused ? `, ${n(j.numbers_reused)} clear in the last 30 days (free)` : ''}.
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div>
+            <p className="flex items-baseline justify-between text-black-700">
+              <span>
+                {j ? (
+                  <>
+                    <span className="font-medium tabular-nums text-black-400">{n(done)}</span> of {n(total)} numbers checked
+                  </>
+                ) : (
+                  'Starting the check…'
+                )}
+              </span>
+              <span className="tabular-nums">{pct}%</span>
             </p>
-          ) : null}
-          {j ? <p className="mt-1 text-black-700">Uses {n(j.credits_reserved)} check {j.credits_reserved === 1 ? 'credit' : 'credits'}. You can export when the check is done.</p> : null}
-        </div>
-      )}
+            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+              <div className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300" style={{ width: `${Math.max(2, pct)}%` }} />
+            </div>
+            {j?.numbers_reused ? (
+              <p className="mt-3 text-black-700">
+                {n(j.numbers_reused)} {j.numbers_reused === 1 ? 'number was' : 'numbers were'} found clear in the last 30 days, so {j.numbers_reused === 1 ? 'it is' : 'they are'} not checked again (free).
+              </p>
+            ) : null}
+            {j ? <p className="mt-1 text-black-700">Uses {n(j.credits_reserved)} check {j.credits_reserved === 1 ? 'credit' : 'credits'}. You can export when the check is done.</p> : null}
+          </div>
+        )}
+      </div>
     </Dialog>
   );
 }

@@ -34,6 +34,7 @@ export function Dialog({
   children,
   footer,
   width = 520,
+  morph = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -42,6 +43,8 @@ export function Dialog({
   children?: React.ReactNode;
   footer?: React.ReactNode;
   width?: number;
+  /** a multi-step dialog: height (and width, when `width` changes) animate to each step's content */
+  morph?: boolean;
 }) {
   useEscape(open, onClose);
   const ref = useRef<HTMLDivElement>(null);
@@ -60,8 +63,45 @@ export function Dialog({
           aria-label={title}
           tabIndex={-1}
           style={{ maxWidth: width }}
-          className="dialog-in pointer-events-auto w-full rounded-lg border border-white-800 bg-white-100 p-6 outline-none"
+          className={cn(
+            'dialog-in pointer-events-auto w-full rounded-lg border border-white-800 bg-white-100 outline-none',
+            morph ? 'transition-[max-width] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none' : 'p-6',
+          )}
         >
+          {morph ? (
+            <MorphHeight>
+              <div className="p-6">
+                <DialogBody title={title} description={description} onClose={onClose} footer={footer}>
+                  {children}
+                </DialogBody>
+              </div>
+            </MorphHeight>
+          ) : (
+            <DialogBody title={title} description={description} onClose={onClose} footer={footer}>
+              {children}
+            </DialogBody>
+          )}
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+function DialogBody({
+  title,
+  description,
+  onClose,
+  footer,
+  children,
+}: {
+  title?: string;
+  description?: React.ReactNode;
+  onClose: () => void;
+  footer?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <>
           {title ? (
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
@@ -75,9 +115,30 @@ export function Dialog({
           ) : null}
           {children}
           {footer ? <div className="mt-6 flex justify-end gap-2">{footer}</div> : null}
-        </div>
-      </div>
-    </Portal>
+    </>
+  );
+}
+
+/** Animates its height to whatever its content measures, so a dialog grows or shrinks smoothly between steps. */
+function MorphHeight({ children }: { children: React.ReactNode }) {
+  const inner = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = inner.current;
+    if (!el) return;
+    const measure = () => setHeight(el.offsetHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div
+      style={{ height: height ?? 'auto' }}
+      className="overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none"
+    >
+      <div ref={inner}>{children}</div>
+    </div>
   );
 }
 

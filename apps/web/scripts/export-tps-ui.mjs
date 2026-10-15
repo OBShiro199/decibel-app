@@ -214,9 +214,13 @@ async function main() {
   await sleep(400);
   const clicked = await b.evaluate(`window.__t.click('Export CSV')`);
   check('Export CSV clicked in the selection bar', clicked);
+  const confirmStep = await waitFor(b, `document.querySelector('[role=dialog]')?.innerText.includes('not revealed yet')`, 8000);
+  check('one dialog opens at the confirm step', confirmStep && (await b.evaluate(`document.querySelectorAll('[role=dialog]').length`)) === 1);
+  await sleep(400);
+  await b.shot('export-tps-confirm');
   await waitFor(b, `window.__t.click('Reveal and export')`, 8000);
   const opened = await waitFor(b, `document.body.innerText.includes('Checking TPS/CTPS')`, 20000);
-  check('TPS/CTPS check dialog opens before any download', opened);
+  check('the same dialog moves on to the TPS/CTPS check before any download', opened && (await b.evaluate(`document.querySelectorAll('[role=dialog]').length`)) === 1);
   await b.shot('export-tps-checking');
   check('no file downloaded while checking', readdirSync(dir).length === 0);
   const done = await waitFor(b, `document.body.innerText.includes('TPS/CTPS check done')`, 120000);

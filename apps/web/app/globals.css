@@ -394,6 +394,9 @@ html:has([data-page-scroll]) {
 .page-in { animation: fade-in 220ms var(--ease-out) both; }
 .popover-in { animation: pop-in 160ms var(--ease-out) both; transform-origin: top left; }
 .dialog-in { animation: dialog-in 220ms var(--ease-out) both; }
+/* a step of a multi-step (morphing) dialog fading in after the height change starts */
+@keyframes dialog-step-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.dialog-step-in { animation: dialog-step-in 260ms var(--ease-out) 60ms both; }
 .overlay-in { animation: fade-in 200ms var(--ease-out) both; }
 .toast-in { animation: toast-in 240ms var(--ease-out) both; }
 
@@ -426,7 +429,7 @@ html:has([data-page-scroll]) {
 .tbl tbody tr { transition: background-color 160ms ease; }
 
 @media (prefers-reduced-motion: reduce) {
-  .page-in, .popover-in, .dialog-in, .overlay-in, .toast-in,
+  .page-in, .popover-in, .dialog-in, .dialog-step-in, .overlay-in, .toast-in,
   .reveal-once .tbl tbody tr, .stagger > * { animation: none !important; }
 }
 
