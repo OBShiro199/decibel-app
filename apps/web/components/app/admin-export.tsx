@@ -1,20 +1,20 @@
-'use client';
+"use client";
 // Platform admins (migration 0033) can export every lead matching a Leads search, with full contact
 // details, free and without revealing into People. The browser walks the matches 1,000 at a time:
 // ids from Typesense (lead-search, ids_only), then full rows from admin_export_leads (checked and
 // audited server side), with a short pause between batches so the database stays responsive.
-import { useQuery } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
-import { useApp } from '@/lib/app-context';
-import type { Filters } from '@/lib/lead-search';
-import { invoke, supabase } from '@/lib/supabase/client';
-import { downloadCsv } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Dialog, useToast } from '@/components/ui/overlay';
+import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useApp } from "@/lib/app-context";
+import type { Filters } from "@/lib/lead-search";
+import { invoke, supabase } from "@/lib/supabase/client";
+import { downloadCsv } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Dialog, useToast } from "@/components/ui/overlay";
 
 const BATCH = 1000;
 const PAUSE_MS = 250;
-const n = (v: number) => v.toLocaleString('en-GB');
+const n = (v: number) => v.toLocaleString("en-GB");
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface AdminRow {
@@ -42,21 +42,27 @@ interface AdminRow {
 }
 
 export function useIsPlatformAdmin() {
-  return useQuery({
-    queryKey: ['platform-admin'],
-    staleTime: Infinity,
-    queryFn: async () => {
-      const { data, error } = await supabase().rpc('is_platform_admin');
-      return !error && data === true;
-    },
-  }).data === true;
+  return (
+    useQuery({
+      queryKey: ["platform-admin"],
+      staleTime: Infinity,
+      queryFn: async () => {
+        const { data, error } = await supabase().rpc("is_platform_admin");
+        return !error && data === true;
+      },
+    }).data === true
+  );
 }
 
 /** "Export all matching leads" for platform admins: a progress dialog and the export loop. */
 export function useAdminExport() {
   const { workspace } = useApp();
   const toast = useToast();
-  const [run, setRun] = useState<null | { done: number; total: number; error?: string }>(null);
+  const [run, setRun] = useState<null | {
+    done: number;
+    total: number;
+    error?: string;
+  }>(null);
   const cancelled = useRef(false);
 
   async function start(filters: Filters, total: number) {
@@ -64,41 +70,64 @@ export function useAdminExport() {
     setRun({ done: 0, total });
     const rows: Record<string, unknown>[] = [];
     try {
-      for (let offset = 0; offset < total && !cancelled.current; offset += BATCH) {
-        const { ids } = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset, limit: BATCH, ids_only: true });
+      for (
+        let offset = 0;
+        offset < total && !cancelled.current;
+        offset += BATCH
+      ) {
+        const { ids } = await invoke<{ ids: string[] }>("lead-search", {
+          workspace_id: workspace.id,
+          filters,
+          offset,
+          limit: BATCH,
+          ids_only: true,
+        });
         if (!ids.length) break;
-        const { data, error } = await supabase().rpc('admin_export_leads', { p_workspace_id: workspace.id, p_ids: ids });
-        if (error) throw new Error(error.message.includes('forbidden') ? 'Only platform admins can do this.' : error.message);
+        const { data, error } = await supabase().rpc("admin_export_leads", {
+          p_workspace_id: workspace.id,
+          p_ids: ids,
+        });
+        if (error)
+          throw new Error(
+            error.message.includes("forbidden")
+              ? "Only platform admins can do this."
+              : error.message,
+          );
         for (const r of (data ?? []) as AdminRow[]) {
           rows.push({
-            name: r.full_name ?? '',
-            first_name: r.first_name ?? '',
-            last_name: r.last_name ?? '',
-            title: r.current_title ?? '',
-            seniority: r.seniority_level ?? '',
-            department: r.department ?? '',
-            company: r.company_name ?? '',
-            company_domain: r.company_domain ?? '',
-            industry: r.company_industry ?? '',
-            company_size: r.employee_count_range ?? '',
-            revenue: r.revenue_range ?? '',
-            hq_country: r.company_hq_country ?? '',
-            country: r.contact_country ?? '',
-            city: r.contact_city ?? '',
-            location: r.contact_location ?? '',
-            linkedin: r.linkedin_url ?? '',
-            mobile: r.mobile_phone ?? '',
-            work_email: r.work_email ?? '',
-            email_status: r.email_status ?? '',
-            personal_emails: r.personal_emails ?? '',
+            name: r.full_name ?? "",
+            first_name: r.first_name ?? "",
+            last_name: r.last_name ?? "",
+            title: r.current_title ?? "",
+            seniority: r.seniority_level ?? "",
+            department: r.department ?? "",
+            company: r.company_name ?? "",
+            company_domain: r.company_domain ?? "",
+            industry: r.company_industry ?? "",
+            company_size: r.employee_count_range ?? "",
+            revenue: r.revenue_range ?? "",
+            hq_country: r.company_hq_country ?? "",
+            country: r.contact_country ?? "",
+            city: r.contact_city ?? "",
+            location: r.contact_location ?? "",
+            linkedin: r.linkedin_url ?? "",
+            mobile: r.mobile_phone ?? "",
+            work_email: r.work_email ?? "",
+            email_status: r.email_status ?? "",
+            personal_emails: r.personal_emails ?? "",
           });
         }
         setRun({ done: rows.length, total });
         await sleep(PAUSE_MS);
       }
       if (rows.length) {
-        downloadCsv(`decibel-leads-all-${new Date().toISOString().slice(0, 10)}.csv`, rows);
-        toast(`${cancelled.current ? 'Stopped early: ' : ''}${n(rows.length)} leads exported`);
+        downloadCsv(
+          `decibel-leads-all-${new Date().toISOString().slice(0, 10)}.csv`,
+          rows,
+        );
+        toast(
+          `${cancelled.current ? "Stopped early: " : ""}${n(rows.length)} leads exported`,
+        );
       }
       setRun(null);
     } catch (e) {
@@ -132,19 +161,44 @@ export function useAdminExport() {
         <div>
           <p className="flex items-baseline justify-between text-black-700">
             <span>
-              <span className="font-medium tabular-nums text-black-400">{n(run.done)}</span> of {n(run.total)} leads
+              <span className="font-medium tabular-nums text-black-400">
+                {n(run.done)}
+              </span>{" "}
+              of {n(run.total)} leads
             </span>
-            <span className="tabular-nums">{run.total ? Math.floor((run.done / run.total) * 100) : 0}%</span>
+            <span className="tabular-nums">
+              {run.total ? Math.floor((run.done / run.total) * 100) : 0}%
+            </span>
           </p>
-          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={run.total ? Math.floor((run.done / run.total) * 100) : 0}>
-            <div className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300" style={{ width: `${run.total ? Math.max(2, (run.done / run.total) * 100) : 2}%` }} />
+          <div
+            className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={
+              run.total ? Math.floor((run.done / run.total) * 100) : 0
+            }
+          >
+            <div
+              className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300"
+              style={{
+                width: `${run.total ? Math.max(2, (run.done / run.total) * 100) : 2}%`,
+              }}
+            />
           </div>
           {run.error ? (
             <p role="alert" className="mt-3 text-danger-700">
               {run.error}
             </p>
           ) : (
-            <p className="mt-3 text-black-700">About {Math.max(1, Math.ceil(((run.total - run.done) / BATCH) * 1.4 / 60))} min left.</p>
+            <p className="mt-3 text-black-700">
+              About{" "}
+              {Math.max(
+                1,
+                Math.ceil((((run.total - run.done) / BATCH) * 1.4) / 60),
+              )}{" "}
+              min left.
+            </p>
           )}
         </div>
       ) : null}
@@ -158,66 +212,97 @@ export function useAdminExport() {
 const ENRICH_BATCH = 8;
 const ENRICH = {
   email: {
-    filter: 'hasEmail',
-    title: 'Find missing emails',
-    running: 'Finding emails',
-    what: 'emails',
+    filter: "hasEmail",
+    title: "Find missing emails",
+    running: "Finding emails",
+    what: "emails",
     description:
-      'Looks up work emails through treg for matching leads that have none. Only emails the mailbox check rates valid (or catch-all) are saved. Billed to your treg balance, not Decibel credits.',
-    missing: 'matching leads have no work email.',
+      "Looks up work emails through treg for matching leads that have none. Only emails the mailbox check rates valid (or catch-all) are saved. Billed to your treg balance, not Decibel credits.",
+    missing: "matching leads have no work email.",
     caps: [
-      { v: 0.01, label: '$0.01' },
-      { v: 0.02, label: '$0.02' },
-      { v: 0.03, label: '$0.03' },
-      { v: 0.05, label: '$0.05' },
+      { v: 0.01, label: "$0.01" },
+      { v: 0.02, label: "$0.02" },
+      { v: 0.03, label: "$0.03" },
+      { v: 0.05, label: "$0.05" },
     ],
     cap: 0.03,
     verify: true,
     verifyLabel: "Check each email's mailbox before saving (recommended)",
-    typical: 'Typically about $0.008 a lead (misses cost a little too).',
-    shown: 'Emails appear in Leads as they are found.',
+    typical: "Typically about $0.008 a lead (misses cost a little too).",
+    shown: "Emails appear in Leads as they are found.",
   },
   mobile: {
-    filter: 'hasMobile',
-    title: 'Find missing mobiles',
-    running: 'Finding mobiles',
-    what: 'mobiles',
+    filter: "hasMobile",
+    title: "Find missing mobiles",
+    running: "Finding mobiles",
+    what: "mobiles",
     description:
-      'Looks up mobile numbers through treg for matching leads that have none. Only mobile numbers are saved, into leads with no mobile yet. You pay only when a number is found. Billed to your treg balance, not Decibel credits.',
-    missing: 'matching leads have no mobile.',
+      "Looks up mobile numbers through treg for matching leads that have none. Only mobile numbers are saved, into leads with no mobile yet. You pay only when a number is found. Billed to your treg balance, not Decibel credits.",
+    missing: "matching leads have no mobile.",
     caps: [
-      { v: 0.005, label: '$0.005 (QuickEnrich only)' },
-      { v: 0.03, label: '$0.03 (adds AI-Ark)' },
-      { v: 0.05, label: '$0.05 (adds Tomba)' },
-      { v: 0.25, label: '$0.25 (adds Prospeo, Limadata, ContactOut)' },
+      { v: 0.005, label: "$0.005 (QuickEnrich only)" },
+      { v: 0.03, label: "$0.03 (adds AI-Ark)" },
+      { v: 0.05, label: "$0.05 (adds Tomba)" },
+      { v: 0.25, label: "$0.25 (adds Prospeo, Limadata, ContactOut)" },
     ],
     cap: 0.005,
     verify: false,
-    verifyLabel: 'Check the line is live before saving (about $0.01 more per number found)',
-    typical: 'Misses are free: each number found costs what the provider that found it charges, up to the cap.',
-    shown: 'Mobiles appear in Leads as they are found.',
+    verifyLabel:
+      "Check the line is live before saving (about $0.01 more per number found)",
+    typical:
+      "Misses are free: each number found costs what the provider that found it charges, up to the cap.",
+    shown: "Mobiles appear in Leads as they are found.",
   },
 } as const;
-type EnrichResponse = { results: { saved: boolean; verdict: string; cost_micro: number }[]; cost_micro: number; pending?: string[] };
+type EnrichResponse = {
+  results: { saved: boolean; verdict: string; cost_micro: number }[];
+  cost_micro: number;
+  pending?: string[];
+};
 
 /** "Find missing emails / mobiles (treg)": choose how many and the cost cap, then a progress dialog. */
-export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
+export function useAdminEnrich(kind: keyof typeof ENRICH = "email") {
   const k = ENRICH[kind];
   const { workspace } = useApp();
   const toast = useToast();
-  const [setup, setSetup] = useState<null | { filters: Filters; missing: number | null }>(null);
+  const [setup, setSetup] = useState<null | {
+    filters: Filters;
+    missing: number | null;
+    selected: string[];
+    page: string[];
+  }>(null);
+  const [scope, setScope] = useState<"selected" | "page" | "search">("search");
   const [howMany, setHowMany] = useState(200);
   const [maxCost, setMaxCost] = useState<number>(k.cap);
   const [verify, setVerify] = useState<boolean>(k.verify);
-  const [run, setRun] = useState<null | { done: number; total: number; saved: number; costMicro: number; failed?: number; error?: string; finished?: boolean }>(null);
+  const [run, setRun] = useState<null | {
+    done: number;
+    total: number;
+    saved: number;
+    costMicro: number;
+    failed?: number;
+    error?: string;
+    finished?: boolean;
+  }>(null);
   const cancelled = useRef(false);
 
-  async function open(filters: Filters) {
+  /** `selected` are the ticked leads and `page` the ones on screen; either can be looked up instead of the whole search */
+  async function open(
+    filters: Filters,
+    picked: { selected?: string[]; page?: string[] } = {},
+  ) {
     const target = { ...filters, [k.filter]: false };
-    setSetup({ filters: target, missing: null });
+    const selected = picked.selected ?? [];
+    const page = picked.page ?? [];
+    setScope(selected.length ? "selected" : "search");
+    setSetup({ filters: target, missing: null, selected, page });
     try {
-      const r = await invoke<{ count: { n: number } }>('lead-search', { workspace_id: workspace.id, filters: target, limit: 0 });
-      setSetup({ filters: target, missing: r.count.n });
+      const r = await invoke<{ count: { n: number } }>("lead-search", {
+        workspace_id: workspace.id,
+        filters: target,
+        limit: 0,
+      });
+      setSetup({ filters: target, missing: r.count.n, selected, page });
       setHowMany(Math.min(r.count.n, 200));
     } catch (e) {
       toast((e as Error).message);
@@ -227,7 +312,13 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
 
   async function start() {
     if (!setup) return;
-    const total = Math.min(howMany, setup.missing ?? 0);
+    const fixed =
+      scope === "selected"
+        ? setup.selected
+        : scope === "page"
+          ? setup.page
+          : null;
+    const total = fixed ? fixed.length : Math.min(howMany, setup.missing ?? 0);
     const filters = setup.filters;
     setSetup(null);
     cancelled.current = false;
@@ -237,9 +328,16 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
     let costMicro = 0;
     try {
       // the targets are fixed up front: found contacts drop leads out of "no email" / "no mobile", which would shift the pages
-      const ids: string[] = [];
-      for (let offset = 0; ids.length < total; offset += BATCH) {
-        const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset, limit: Math.min(BATCH, total - ids.length), ids_only: true });
+      // ticked or on-screen leads go as they are: the function skips any that already have one, unbilled
+      const ids: string[] = fixed ? [...fixed] : [];
+      for (let offset = 0; !fixed && ids.length < total; offset += BATCH) {
+        const r = await invoke<{ ids: string[] }>("lead-search", {
+          workspace_id: workspace.id,
+          filters,
+          offset,
+          limit: Math.min(BATCH, total - ids.length),
+          ids_only: true,
+        });
         if (!r.ids.length) break;
         ids.push(...r.ids);
       }
@@ -252,7 +350,12 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
         let r: EnrichResponse | null = null;
         for (let attempt = 0; attempt < 2 && !r; attempt++) {
           try {
-            r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify });
+            r = await invoke<EnrichResponse>("lead-enrich", {
+              ids: batch,
+              kind,
+              max_cost: maxCost,
+              verify,
+            });
           } catch (e) {
             const status = (e as { status?: number }).status;
             if (status === 402 || status === 403) throw e;
@@ -269,18 +372,38 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
         queue.unshift(...pending);
         done += batch.length - pending.length;
         saved += r.results.filter((x) => x.saved).length;
-        failed += r.results.filter((x) => x.verdict === 'error' || x.verdict === 'timeout').length;
+        failed += r.results.filter(
+          (x) => x.verdict === "error" || x.verdict === "timeout",
+        ).length;
         costMicro += r.cost_micro;
         setRun({ done, total: ids.length, saved, costMicro, failed });
       }
-      setRun({ done, total: ids.length, saved, costMicro, failed, finished: true });
+      setRun({
+        done,
+        total: ids.length,
+        saved,
+        costMicro,
+        failed,
+        finished: true,
+      });
     } catch (e) {
-      const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
+      const msg = String(
+        (e as { data?: { message?: string } }).data?.message ??
+          (e as Error).message,
+      );
       setRun({ done, total, saved, costMicro, error: msg, finished: true });
     }
   }
 
-  const usd = (micro: number) => `$${(micro / 1e6).toFixed(micro < 1e6 ? 3 : 2)}`;
+  const usd = (micro: number) =>
+    `$${(micro / 1e6).toFixed(micro < 1e6 ? 3 : 2)}`;
+  const lookupCount = !setup
+    ? 0
+    : scope === "selected"
+      ? setup.selected.length
+      : scope === "page"
+        ? setup.page.length
+        : Math.max(0, Math.min(howMany, setup.missing ?? 0));
   const dialog = (
     <>
       <Dialog
@@ -291,31 +414,101 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
         footer={
           <>
             <Button onClick={() => setSetup(null)}>Cancel</Button>
-            <Button variant="primary" disabled={!setup?.missing || howMany < 1} onClick={() => void start()}>
-              Find {k.what} for {n(Math.min(howMany, setup?.missing ?? 0))} leads
+            <Button
+              variant="primary"
+              disabled={!lookupCount}
+              onClick={() => void start()}
+            >
+              Find {k.what} for {n(lookupCount)} leads
             </Button>
           </>
         }
       >
         {setup ? (
           <div className="space-y-4">
-            <p className="text-black-700">
-              <span className="font-medium tabular-nums text-black-400">{setup.missing === null ? '…' : n(setup.missing)}</span> {k.missing}
-            </p>
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-black-700">Which leads</legend>
+              {setup.selected.length ? (
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`enrich-scope-${kind}`}
+                    checked={scope === "selected"}
+                    onChange={() => setScope("selected")}
+                  />
+                  <span>
+                    The{" "}
+                    <span className="tabular-nums">
+                      {n(setup.selected.length)}
+                    </span>{" "}
+                    ticked leads
+                  </span>
+                </label>
+              ) : null}
+              {setup.page.length ? (
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`enrich-scope-${kind}`}
+                    checked={scope === "page"}
+                    onChange={() => setScope("page")}
+                  />
+                  <span>
+                    The{" "}
+                    <span className="tabular-nums">{n(setup.page.length)}</span>{" "}
+                    leads on this page
+                  </span>
+                </label>
+              ) : null}
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name={`enrich-scope-${kind}`}
+                  checked={scope === "search"}
+                  onChange={() => setScope("search")}
+                />
+                <span>
+                  The whole search:{" "}
+                  <span className="tabular-nums">
+                    {setup.missing === null ? "…" : n(setup.missing)}
+                  </span>{" "}
+                  {k.missing}
+                </span>
+              </label>
+              {scope !== "search" ? (
+                <p className="text-black-700">
+                  Leads that already have one are skipped, free.
+                </p>
+              ) : null}
+            </fieldset>
+            {scope === "search" ? (
+              <label className="block">
+                <span className="mb-1 block text-black-700">
+                  How many to look up
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={setup.missing ?? undefined}
+                  value={howMany}
+                  onChange={(e) =>
+                    setHowMany(
+                      Math.max(1, Math.round(Number(e.target.value) || 1)),
+                    )
+                  }
+                  className="control h-9 w-40 tabular-nums"
+                />
+              </label>
+            ) : null}
             <label className="block">
-              <span className="mb-1 block text-black-700">How many to look up</span>
-              <input
-                type="number"
-                min={1}
-                max={setup.missing ?? undefined}
-                value={howMany}
-                onChange={(e) => setHowMany(Math.max(1, Math.round(Number(e.target.value) || 1)))}
-                className="control h-9 w-40 tabular-nums"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-black-700">Most to spend per lead</span>
-              <select value={maxCost} onChange={(e) => setMaxCost(Number(e.target.value))} className="control h-9 w-full max-w-xs">
+              <span className="mb-1 block text-black-700">
+                Most to spend per lead
+              </span>
+              <select
+                value={maxCost}
+                onChange={(e) => setMaxCost(Number(e.target.value))}
+                className="control h-9 w-full max-w-xs"
+              >
                 {k.caps.map((c) => (
                   <option key={c.v} value={c.v}>
                     {c.label}
@@ -324,11 +517,16 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
               </select>
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={verify} onChange={(e) => setVerify(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={verify}
+                onChange={(e) => setVerify(e.target.checked)}
+              />
               <span>{k.verifyLabel}</span>
             </label>
             <p className="text-black-700">
-              {k.typical} At most {usd(Math.min(howMany, setup.missing ?? 0) * maxCost * 1e6)} for this run.
+              {k.typical} At most {usd(lookupCount * maxCost * 1e6)} for this
+              run.
             </p>
           </div>
         ) : null}
@@ -358,21 +556,45 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           <div>
             <p className="flex items-baseline justify-between text-black-700">
               <span>
-                <span className="font-medium tabular-nums text-black-400">{n(run.done)}</span> of {n(run.total)} looked up
+                <span className="font-medium tabular-nums text-black-400">
+                  {n(run.done)}
+                </span>{" "}
+                of {n(run.total)} looked up
               </span>
-              <span className="tabular-nums">{run.total ? Math.floor((run.done / run.total) * 100) : 0}%</span>
+              <span className="tabular-nums">
+                {run.total ? Math.floor((run.done / run.total) * 100) : 0}%
+              </span>
             </p>
-            <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={run.total ? Math.floor((run.done / run.total) * 100) : 0}>
-              <div className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300" style={{ width: `${run.total ? Math.max(2, (run.done / run.total) * 100) : 2}%` }} />
+            <div
+              className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#edf2fd]"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={
+                run.total ? Math.floor((run.done / run.total) * 100) : 0
+              }
+            >
+              <div
+                className="h-full rounded-full bg-[#5f86e0] transition-[width] duration-300"
+                style={{
+                  width: `${run.total ? Math.max(2, (run.done / run.total) * 100) : 2}%`,
+                }}
+              />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-md border border-white-800 px-3 py-2">
-                <p className="text-black-700">{kind === 'mobile' ? 'Mobiles saved' : 'Emails saved'}</p>
-                <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{n(run.saved)}</p>
+                <p className="text-black-700">
+                  {kind === "mobile" ? "Mobiles saved" : "Emails saved"}
+                </p>
+                <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">
+                  {n(run.saved)}
+                </p>
               </div>
               <div className="rounded-md border border-white-800 px-3 py-2">
                 <p className="text-black-700">treg cost so far</p>
-                <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">{usd(run.costMicro)}</p>
+                <p className="mt-0.5 text-[18px] font-medium tabular-nums text-black-400">
+                  {usd(run.costMicro)}
+                </p>
               </div>
             </div>
             {run.error ? (
@@ -381,8 +603,14 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
               </p>
             ) : run.finished ? (
               <p className="mt-3 text-black-700">
-                Done: {n(run.saved)} {k.what} found for {n(run.done)} leads{run.done ? `, ${usd(run.costMicro / run.done)} a lead on average` : ''}.
-                {run.failed ? ` ${n(run.failed)} lookups did not finish and were skipped.` : ''}
+                Done: {n(run.saved)} {k.what} found for {n(run.done)} leads
+                {run.done
+                  ? `, ${usd(run.costMicro / run.done)} a lead on average`
+                  : ""}
+                .
+                {run.failed
+                  ? ` ${n(run.failed)} lookups did not finish and were skipped.`
+                  : ""}
               </p>
             ) : null}
           </div>

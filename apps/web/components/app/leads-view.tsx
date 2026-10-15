@@ -351,7 +351,7 @@ export function LeadsView({
                     <MenuItem
                       onClick={() => {
                         close();
-                        void adminEnrich.open(server);
+                        void adminEnrich.open(server, { selected: ids, page: rows.map((r) => r.lead_id) });
                       }}
                     >
                       Find missing emails (treg, admin)
@@ -361,7 +361,7 @@ export function LeadsView({
                     <MenuItem
                       onClick={() => {
                         close();
-                        void adminMobiles.open(server);
+                        void adminMobiles.open(server, { selected: ids, page: rows.map((r) => r.lead_id) });
                       }}
                     >
                       Find missing mobiles (treg, admin)
