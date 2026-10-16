@@ -21,6 +21,8 @@ import { openSupport } from '@/components/app/support-widget';
 /** What to export: the confirm step's text (body null = nothing to confirm, start straight away) and how to
  * reveal the leads and build their rows. */
 export interface ExportRequest {
+  /** unique per export: each export gets a fresh dialog, so nothing carries over from the last one */
+  id: string;
   title: string;
   body: string | null;
   action: string;
@@ -40,6 +42,10 @@ const day = (iso: string | null) => (iso ? iso.slice(0, 10) : '');
 type Pick = 'all' | 'passed' | 'failed';
 
 export function ExportDialog({ request, onClose }: { request: ExportRequest | null; onClose: () => void }) {
+  return request ? <ExportSteps key={request.id} request={request} onClose={onClose} /> : null;
+}
+
+function ExportSteps({ request, onClose }: { request: ExportRequest; onClose: () => void }) {
   const { workspace } = useApp();
   const qc = useQueryClient();
   const [items, setItems] = useState<ExportItem[] | null>(null);

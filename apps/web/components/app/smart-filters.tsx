@@ -40,6 +40,19 @@ export function summary(def: FilterDef, f: Filters): string {
   return `${def.label}: ${prettyValue(def, values[0])} +${values.length - 1}`;
 }
 
+/** The chip, laid out: a long first value is cut short, and the "+N" for the other values always shows. */
+function ChipText({ def, f }: { def: FilterDef; f: Filters }) {
+  const values = def.kind === 'multi' || def.kind === 'pills' ? ((f[def.key] as string[]) ?? []) : [];
+  if (!values.length) return <span className="truncate">{summary(def, f)}</span>;
+  return (
+    <span className="flex min-w-0 items-center gap-1" title={summary(def, f)}>
+      <span className="shrink-0">{def.label}:</span>
+      <span className="max-w-[150px] truncate">{prettyValue(def, values[0])}</span>
+      {values.length > 1 ? <span className="shrink-0 tabular-nums">+{values.length - 1}</span> : null}
+    </span>
+  );
+}
+
 function MultiEditor({ def, f, onChange, facets }: { def: FilterDef; f: Filters; onChange: (next: Filters) => void; facets: Facets }) {
   const [q, setQ] = useState('');
   const value = (f[def.key] as string[]) ?? [];
@@ -222,8 +235,8 @@ export function SmartFilterBar({
         <span key={d.key} className={cn('tag shrink-0 gap-0 p-0', tone)}>
           <Popover
             trigger={({ toggle }) => (
-              <button onClick={toggle} className="flex h-[20px] max-w-[260px] items-center gap-1 truncate pl-1.5 pr-1">
-                <span className="truncate">{summary(d, filters)}</span>
+              <button onClick={toggle} className="flex h-[20px] max-w-[280px] items-center gap-1 pl-1.5 pr-1">
+                <ChipText def={d} f={filters} />
                 <ChevronDown size={12} strokeWidth={1.5} className="shrink-0" />
               </button>
             )}

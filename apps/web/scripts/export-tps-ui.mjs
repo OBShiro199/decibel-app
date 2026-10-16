@@ -234,6 +234,27 @@ async function main() {
   const csv = f ? parseCsv(readFileSync(f, 'utf8')) : [];
   check('Export all downloads a file with a tps_ctps column', !!f && csv[0]?.includes('tps_ctps'), f ? `${csv.length - 1} rows` : 'no file');
   if (f) console.log('tps_ctps values:', csv.slice(1).map((r) => r[csv[0].indexOf('tps_ctps')]).join(', '));
+
+  // a second export in the same session must show its own results, not the first one's (2026-10-16 bug)
+  await sleep(800);
+  await b.evaluate(`window.__t.click('Next')`);
+  await waitFor(b, `document.querySelectorAll('tbody tr button[role=checkbox]').length >= 10`, 20000);
+  await sleep(1500);
+  await b.evaluate(HELPERS);
+  await b.evaluate(`(() => { const boxes = [...document.querySelectorAll('tbody tr button[role=checkbox]')]; boxes.forEach((x) => x.getAttribute('aria-checked') === 'true' && x.click()); boxes.slice(0, 8).forEach((x) => x.click()); })()`);
+  await sleep(500);
+  await b.evaluate(`window.__t.click('Export CSV')`);
+  await waitFor(b, `window.__t.click('Reveal and export')`, 8000);
+  const second = await waitFor(b, `document.body.innerText.includes('TPS/CTPS check done')`, 120000);
+  await sleep(600);
+  const text = await b.evaluate(`document.querySelector('[role=dialog]')?.innerText ?? ''`);
+  const num = (label) => Number((text.split(label)[1] ?? '').match(/\d+/)?.[0] ?? NaN);
+  const { data: job } = await admin.from('tps_jobs').select('rows_valid,rows_tps,rows_ctps,rows_both').eq('workspace_id', u.ws).order('created_at', { ascending: false }).limit(1).single();
+  check(
+    'a second export shows its own results',
+    second && num('Passed: not on TPS or CTPS') === job.rows_valid && num('Failed: on TPS or CTPS (do not call)') === job.rows_tps + job.rows_ctps + job.rows_both,
+    `dialog passed ${num('Passed: not on TPS or CTPS')} / failed ${num('Failed: on TPS or CTPS (do not call)')}, check ${job.rows_valid} / ${job.rows_tps + job.rows_ctps + job.rows_both}`,
+  );
 }
 
 main()

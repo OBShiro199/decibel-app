@@ -180,6 +180,7 @@ export function LeadsView({
     const fresh = leads.filter((l) => !l.person_id && !l.on_dnc).length;
     const lookup = new Map(leads.map((l) => [l.lead_id, l]));
     setExportReq({
+      id: crypto.randomUUID(),
       title: `Export ${label}`,
       body: fresh
         ? `${fresh.toLocaleString('en-GB')} of these ${leads.length.toLocaleString('en-GB')} leads are not revealed yet, so exporting them uses ${cost(fresh)}. Leads you have already revealed are free. You have ${workspace.credit_balance.toLocaleString('en-GB')} credits.`
