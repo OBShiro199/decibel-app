@@ -239,11 +239,13 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
     ownKey?: number;
     tried?: number;
     gathering?: boolean;
+    nudged?: number;
     error?: string;
     finished?: boolean;
     stopped?: boolean;
   }>(null);
   const cancelled = useRef(false);
+  const nudgeRef = useRef<null | (() => Promise<void>)>(null);
 
   /** `selected` are the ticked leads and `page` the ones on screen; either can be looked up instead of the whole search */
   async function open(filters: Filters, picked: { selected?: string[]; page?: string[] } = {}) {
@@ -294,6 +296,19 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       };
       // rounds[0] is the first pass; leads a provider rate-limited come back as `retry` and go round again (up to 2 more
       // times). Lookups start straight away while the rest of the leads are still being gathered.
+      /** a call that failed is tried again with a growing pause; a 401 (expired sign-in) renews the session first */
+      const withRetries = async <T,>(fn: () => Promise<T>, tries = 4): Promise<T> => {
+        for (let i = 0; ; i++) {
+          try {
+            return await fn();
+          } catch (e) {
+            const status = (e as { status?: number }).status;
+            if (status === 402 || status === 403 || i >= tries - 1) throw e;
+            if (status === 401) await supabase().auth.refreshSession().catch(() => {});
+            await new Promise((ok) => setTimeout(ok, 1500 * 2 ** i));
+          }
+        }
+      };
       const rounds: string[][] = [[], [], []];
       let gathered = 0;
       // ids read from the search so far, and how many of those have since been looked up (and dropped out of it)
@@ -307,6 +322,10 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       const batchSize = ownKeyOnly ? 40 : ENRICH_BATCH;
       const rate = ownKeyOnly ? 2.25 : 0;
       let gathering = true;
+      let gatherStalled = false;
+      let generation = 0;
+      let active = 0;
+      let lastProgress = Date.now();
       let tried = 0;
       let failed = 0;
       // found and paid for, but not saved (a landline or a non-UK number; an email the mailbox check failed)
@@ -314,7 +333,10 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       // numbers AI-Ark found on our own key: free on treg, paid in AI-Ark credits (5 per number found)
       let ownKey = 0;
       const planned = () => (gathering ? total : gathered);
-      const report = () => setRun({ done, total: planned(), saved, costMicro, failed, unsaved, ownKey, tried, gathering });
+      const report = () => {
+        lastProgress = Date.now();
+        setRun((x) => ({ done, total: planned(), saved, costMicro, failed, unsaved, ownKey, tried, gathering, nudged: x?.nudged }));
+      };
       const gather = async () => {
         try {
           if (fixed) {
@@ -330,7 +352,7 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
             // every lead this run looks up is marked checked and drops out of the search, and they all sit on pages
             // already read, so the next page starts that many places earlier
             for (; gathered < total && !cancelled.current; ) {
-              const r = await invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset: Math.max(0, read - marked), limit: BATCH, ids_only: true });
+              const r = await withRetries(() => invoke<{ ids: string[] }>('lead-search', { workspace_id: workspace.id, filters, offset: Math.max(0, read - marked), limit: BATCH, ids_only: true }));
               read += r.ids.length;
               if (!r.ids.length) break;
               const fresh = (await untried(r.ids)).filter((id) => !seen.has(id));
@@ -342,18 +364,27 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
               report();
             }
           }
-        } catch (e) {
-          cancelled.current = true;
-          throw e;
+        } catch {
+          // the search kept failing: lookups carry on with what was gathered, and a nudge gathers again from here
+          gatherStalled = true;
         } finally {
           gathering = false;
         }
       };
       const seen = new Set<string>();
       // several calls at a time (see `lanes`); each takes the next batch from the earliest round with leads left
-      const lane = async () => {
+      const lane = async (gen: number) => {
+        active++;
+        try {
+          await laneLoop(gen);
+        } finally {
+          active--;
+        }
+      };
+      const laneLoop = async (gen: number) => {
         for (;;) {
-          if (cancelled.current) return;
+          // a nudge starts fresh lookups; older ones finish the batch they are on, then stop
+          if (cancelled.current || gen !== generation) return;
           const round = rounds.findIndex((q) => q.length);
           if (round < 0) {
             if (!gathering) return;
@@ -364,16 +395,13 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           // leads sent back as refused (rate limit) get a pause before they go again
           if (round > 0) await new Promise((ok) => setTimeout(ok, 4000));
           let r: EnrichResponse | null = null;
-          for (let attempt = 0; attempt < 2 && !r; attempt++) {
-            try {
-              r = await invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify, round, concurrency: perCall, ...(rate ? { rate } : {}) });
-            } catch (e) {
-              const status = (e as { status?: number }).status;
-              if (status === 402 || status === 403) {
-                cancelled.current = true;
-                throw e;
-              }
-              if (attempt === 0) await new Promise((ok) => setTimeout(ok, 3000));
+          try {
+            r = await withRetries(() => invoke<EnrichResponse>('lead-enrich', { ids: batch, kind, max_cost: maxCost, verify, round, concurrency: perCall, ...(rate ? { rate } : {}) }), 2);
+          } catch (e) {
+            const status = (e as { status?: number }).status;
+            if (status === 402 || status === 403) {
+              cancelled.current = true;
+              throw e;
             }
           }
           if (!r) {
@@ -401,8 +429,35 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
       // on our own AI-Ark key alone there is no shared rate limit: 16 calls at a time ran ~2,700 leads/min with no
       // errors (2026-10-15); runs that use treg's shared providers stay at 4
       const lanes = ownKeyOnly ? 2 : 4;
-      await Promise.all([gather(), ...Array.from({ length: lanes }, lane)]);
-      setRun({ done, total: gathered, saved, costMicro, failed, unsaved, ownKey, tried, finished: true, stopped: cancelled.current && done < gathered });
+      nudgeRef.current = async () => {
+        // sign-in may have expired while the tab sat in the background
+        await supabase().auth.refreshSession().catch(() => {});
+        generation++;
+        lastProgress = Date.now();
+        if (gatherStalled && gathered < total) {
+          gatherStalled = false;
+          gathering = true;
+          void gather();
+        }
+        for (let i = 0; i < lanes; i++) void lane(generation).catch(() => {});
+        setRun((x) => (x ? { ...x, nudged: (x.nudged ?? 0) + 1 } : x));
+      };
+      // nothing has moved for 45 s (stalled calls, an expired sign-in, a throttled background tab): nudge it
+      const watchdog = setInterval(() => {
+        if (!cancelled.current && Date.now() - lastProgress > 45_000) void nudgeRef.current?.();
+      }, 15_000);
+      void gather();
+      for (let i = 0; i < lanes; i++) void lane(generation).catch(() => {});
+      // finished when every lookup has stopped and there is nothing left to gather (nudges add lookups along the way)
+      await new Promise((ok) => setTimeout(ok, 500));
+      while (active > 0 || gathering) {
+        // test builds expose the run's state, so a stalled run can be diagnosed (scripts/*-ui.mjs)
+        if (process.env.NEXT_PUBLIC_E2E) (window as unknown as { __finder?: unknown }).__finder = { active, gathering, generation, gathered, done, queued: rounds.map((q) => q.length) };
+        await new Promise((ok) => setTimeout(ok, 500));
+      }
+      clearInterval(watchdog);
+      nudgeRef.current = null;
+      setRun((x) => ({ done, total: gathered, saved, costMicro, failed, unsaved, ownKey, tried, finished: true, stopped: cancelled.current && done < gathered, nudged: x?.nudged }));
     } catch (e) {
       const msg = String((e as { data?: { message?: string } }).data?.message ?? (e as Error).message);
       setRun({ done, total, saved, costMicro, error: msg, finished: true });
@@ -521,13 +576,18 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
           run?.finished ? (
             <Button onClick={() => setRun(null)}>Done</Button>
           ) : (
-            <Button
-              onClick={() => {
-                cancelled.current = true;
-              }}
-            >
-              Stop
-            </Button>
+            <>
+              <Button onClick={() => void nudgeRef.current?.()} title="Restarts the lookups from where they are. It also happens on its own if nothing moves for 45 seconds.">
+                Nudge
+              </Button>
+              <Button
+                onClick={() => {
+                  cancelled.current = true;
+                }}
+              >
+                Stop
+              </Button>
+            </>
           )
         }
       >
@@ -553,6 +613,11 @@ export function useAdminEnrich(kind: keyof typeof ENRICH = 'email') {
               </div>
             </div>
             {run.gathering && !run.finished ? <p className="mt-3 text-black-700">Lookups have started; still gathering the rest of the leads.</p> : null}
+            {run.nudged ? (
+              <p className="mt-3 text-black-700">
+                Nudged {run.nudged === 1 ? 'once' : `${n(run.nudged)} times`}. It carries on from where it was: leads already looked up are never looked up again.
+              </p>
+            ) : null}
             {run.tried ? (
               <p className="mt-3 text-black-700">
                 <span className="tabular-nums">{n(run.tried)}</span> leads already looked up at this cap or higher were left out.
