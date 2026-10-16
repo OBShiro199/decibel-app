@@ -184,13 +184,14 @@ const ENRICH = {
   },
   mobile: {
     filter: 'hasMobile',
-    // UK decision makers only: the country becomes the UK, seniority C-level and/or VP (within any chosen)
+    // UK decision makers only: the country becomes the UK, seniority C-level, VP and/or Director (within any chosen)
     narrow: (f: Filters): Filters => {
-      const picked = Array.isArray(f.seniorities) ? (f.seniorities as string[]).filter((s) => s === 'c-level' || s === 'vp') : [];
+      const allowed = ['c-level', 'vp', 'director'];
+      const picked = Array.isArray(f.seniorities) ? (f.seniorities as string[]).filter((s) => allowed.includes(s)) : [];
       const chose = Array.isArray(f.seniorities) && (f.seniorities as string[]).length > 0;
-      return { ...f, countries: ['United Kingdom'], seniorities: chose ? (picked.length ? picked : ['none']) : ['c-level', 'vp'] };
+      return { ...f, countries: ['United Kingdom'], seniorities: chose ? (picked.length ? picked : ['none']) : allowed };
     },
-    scopeNote: 'UK leads at C-level or VP only, within your filters.',
+    scopeNote: 'UK leads at C-level, VP or Director, within your filters.',
     title: 'Find missing mobiles',
     running: 'Finding mobiles',
     what: 'mobiles',
