@@ -42,6 +42,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en-GB" className={sans.variable}>
       <head>
+        {/* dogfooding website visitor identification on every page (Website visitors in the app, site usedecibel.com):
+            cookieless, company-level only, skipped for Do Not Track and Global Privacy Control */}
+        <script defer src="/v.js" data-site="6d90a23db9c453d82808882b" />
         {/* the browser opens its connection to the database API while the page is still loading */}
         {SUPABASE_ORIGIN ? <link rel="preconnect" href={SUPABASE_ORIGIN} crossOrigin="anonymous" /> : null}
       </head>
