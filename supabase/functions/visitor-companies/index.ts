@@ -13,6 +13,8 @@ const TS_KEY = Deno.env.get('TYPESENSE_API_KEY') ?? '';
 const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const SENIORITY = ['c-level', 'vp', 'director', 'manager'];
 const PER_COMPANY = 3;
+// candidates per seniority level: the ones with a mobile or an email are shown first
+const CANDIDATES = 6;
 
 /** a PostgREST call as the signed-in user, so RLS and membership checks apply */
 async function asUser<T>(req: Request, path: string, init?: RequestInit): Promise<T> {
@@ -56,23 +58,33 @@ Deno.serve(async (req) => {
     const total = Number((res.headers.get('content-range') ?? '').split('/')[1] ?? companies.length) || companies.length;
     if (!companies.length || !TS_URL || !TS_KEY) return json({ companies: companies.map((c) => ({ ...c, people: [], people_found: 0 })), total });
 
-    // decision makers at each company, most senior first, in one request to the search server
-    const seniority = `seniority_h:=[${SENIORITY.map(crc).join(', ')}]`;
-    const searches = companies.map((c) => {
+    // decision makers at each company, most senior first: one search per company and seniority level (C-level
+    // first), sent to the search server in batches of 50 (its multi_search limit)
+    const searches = companies.flatMap((c) => {
       const d = c.domain.toLowerCase();
       const variants = [d, `www.${d}`, `https://${d}`, `http://${d}`, `https://www.${d}`, `http://www.${d}`];
-      return { collection: 'leads', q: '*', filter_by: `company_domain:=[${variants.map(tick).join(', ')}] && ${seniority}`, per_page: 12, include_fields: 'id,seniority_h' };
+      const domainFilter = `company_domain:=[${variants.map(tick).join(', ')}]`;
+      return SENIORITY.map((s) => ({ collection: 'leads', q: '*', filter_by: `${domainFilter} && seniority_h:=${crc(s)}`, per_page: CANDIDATES, include_fields: 'id' }));
     });
-    const ms = await fetch(`${TS_URL}/multi_search`, {
-      method: 'POST',
-      headers: { 'X-TYPESENSE-API-KEY': TS_KEY, 'content-type': 'application/json' },
-      body: JSON.stringify({ searches }),
-    });
-    const msBody = await ms.json().catch(() => ({}));
-    const rank = new Map(SENIORITY.map((s, i) => [crc(s), i]));
-    const perCompany: { ids: string[]; found: number }[] = (msBody.results ?? []).map((r: { found?: number; hits?: { document: { id: string; seniority_h?: number } }[] }) => {
-      const hits = (r.hits ?? []).map((h) => h.document).sort((a, b) => (rank.get(a.seniority_h ?? -1) ?? 9) - (rank.get(b.seniority_h ?? -1) ?? 9));
-      return { ids: hits.slice(0, PER_COMPANY).map((h) => h.id), found: r.found ?? 0 };
+    const chunks: (typeof searches)[] = [];
+    for (let i = 0; i < searches.length; i += 50) chunks.push(searches.slice(i, i + 50));
+    const results = (
+      await Promise.all(
+        chunks.map(async (chunk) => {
+          const ms = await fetch(`${TS_URL}/multi_search`, {
+            method: 'POST',
+            headers: { 'X-TYPESENSE-API-KEY': TS_KEY, 'content-type': 'application/json' },
+            body: JSON.stringify({ searches: chunk }),
+          });
+          const body = await ms.json().catch(() => ({}));
+          return (body.results ?? []) as { found?: number; hits?: { document: { id: string } }[] }[];
+        }),
+      )
+    ).flat();
+    const perCompany = companies.map((_, ci) => {
+      const levels = results.slice(ci * SENIORITY.length, (ci + 1) * SENIORITY.length);
+      const ids = levels.flatMap((r) => (r?.hits ?? []).map((h) => h.document.id));
+      return { ids, found: levels.reduce((a, r) => a + (r?.found ?? 0), 0) };
     });
 
     const allIds = perCompany.flatMap((p) => p.ids);
@@ -82,9 +94,13 @@ Deno.serve(async (req) => {
     const byId = new Map(rows.map((r) => [String(r.lead_id), r]));
     const out = companies.map((c, i) => {
       const p = perCompany[i] ?? { ids: [], found: 0 };
+      // most senior first; within a level, people with a mobile, then an email, come first
+      const rankOf = (r: Record<string, unknown>) => SENIORITY.indexOf(String(r.seniority_level)) * 4 + (r.has_mobile ? 0 : 2) + (r.has_email ? 0 : 1);
       const people = p.ids
         .map((id) => byId.get(id))
-        .filter(Boolean)
+        .filter((r): r is Record<string, unknown> => !!r)
+        .sort((a, b) => rankOf(a) - rankOf(b))
+        .slice(0, PER_COMPANY)
         .map((r) => ({
           lead_id: r!.lead_id,
           full_name: r!.full_name,

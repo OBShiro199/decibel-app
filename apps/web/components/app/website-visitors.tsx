@@ -259,29 +259,29 @@ export function WebsiteVisitors() {
           <div className={cn('tbl-wrap transition-opacity', visitors.isPlaceholderData && 'opacity-60')}>
             <table className="tbl tbl-fixed" data-testid="visitors-table">
               <colgroup>
-                <col style={{ width: 250 }} />
-                <col style={{ width: 140 }} />
-                <col style={{ width: 160 }} />
-                <col style={{ width: 120 }} />
-                <col style={{ width: 110 }} />
-                <col style={{ width: 210 }} />
+                <col style={{ width: 240 }} />
                 <col style={{ width: 220 }} />
                 <col style={{ width: 210 }} />
-                <col style={{ width: 170 }} />
-                <col style={{ width: 110 }} />
+                <col style={{ width: 160 }} />
+                <col style={{ width: 104 }} />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 160 }} />
+                <col style={{ width: 120 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 210 }} />
               </colgroup>
               <thead>
                 <tr>
                   <th>Company</th>
+                  <th>Decision maker</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th />
                   <th>IP address</th>
                   <th>Location</th>
                   <th>Visits</th>
                   <th>Last seen</th>
                   <th>Pages</th>
-                  <th>Decision maker</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -291,30 +291,19 @@ export function WebsiteVisitors() {
                   const rows = (people.length ? people : [null]).map((p, i) => (
                     <tr key={`${c.id}:${p?.lead_id ?? 'none'}`}>
                       {i === 0 ? (
-                        <>
-                          <td>
-                            <div className="flex items-center gap-2.5">
-                              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] border border-white-800 text-black-700">
-                                {(c.organization ?? c.domain).slice(0, 2).toUpperCase()}
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block truncate font-medium text-black-400">{c.organization ?? c.domain}</span>
-                                <span className="block truncate text-black-700">{c.domain}</span>
-                              </span>
-                            </div>
-                          </td>
-                          <td className="tabular-nums text-black-700">{c.last_ip ?? '–'}</td>
-                          <td className="truncate text-black-700">{[c.city, c.country].filter(Boolean).join(', ') || '–'}</td>
-                          <td className="tabular-nums">
-                            {n(c.visits)} · {n(c.page_views)} {c.page_views === 1 ? 'page' : 'pages'}
-                          </td>
-                          <td className="text-black-700">{timeAgo(c.last_seen)}</td>
-                          <td className="truncate text-black-700" title={c.pages.join('\n')}>
-                            {c.pages.slice(0, 3).join('  ') || '–'}
-                          </td>
-                        </>
+                        <td>
+                          <div className="flex items-center gap-2.5">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[6px] border border-white-800 text-black-700">
+                              {(c.organization ?? c.domain).slice(0, 2).toUpperCase()}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium text-black-400">{c.organization ?? c.domain}</span>
+                              <span className="block truncate text-black-700">{c.domain}</span>
+                            </span>
+                          </div>
+                        </td>
                       ) : (
-                        <td colSpan={6} />
+                        <td />
                       )}
                       {p ? (
                         <>
@@ -333,7 +322,7 @@ export function WebsiteVisitors() {
                             {p.person_id ? (
                               <span className="tag tag-0">Revealed</span>
                             ) : p.on_dnc || (!p.has_email && !p.has_mobile) ? null : (
-                              <Button size="compact" loading={revealing === p.lead_id} onClick={() => void reveal(p)} className="row-action">
+                              <Button size="compact" loading={revealing === p.lead_id} onClick={() => void reveal(p)}>
                                 Reveal
                               </Button>
                             )}
@@ -344,13 +333,28 @@ export function WebsiteVisitors() {
                           No decision makers on file for {c.domain}
                         </td>
                       )}
+                      {i === 0 ? (
+                        <>
+                          <td className="tabular-nums text-black-700">{c.last_ip ?? '–'}</td>
+                          <td className="truncate text-black-700">{[c.city, c.country].filter(Boolean).join(', ') || '–'}</td>
+                          <td className="tabular-nums">
+                            {n(c.visits)} · {n(c.page_views)} {c.page_views === 1 ? 'page' : 'pages'}
+                          </td>
+                          <td className="text-black-700">{timeAgo(c.last_seen)}</td>
+                          <td className="truncate text-black-700" title={c.pages.join('\n')}>
+                            {c.pages.slice(0, 3).join('  ') || '–'}
+                          </td>
+                        </>
+                      ) : (
+                        <td colSpan={5} />
+                      )}
                     </tr>
                   ));
                   if (c.people.length > 1) {
                     rows.push(
                       <tr key={`${c.id}:more`} className="[&>td]:h-8">
-                        <td colSpan={6} />
-                        <td colSpan={4}>
+                        <td />
+                        <td colSpan={9}>
                           <button
                             className="flex items-center gap-1 text-black-700 hover:text-black-400"
                             onClick={() =>
