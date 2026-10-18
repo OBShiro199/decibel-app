@@ -28,6 +28,13 @@ function clientIp(req: Request): string | null {
   return ip;
 }
 
+// VPNs, cloud hosts, CDNs and security proxies: an address on these networks is shared by many people, so any
+// company matched to it is a guess (a Mozilla VPN exit in Munich came back as a stranger's personal site). The
+// visit is kept with its location, but no company is recorded.
+const RELAY =
+  /\b(fastly|cloudflare|akamai|amazon web services|amazon data services|amazon technologies|aws|google cloud|azure|digitalocean|linode|ovh|hetzner|contabo|vultr|choopa|leaseweb|m247|datacamp|cdn77|zscaler|netskope|mullvad|nordvpn|tefincom|expressvpn|surfshark|proton|private internet access|cyberghost|ipvanish|windscribe|mozilla|icloud private relay|packethub|hostinger|ionos|scaleway|oracle cloud|alibaba|tencent|quadranet|psychz|g-?core|constant company|colocrossing|hostwinds|hosting|vpn|proxy|data ?cent(er|re))\b/i;
+const isRelay = (r: { organization?: string | null; isp?: string | null }) => RELAY.test(`${r.organization ?? ''} | ${r.isp ?? ''}`);
+
 const clip = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : null);
 
 /** desktop, mobile or tablet, from the user agent (for the All visits view) */
@@ -123,6 +130,8 @@ Deno.serve(async (req) => {
   const referrer = clip(input.r, 300);
   const work = (async () => {
     const r = await resolve(ip);
+    // a company only when the network is the company's own, not a VPN, cloud host or CDN
+    const domain = r?.domain && !isRelay(r) ? r.domain : null;
     // every page view keeps its location and network, whether or not it resolved to a company
     await db.from('visitor_hits').insert({
       site_id: site.id,
@@ -130,7 +139,7 @@ Deno.serve(async (req) => {
       ip,
       path,
       referrer,
-      company_domain: r?.domain ?? null,
+      company_domain: domain,
       country: r?.country ?? null,
       country_code: r?.country_code ?? null,
       region: r?.region ?? null,
@@ -139,10 +148,10 @@ Deno.serve(async (req) => {
       device: device(ua),
     });
     await db.from('visitor_sites').update({ last_hit_at: new Date().toISOString() }).eq('id', site.id);
-    if (r?.domain) {
+    if (r && domain) {
       await db.rpc('record_visitor_company', {
         p_site_id: site.id,
-        p_domain: r.domain,
+        p_domain: domain,
         p_organization: r.organization ?? null,
         p_country: r.country ?? null,
         p_region: r.region ?? null,
