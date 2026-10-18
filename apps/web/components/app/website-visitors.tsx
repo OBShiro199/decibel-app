@@ -13,9 +13,11 @@ import { SITE_URL } from '@/lib/site';
 import { invoke, supabase } from '@/lib/supabase/client';
 import { cn, formatPhone, timeAgo } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { EmptyState, ErrorCard, TableSkeleton, Tabs } from '@/components/ui/display';
+import { codeFor } from '@/components/app/quick-filters';
+import { EmptyState, ErrorCard, Skeleton, Tabs } from '@/components/ui/display';
 import { Input } from '@/components/ui/form';
 import { Dialog, useToast } from '@/components/ui/overlay';
+import { useFirstReveal } from '@/components/ui/reveal';
 
 const BLUE = '#5f86e0';
 const PAGE = 25;
@@ -50,6 +52,7 @@ interface Hit {
   referrer: string | null;
   company_domain: string | null;
   country: string | null;
+  country_code: string | null;
   region: string | null;
   city: string | null;
   isp: string | null;
@@ -85,6 +88,94 @@ function referrerHost(ref: string | null, own: string): string {
   } catch {
     return 'Direct';
   }
+}
+
+/** the country's flag (from /public/flags), by ISO code or by name; nothing when it isn't known */
+function CountryFlag({ code, name }: { code?: string | null; name?: string | null }) {
+  const cc = (code && /^[A-Za-z]{2}$/.test(code) ? code.toUpperCase() : name ? codeFor(name) : null) ?? null;
+  if (!cc) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={`/flags/${cc}.svg`} alt="" width={18} height={12} className="h-3 w-[18px] shrink-0 rounded-[2px] object-cover shadow-[0_0_0_1px_rgba(8,9,10,0.08)]" />;
+}
+
+/** a location cell: flag, then "City, Region, Country" */
+function Location({ code, country, parts }: { code?: string | null; country: string | null; parts: (string | null)[] }) {
+  const text = [...parts, country].filter(Boolean).join(', ');
+  return (
+    <span className="flex min-w-0 items-center gap-2" title={text}>
+      <CountryFlag code={code} name={country} />
+      <span className="truncate">{text || '–'}</span>
+    </span>
+  );
+}
+
+/** Rows shaped like the real table (36px header, 48px app rows, the same column widths). */
+function RowsSkeleton({ widths, rows = 12, twoLine = 0 }: { widths: number[]; rows?: number; twoLine?: number }) {
+  const bars = [62, 44, 70, 52, 38, 58, 48, 66];
+  return (
+    <div aria-busy="true" className="overflow-hidden">
+      <span className="sr-only">Loading</span>
+      <div className="flex h-9 items-center border-b border-white-800 bg-panel">
+        {widths.map((w, c) => (
+          <div key={c} className="shrink-0 px-3" style={{ width: w }}>
+            <Skeleton className="h-2.5 w-14" />
+          </div>
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex h-12 items-center border-b border-rule bg-white-100" style={{ opacity: 1 - r * 0.06 }}>
+          {widths.map((w, c) => (
+            <div key={c} className="shrink-0 px-3" style={{ width: w }}>
+              {c === 0 && twoLine ? (
+                <div className="flex items-center gap-2.5">
+                  <Skeleton className="h-7 w-7 rounded-[6px]" />
+                  <div className="flex-1">
+                    <Skeleton className="h-3" style={{ width: `${bars[r % bars.length]}%` }} />
+                    <Skeleton className="mt-1.5 h-2.5" style={{ width: `${bars[(r + 3) % bars.length] - 10}%` }} />
+                  </div>
+                </div>
+              ) : c < twoLine ? (
+                <>
+                  <Skeleton className="h-3" style={{ width: `${bars[(r + c * 3) % bars.length]}%` }} />
+                  <Skeleton className="mt-1.5 h-2.5" style={{ width: `${bars[(r + c * 5) % bars.length] - 12}%` }} />
+                </>
+              ) : (
+                <Skeleton className="h-3" style={{ width: `${bars[(r + c * 3) % bars.length]}%` }} />
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const COMPANY_COLS = [240, 220, 210, 160, 104, 130, 160, 120, 100, 210];
+const VISIT_COLS = [120, 220, 140, 200, 190, 100, 180, 200];
+
+/** The whole page while the website loads: toolbar, tabs and table, so nothing moves when it arrives. */
+function PageSkeleton() {
+  return (
+    <div className="flex h-full flex-col bg-white-100" aria-busy="true">
+      <div className="flex h-12 shrink-0 items-center gap-3 border-b border-white-800 px-4">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-3.5 w-32" />
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-20" />
+        <div className="ml-auto flex gap-2">
+          <Skeleton className="h-7 w-28 rounded-sm" />
+          <Skeleton className="h-7 w-28 rounded-sm" />
+        </div>
+      </div>
+      <div className="flex h-10 shrink-0 items-center gap-6 border-b border-white-800 px-4">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-3 w-20" />
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <RowsSkeleton widths={COMPANY_COLS} twoLine={2} />
+      </div>
+    </div>
+  );
 }
 
 const snippet = (key: string) => `<script defer src="${SITE_URL}/v.js" data-site="${key}"></script>`;
@@ -190,6 +281,9 @@ export function WebsiteVisitors() {
   const [tab, setTab] = useState<'companies' | 'visits'>('companies');
   const [changing, setChanging] = useState(false);
   const [removing, setRemoving] = useState(false);
+  // rows rise in the first time each table shows this session
+  const revealCompanies = useFirstReveal('visitors-companies');
+  const revealVisits = useFirstReveal('visitors-visits');
 
   const sites = useQuery({
     queryKey: ['visitor-sites', workspace.id],
@@ -219,7 +313,7 @@ export function WebsiteVisitors() {
     queryFn: async () => {
       const { data, error, count } = await supabase()
         .from('visitor_hits')
-        .select('id,ip,path,referrer,company_domain,country,region,city,isp,device,created_at', { count: 'exact' })
+        .select('id,ip,path,referrer,company_domain,country,country_code,region,city,isp,device,created_at', { count: 'exact' })
         .eq('site_id', site!.id)
         .order('created_at', { ascending: false })
         .range(page * PAGE, page * PAGE + PAGE - 1);
@@ -250,7 +344,7 @@ export function WebsiteVisitors() {
     await sites.refetch();
   }
 
-  if (sites.isLoading) return <TableSkeleton rows={10} cols={6} />;
+  if (sites.isLoading) return <PageSkeleton />;
   if (sites.error) return <div className="p-4"><ErrorCard message={(sites.error as Error).message} onRetry={() => sites.refetch()} /></div>;
   if (!site) return <Setup onAdded={() => void sites.refetch().then(() => setInstall(true))} />;
 
@@ -298,17 +392,17 @@ export function WebsiteVisitors() {
       />
 
       {tab === 'visits' ? (
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div key="visits" className="page-in min-h-0 flex-1 overflow-auto">
           {hits.error ? (
             <div className="p-4">
               <ErrorCard message={(hits.error as Error).message} onRetry={() => hits.refetch()} />
             </div>
           ) : !hits.data ? (
-            <TableSkeleton rows={12} cols={7} />
+            <RowsSkeleton widths={VISIT_COLS} />
           ) : !hits.data.rows.length ? (
             <EmptyState shape="diamond" title="No visits yet" description={`Every page view on ${site.domain} shows here, with its location and network, whether or not a company was found.`} />
           ) : (
-            <div className={cn('tbl-wrap transition-opacity', hits.isPlaceholderData && 'opacity-60')}>
+            <div className={cn('tbl-wrap transition-opacity', revealVisits && 'reveal-once', hits.isPlaceholderData && 'opacity-60')}>
               <table className="tbl tbl-fixed" data-testid="visits-table">
                 <colgroup>
                   <col style={{ width: 120 }} />
@@ -342,7 +436,9 @@ export function WebsiteVisitors() {
                         {h.path ?? '–'}
                       </td>
                       <td className="tabular-nums text-black-700">{h.ip}</td>
-                      <td className="truncate text-black-700">{[h.city, h.region, h.country].filter(Boolean).join(', ') || '–'}</td>
+                      <td className="text-black-700">
+                        <Location code={h.country_code} country={h.country} parts={[h.city, h.region]} />
+                      </td>
                       <td className="truncate text-black-700">{h.isp ?? '–'}</td>
                       <td className="text-black-700">{h.device ? h.device[0].toUpperCase() + h.device.slice(1) : '–'}</td>
                       <td className="truncate text-black-700" title={h.referrer ?? ''}>
@@ -357,13 +453,13 @@ export function WebsiteVisitors() {
           )}
         </div>
       ) : (
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div key="companies" className="page-in min-h-0 flex-1 overflow-auto">
         {visitors.error ? (
           <div className="p-4">
             <ErrorCard message={(visitors.error as Error).message} onRetry={() => visitors.refetch()} />
           </div>
         ) : !data ? (
-          <TableSkeleton rows={12} cols={8} />
+          <RowsSkeleton widths={COMPANY_COLS} twoLine={2} />
         ) : !companies.length ? (
           <EmptyState
             shape="diamond"
@@ -376,7 +472,7 @@ export function WebsiteVisitors() {
             action={<Button onClick={() => setInstall(true)}>Install snippet</Button>}
           />
         ) : (
-          <div className={cn('tbl-wrap transition-opacity', visitors.isPlaceholderData && 'opacity-60')}>
+          <div className={cn('tbl-wrap transition-opacity', revealCompanies && 'reveal-once', visitors.isPlaceholderData && 'opacity-60')}>
             <table className="tbl tbl-fixed" data-testid="visitors-table">
               <colgroup>
                 <col style={{ width: 240 }} />
@@ -456,7 +552,9 @@ export function WebsiteVisitors() {
                       {i === 0 ? (
                         <>
                           <td className="tabular-nums text-black-700">{c.last_ip ?? '–'}</td>
-                          <td className="truncate text-black-700">{[c.city, c.country].filter(Boolean).join(', ') || '–'}</td>
+                          <td className="text-black-700">
+                            <Location country={c.country} parts={[c.city]} />
+                          </td>
                           <td className="tabular-nums">
                             {n(c.visits)} · {n(c.page_views)} {c.page_views === 1 ? 'page' : 'pages'}
                           </td>

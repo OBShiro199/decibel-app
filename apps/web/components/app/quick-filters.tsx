@@ -18,7 +18,7 @@ const ALIASES: Record<string, string> = {
 // retired or special codes the browser still names (e.g. DD, East Germany, would steal "Germany")
 const RETIRED = new Set(['DD', 'YU', 'CS', 'SU', 'ZR', 'BU', 'TP', 'NT', 'AN', 'QO', 'EU', 'EZ', 'UN', 'XA', 'XB', 'ZZ', 'QU']);
 let CODES: Record<string, string> | null = null;
-function codeFor(name: string): string | null {
+export function codeFor(name: string): string | null {
   if (!CODES) {
     CODES = { ...ALIASES };
     try {
