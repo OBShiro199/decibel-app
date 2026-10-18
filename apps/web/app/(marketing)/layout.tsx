@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import { CookieBanner } from '@/components/marketing/cookie-banner';
 import { SiteFooter } from '@/components/marketing/site-footer';
 import { SiteHeader } from '@/components/marketing/site-header';
@@ -17,6 +18,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       </main>
       <SiteFooter />
       <CookieBanner />
+      {/* our own website visitor identification (Website visitors in the app, site usedecibel.com): cookieless,
+          company-level only, skipped for Do Not Track / Global Privacy Control */}
+      <Script src="/v.js" data-site="6d90a23db9c453d82808882b" strategy="afterInteractive" />
     </div>
   );
 }

@@ -154,14 +154,15 @@ function Setup({ onAdded }: { onAdded: () => void }) {
 }
 
 export function WebsiteVisitors() {
-  const { workspace, refreshWorkspace } = useApp();
+  const { workspace, refreshWorkspace, isAdmin } = useApp();
   const qc = useQueryClient();
   const toast = useToast();
   const [page, setPage] = useState(0);
-  const [siteId, setSiteId] = useState<string | null>(null);
   const [install, setInstall] = useState(false);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [revealing, setRevealing] = useState<string | null>(null);
+  const [changing, setChanging] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const sites = useQuery({
     queryKey: ['visitor-sites', workspace.id],
@@ -172,7 +173,8 @@ export function WebsiteVisitors() {
       return (data ?? []) as Site[];
     },
   });
-  const site = sites.data?.find((s) => s.id === siteId) ?? sites.data?.[0] ?? null;
+  // one website per workspace (the newest, if an older one is still there)
+  const site = sites.data?.at(-1) ?? null;
 
   const visitors = useQuery({
     queryKey: ['visitor-companies', workspace.id, site?.id, page],
@@ -192,6 +194,18 @@ export function WebsiteVisitors() {
     void qc.invalidateQueries({ queryKey: ['visitor-companies', workspace.id] });
   }
 
+  async function removeSite() {
+    if (!site) return;
+    setRemoving(true);
+    const { error } = await supabase().from('visitor_sites').delete().eq('id', site.id);
+    setRemoving(false);
+    if (error) return void toast(error.message);
+    setChanging(false);
+    setPage(0);
+    track('visitor_site_removed');
+    await sites.refetch();
+  }
+
   if (sites.isLoading) return <TableSkeleton rows={10} cols={6} />;
   if (sites.error) return <div className="p-4"><ErrorCard message={(sites.error as Error).message} onRetry={() => sites.refetch()} /></div>;
   if (!site) return <Setup onAdded={() => void sites.refetch().then(() => setInstall(true))} />;
@@ -204,25 +218,7 @@ export function WebsiteVisitors() {
     <div className="flex h-full flex-col bg-white-100">
       <div className="flex h-12 shrink-0 items-center gap-3 border-b border-white-800 px-4">
         <Globe size={16} className="text-black-700" />
-        {sites.data && sites.data.length > 1 ? (
-          <select
-            aria-label="Website"
-            value={site.id}
-            onChange={(e) => {
-              setSiteId(e.target.value);
-              setPage(0);
-            }}
-            className="control h-8 w-auto"
-          >
-            {sites.data.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.domain}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="font-medium text-black-400">{site.domain}</span>
-        )}
+        <span className="font-medium text-black-400">{site.domain}</span>
         <span className="flex items-center gap-1.5 text-black-700">
           <span className={cn('h-1.5 w-1.5 rounded-full', site.last_hit_at ? 'pulse-dot' : 'bg-white-800')} style={site.last_hit_at ? { background: '#27a644' } : undefined} />
           {site.last_hit_at ? `Last visit ${timeAgo(site.last_hit_at)}` : 'No visits yet'}
@@ -234,6 +230,11 @@ export function WebsiteVisitors() {
           <Button size="compact" onClick={() => setInstall(true)}>
             Install snippet
           </Button>
+          {isAdmin ? (
+            <Button size="compact" variant="ghost" onClick={() => setChanging(true)}>
+              Change website
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -395,6 +396,25 @@ export function WebsiteVisitors() {
           </Button>
         </div>
       </div>
+
+      <Dialog
+        open={changing}
+        onClose={() => setChanging(false)}
+        title={`Remove ${site.domain}?`}
+        description="To track a different website, remove this one and start again."
+        footer={
+          <>
+            <Button onClick={() => setChanging(false)}>Cancel</Button>
+            <Button variant="danger" loading={removing} onClick={() => void removeSite()}>
+              Remove and start again
+            </Button>
+          </>
+        }
+      >
+        <p className="text-black-700">
+          Its snippet stops working and the {data ? n(data.total) : ''} {data?.total === 1 ? 'company' : 'companies'} it found are deleted. Take the snippet off {site.domain} too.
+        </p>
+      </Dialog>
 
       <Dialog open={install} onClose={() => setInstall(false)} title={`Install on ${site.domain}`} width={600} footer={<Button onClick={() => setInstall(false)}>Done</Button>}>
         <InstallPanel site={site} />
