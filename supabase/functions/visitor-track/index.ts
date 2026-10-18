@@ -4,9 +4,16 @@
 // v.js and again here. The IP is resolved to a company through enrich.so, cached for 30 days across all
 // workspaces (a lookup is charged only when a company is found), and the company is recorded against the
 // workspace. Home and mobile connections never resolve, so the person browsing is never identified.
-import { admin } from '../_shared/http.ts';
+import { admin, APP_URL, FUNCTIONS_URL } from '../_shared/http.ts';
+import { crc } from '../_shared/crc.ts';
+import { details, esc, FOUNDER_EMAIL, layout, p, sendEmail, unsubscribeLinks } from '../_shared/email.ts';
 
 const ENRICH = Deno.env.get('ENRICH_SO_API_KEY') ?? '';
+const TS_URL = (Deno.env.get('TYPESENSE_URL') ?? '').replace(/\/$/, '');
+const TS_KEY = Deno.env.get('TYPESENSE_API_KEY') ?? '';
+const SENIORITY = ['c-level', 'vp', 'director', 'manager'];
+// at most this many "new company" emails a workspace gets in a day, however busy its website is
+const ALERTS_PER_DAY = 25;
 const CACHE_DAYS = 30;
 const BOT = /bot|crawl|spider|slurp|headless|preview|monitor|uptime|lighthouse|pingdom|facebookexternalhit|curl|wget|python|httpclient/i;
 
@@ -91,6 +98,92 @@ async function resolve(ip: string): Promise<Resolution | null> {
   return row;
 }
 
+interface Teaser {
+  full_name: string;
+  current_title: string | null;
+  has_mobile: boolean;
+}
+
+/** up to three decision makers at the company (names and titles only; contact details stay in the app) */
+async function decisionMakers(domain: string): Promise<{ people: Teaser[]; found: number }> {
+  if (!TS_URL || !TS_KEY) return { people: [], found: 0 };
+  const tick = (s: string) => `\`${s.replace(/`/g, '')}\``;
+  const variants = [domain, `www.${domain}`, `https://${domain}`, `http://${domain}`, `https://www.${domain}`, `http://www.${domain}`];
+  const filter = `company_domain:=[${variants.map(tick).join(', ')}]`;
+  const res = await fetch(`${TS_URL}/multi_search`, {
+    method: 'POST',
+    headers: { 'X-TYPESENSE-API-KEY': TS_KEY, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      searches: SENIORITY.map((s) => ({ collection: 'leads', q: '*', filter_by: `${filter} && seniority_h:=${crc(s)}`, per_page: 6, include_fields: 'full_name,current_title,has_mobile,has_email' })),
+    }),
+    signal: AbortSignal.timeout(8_000),
+  }).catch(() => null);
+  const body = res?.ok ? await res.json().catch(() => null) : null;
+  const levels = (body?.results ?? []) as { found?: number; hits?: { document: Teaser & { has_email?: boolean } }[] }[];
+  // most senior first; within a level, people with a mobile, then an email
+  const people = levels
+    .flatMap((r) => [...(r.hits ?? [])].map((h) => h.document).sort((a, b) => Number(b.has_mobile) - Number(a.has_mobile) || Number(!!b.has_email) - Number(!!a.has_email)))
+    .filter((d) => d.full_name)
+    .slice(0, 3);
+  return { people, found: levels.reduce((a, r) => a + (r.found ?? 0), 0) };
+}
+
+/** "New company resolved" to everyone in the workspace who hasn't unsubscribed from Decibel emails */
+async function newCompanyEmail(site: { id: string; workspace_id: string; domain: string }, domain: string, r: Resolution, path: string | null) {
+  const db = admin();
+  const { data: allowed } = await db.rpc('check_rate_limit', { p_key: `visitor-alert:${site.workspace_id}`, p_limit: ALERTS_PER_DAY, p_window_seconds: 86_400 });
+  if (allowed === false) return;
+  const { data: members } = await db.from('workspace_members').select('user_id,profiles(email,full_name,email_opt_out_at)').eq('workspace_id', site.workspace_id);
+  const to = (members ?? [])
+    .map((m) => ({ id: (m as { user_id: string }).user_id, ...((m as { profiles?: { email?: string; email_opt_out_at?: string | null } }).profiles ?? {}) }))
+    .filter((m) => m.email && !m.email_opt_out_at);
+  if (!to.length) return;
+
+  const { people, found } = await decisionMakers(domain);
+  const name = r.organization?.trim() || domain;
+  const subject = `New company resolved on ${site.domain}: ${name}`;
+  for (const m of to) {
+    const links = await unsubscribeLinks(m.id, APP_URL, FUNCTIONS_URL);
+    const html = newCompanyHtml(site.domain, domain, r, path, people, found, links.page);
+    await sendEmail(m.email!, subject, html, { replyTo: FOUNDER_EMAIL, headers: links.headers });
+  }
+}
+
+/** the email itself (exported for previews) */
+export function newCompanyHtml(
+  siteDomain: string,
+  domain: string,
+  r: Pick<Resolution, 'organization' | 'city' | 'country'>,
+  path: string | null,
+  people: Teaser[],
+  found: number,
+  unsubscribeUrl?: string,
+) {
+  const name = r.organization?.trim() || domain;
+  const where = [r.city, r.country].filter(Boolean).join(', ');
+  const rows: [string, string][] = [['Company', name], ['Website', domain]];
+  if (where) rows.push(['Location', where]);
+  if (path) rows.push(['First page', path]);
+  const list = people.length
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;border-top:1px solid #ececec">${people
+        .map(
+          (d) =>
+            `<tr><td style="padding:10px 0;border-bottom:1px solid #ececec"><div style="font-size:15px;line-height:22px;font-weight:500;color:#141414">${esc(d.full_name)}</div><div style="font-size:14px;line-height:21px;color:#5c5c5c">${esc(d.current_title ?? '')}${d.has_mobile ? ' · mobile on file' : ''}</div></td></tr>`,
+        )
+        .join('')}</table>`
+    : '';
+  const lead = people.length
+    ? p(`${found > people.length ? `${found.toLocaleString('en-GB')} decision makers are` : 'These decision makers are'} on file at ${esc(name)}. Reveal their emails and mobiles in Decibel.`)
+    : p(`We don't have decision makers on file for ${esc(domain)} yet, but you can see every page they looked at.`);
+  return layout(
+    `${esc(name)} just visited ${esc(siteDomain)}`,
+    p('A new company has been resolved from a visit to your website.') + details(rows) + lead + list,
+    { label: people.length ? 'See the decision makers' : 'See the visit', url: `${APP_URL}/app/visitors` },
+    `${name} just visited ${siteDomain}.`,
+    unsubscribeUrl,
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return done();
   if (req.method !== 'POST') return done(405);
@@ -149,7 +242,7 @@ Deno.serve(async (req) => {
     });
     await db.from('visitor_sites').update({ last_hit_at: new Date().toISOString() }).eq('id', site.id);
     if (r && domain) {
-      await db.rpc('record_visitor_company', {
+      const { data: isNew } = await db.rpc('record_visitor_company', {
         p_site_id: site.id,
         p_domain: domain,
         p_organization: r.organization ?? null,
@@ -160,6 +253,7 @@ Deno.serve(async (req) => {
         p_ip: ip,
         p_path: path,
       });
+      if (isNew === true) await newCompanyEmail(site, domain, r, path).catch((e) => console.error('visitor alert', (e as Error).message));
     }
   })().catch((e) => console.error('visitor-track', (e as Error).message));
 
