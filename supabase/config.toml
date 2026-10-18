@@ -60,3 +60,9 @@ verify_jwt = false
 verify_jwt = false
 [functions.lead-enrich]
 verify_jwt = false
+
+[functions.visitor-track]
+verify_jwt = false
+
+[functions.visitor-companies]
+verify_jwt = false

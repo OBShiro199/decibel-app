@@ -4,7 +4,7 @@ import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
 import { Check, ChevronsUpDown, Coins, LogOut, Mail, Phone, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
 import { FOUNDER } from '@/lib/site';
 import { SETTINGS_PAGES, settingsHref } from '@/lib/settings-nav';
-import { AddressBook, CaretRight, GearSix, Lightning, ListBullets, PhoneCall, PhoneX, ShieldCheck, UsersThree } from '@phosphor-icons/react';
+import { AddressBook, CaretRight, Eye, GearSix, Lightning, ListBullets, PhoneCall, PhoneX, ShieldCheck, UsersThree } from '@phosphor-icons/react';
 import { GoogleIcon } from '@/components/ui/google-icon';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -37,6 +37,7 @@ const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     items: [
       { href: '/app/leads', label: 'Leads', icon: AddressBook },
       { href: '/app/local', label: 'Local businesses', icon: GoogleNavIcon },
+      { href: '/app/visitors', label: 'Website visitors', icon: Eye },
       // Companies is hidden for now: the page still exists at /app/companies. To bring the tab back,
       // restore { href: '/app/companies', label: 'Companies', icon: Buildings } here and in PREFETCH_ROUTES.
       { href: '/app/lists', label: 'Lists', icon: ListBullets },
