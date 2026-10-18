@@ -13,7 +13,7 @@ import { SITE_URL } from '@/lib/site';
 import { invoke, supabase } from '@/lib/supabase/client';
 import { cn, formatPhone, timeAgo } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { EmptyState, ErrorCard, TableSkeleton } from '@/components/ui/display';
+import { EmptyState, ErrorCard, TableSkeleton, Tabs } from '@/components/ui/display';
 import { Input } from '@/components/ui/form';
 import { Dialog, useToast } from '@/components/ui/overlay';
 
@@ -42,6 +42,21 @@ interface Person {
   on_dnc: boolean;
 }
 
+/** one page view, identified or not (0043) */
+interface Hit {
+  id: number;
+  ip: string;
+  path: string | null;
+  referrer: string | null;
+  company_domain: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  isp: string | null;
+  device: string | null;
+  created_at: string;
+}
+
 interface Company {
   id: string;
   site_id: string;
@@ -59,6 +74,17 @@ interface Company {
   last_seen: string;
   people: Person[];
   people_found: number;
+}
+
+/** where a visit came from: the referring site's host, "Your site" for a click within it, or "Direct" */
+function referrerHost(ref: string | null, own: string): string {
+  if (!ref) return 'Direct';
+  try {
+    const host = new URL(ref).hostname.replace(/^www\./, '');
+    return host === own || host.endsWith(`.${own}`) ? 'Your site' : host;
+  } catch {
+    return 'Direct';
+  }
 }
 
 const snippet = (key: string) => `<script defer src="${SITE_URL}/v.js" data-site="${key}"></script>`;
@@ -161,6 +187,7 @@ export function WebsiteVisitors() {
   const [install, setInstall] = useState(false);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [revealing, setRevealing] = useState<string | null>(null);
+  const [tab, setTab] = useState<'companies' | 'visits'>('companies');
   const [changing, setChanging] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -182,6 +209,23 @@ export function WebsiteVisitors() {
     refetchInterval: 30_000,
     placeholderData: (prev) => prev,
     queryFn: () => invoke<{ companies: Company[]; total: number }>('visitor-companies', { workspace_id: workspace.id, site_id: site!.id, offset: page * PAGE, limit: PAGE }),
+  });
+
+  const hits = useQuery({
+    queryKey: ['visitor-hits', workspace.id, site?.id, page],
+    enabled: !!site && tab === 'visits',
+    refetchInterval: 30_000,
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const { data, error, count } = await supabase()
+        .from('visitor_hits')
+        .select('id,ip,path,referrer,company_domain,country,region,city,isp,device,created_at', { count: 'exact' })
+        .eq('site_id', site!.id)
+        .order('created_at', { ascending: false })
+        .range(page * PAGE, page * PAGE + PAGE - 1);
+      if (error) throw new Error(error.message);
+      return { rows: (data ?? []) as Hit[], total: count ?? 0 };
+    },
   });
 
   async function reveal(p: Person) {
@@ -212,7 +256,9 @@ export function WebsiteVisitors() {
 
   const data = visitors.data;
   const companies = data?.companies ?? [];
-  const pages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE));
+  // the footer pages whichever tab is open
+  const shownTotal = tab === 'visits' ? (hits.data?.total ?? 0) : (data?.total ?? 0);
+  const pages = Math.max(1, Math.ceil(shownTotal / PAGE));
 
   return (
     <div className="flex h-full flex-col bg-white-100">
@@ -238,6 +284,79 @@ export function WebsiteVisitors() {
         </div>
       </div>
 
+      <Tabs
+        className="shrink-0 px-4"
+        active={tab}
+        onChange={(id) => {
+          setTab(id as 'companies' | 'visits');
+          setPage(0);
+        }}
+        tabs={[
+          { id: 'companies', label: 'Companies', count: data?.total },
+          { id: 'visits', label: 'All visits', count: hits.data?.total },
+        ]}
+      />
+
+      {tab === 'visits' ? (
+        <div className="min-h-0 flex-1 overflow-auto">
+          {hits.error ? (
+            <div className="p-4">
+              <ErrorCard message={(hits.error as Error).message} onRetry={() => hits.refetch()} />
+            </div>
+          ) : !hits.data ? (
+            <TableSkeleton rows={12} cols={7} />
+          ) : !hits.data.rows.length ? (
+            <EmptyState shape="diamond" title="No visits yet" description={`Every page view on ${site.domain} shows here, with its location and network, whether or not a company was found.`} />
+          ) : (
+            <div className={cn('tbl-wrap transition-opacity', hits.isPlaceholderData && 'opacity-60')}>
+              <table className="tbl tbl-fixed" data-testid="visits-table">
+                <colgroup>
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 220 }} />
+                  <col style={{ width: 140 }} />
+                  <col style={{ width: 200 }} />
+                  <col style={{ width: 190 }} />
+                  <col style={{ width: 100 }} />
+                  <col style={{ width: 180 }} />
+                  <col style={{ width: 200 }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Page</th>
+                    <th>IP address</th>
+                    <th>Location</th>
+                    <th>Network</th>
+                    <th>Device</th>
+                    <th>Came from</th>
+                    <th>Company</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hits.data.rows.map((h) => (
+                    <tr key={h.id}>
+                      <td className="text-black-700" title={new Date(h.created_at).toLocaleString('en-GB')}>
+                        {timeAgo(h.created_at)}
+                      </td>
+                      <td className="truncate text-black-400" title={h.path ?? ''}>
+                        {h.path ?? '–'}
+                      </td>
+                      <td className="tabular-nums text-black-700">{h.ip}</td>
+                      <td className="truncate text-black-700">{[h.city, h.region, h.country].filter(Boolean).join(', ') || '–'}</td>
+                      <td className="truncate text-black-700">{h.isp ?? '–'}</td>
+                      <td className="text-black-700">{h.device ? h.device[0].toUpperCase() + h.device.slice(1) : '–'}</td>
+                      <td className="truncate text-black-700" title={h.referrer ?? ''}>
+                        {referrerHost(h.referrer, site.domain)}
+                      </td>
+                      <td>{h.company_domain ? <span className="tag tag-0">{h.company_domain}</span> : <span className="tag tag-7">Not identified</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="min-h-0 flex-1 overflow-auto">
         {visitors.error ? (
           <div className="p-4">
@@ -383,9 +502,11 @@ export function WebsiteVisitors() {
         )}
       </div>
 
+      )}
+
       <div className="flex h-12 shrink-0 items-center justify-between border-t border-white-800 bg-panel px-4">
         <span className="tabular-nums text-black-700">
-          {data && data.total ? `${n(page * PAGE + 1)}–${n(Math.min((page + 1) * PAGE, data.total))} of ${n(data.total)}` : ''}
+          {shownTotal ? `${n(page * PAGE + 1)}–${n(Math.min((page + 1) * PAGE, shownTotal))} of ${n(shownTotal)}` : ''}
         </span>
         <div className="flex gap-2">
           <Button size="compact" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>

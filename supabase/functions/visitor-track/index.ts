@@ -30,10 +30,18 @@ function clientIp(req: Request): string | null {
 
 const clip = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : null);
 
+/** desktop, mobile or tablet, from the user agent (for the All visits view) */
+function device(ua: string): 'desktop' | 'mobile' | 'tablet' {
+  if (/ipad|tablet|kindle|silk|playbook|(android(?!.*mobile))/i.test(ua)) return 'tablet';
+  if (/mobi|iphone|ipod|android|windows phone/i.test(ua)) return 'mobile';
+  return 'desktop';
+}
+
 interface Resolution {
   domain: string | null;
   organization: string | null;
   country: string | null;
+  country_code?: string | null;
   region: string | null;
   city: string | null;
   isp: string | null;
@@ -115,7 +123,21 @@ Deno.serve(async (req) => {
   const referrer = clip(input.r, 300);
   const work = (async () => {
     const r = await resolve(ip);
-    await db.from('visitor_hits').insert({ site_id: site.id, workspace_id: site.workspace_id, ip, path, referrer, company_domain: r?.domain ?? null });
+    // every page view keeps its location and network, whether or not it resolved to a company
+    await db.from('visitor_hits').insert({
+      site_id: site.id,
+      workspace_id: site.workspace_id,
+      ip,
+      path,
+      referrer,
+      company_domain: r?.domain ?? null,
+      country: r?.country ?? null,
+      country_code: r?.country_code ?? null,
+      region: r?.region ?? null,
+      city: r?.city ?? null,
+      isp: r?.isp ?? null,
+      device: device(ua),
+    });
     await db.from('visitor_sites').update({ last_hit_at: new Date().toISOString() }).eq('id', site.id);
     if (r?.domain) {
       await db.rpc('record_visitor_company', {
