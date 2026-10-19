@@ -29,7 +29,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
       { href: '/blog', label: 'Blog' },
       { href: '/careers', label: 'Careers' },
       { href: '/demo', label: 'Book a 15-min demo' },
-      { href: '/signup', label: 'Start free trial' },
+      { href: '/signup', label: 'Get started' },
       { href: '/login', label: 'Log in' },
       { href: `mailto:${FOUNDER.email}`, label: 'Contact us', external: true },
     ],

@@ -9,7 +9,7 @@ import { Console, Reveal, Status } from './daygent';
 import { ASCII_FONT, CtaPair } from './page-kit';
 
 /** Honesty note: the feature is announced before it is live (see the marketing site rules). */
-export const VISITORS_FOOTNOTE = 'Website visitor identification is coming soon. It will be included in Pro at no extra cost.';
+export const VISITORS_FOOTNOTE = 'Pro includes 300 website visitor identifications a month.';
 
 type Visit = { company: string; domain: string; industry: string; town: string; pages: string[]; visits: number; when: string };
 

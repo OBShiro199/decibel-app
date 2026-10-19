@@ -15,7 +15,7 @@ import {
   TextLink,
   compareJsonLd,
 } from '@/components/marketing/compare';
-import { PRO, TRIAL_CREDITS } from '@/lib/constants';
+import { PRO } from '@/lib/constants';
 
 const PATH = '/vs/lusha';
 
@@ -42,11 +42,11 @@ const ROWS = [
 const FAQS: FaqItem[] = [
   {
     question: 'How do Lusha credits compare with Decibel credits?',
-    answer: `On Lusha, revealing a phone number costs 5 credits and an email costs 1. Its Starter plan includes 400 credits a month, which is up to 80 phone numbers if every credit goes on phones. On Decibel, one credit reveals one mobile and Pro includes ${PRO.credits.toLocaleString('en-GB')} reveals per seat each month. The two databases differ in size and coverage, so compare on your own target list. Competitor details checked on ${CHECKED_ON}.`,
+    answer: `On Lusha, revealing a phone number costs 5 credits and an email costs 1. Its Starter plan includes 400 credits a month, which is up to 80 phone numbers if every credit goes on phones. On Decibel, Pro unlocks the whole database for a flat £${PRO.monthly} a month. The two databases differ in size and coverage, so compare on your own target list. Competitor details checked on ${CHECKED_ON}.`,
   },
   {
     question: 'Does Lusha have a free plan?',
-    answer: `Yes. Lusha’s Free plan is permanent, with 40 credits a month and no card, which is enough for up to 8 phone numbers. Decibel does not have a free plan; it has a 14-day free trial with one seat, ${TRIAL_CREDITS.toLocaleString('en-GB')} credits and 60 minutes of calling, also without a card.`,
+    answer: `Yes. Lusha’s Free plan is permanent, with 40 credits a month and no card, which is enough for up to 8 phone numbers. Decibel does not have a free plan or a trial: Pro is £${PRO.monthly} a month and we set you up in ${PRO.setupDays} days.`,
   },
   {
     question: 'Can I call from Lusha?',
@@ -78,7 +78,7 @@ export default function VsLushaPage() {
         <CompareCta location="vs_lusha" />
       </Section>
 
-      <Section eyebrow="Pricing" title="Credits per number versus reveals per seat" flush>
+      <Section eyebrow="Pricing" title="Credits per number versus the whole database" flush>
         <SideBySide
           items={[
             {
@@ -86,11 +86,11 @@ export default function VsLushaPage() {
               body: (
                 <>
                   <p>
-                    One plan, Pro: £{PRO.monthly} per seat per month, or £{PRO.annual} per seat per year (save 44%), excluding VAT. Each seat includes{' '}
-                    {PRO.credits.toLocaleString('en-GB')} verified mobile reveals a month; one credit reveals one mobile and revealed contacts stay free.
+                    One plan, Pro: £{PRO.monthly} a month, excluding VAT, with a {PRO.setupDays}-day setup. It unlocks the full 1M verified UK &amp; EU lead
+                    database from day one, ready to call and export, plus {PRO.visitors} website visitor identifications a month.
                   </p>
                   <p>
-                    Calling is included: {FAIR_USE_TEXT} See the <TextLink href="/fair-use">fair use policy</TextLink>.
+                    Calling is included: {FAIR_USE_TEXT} See <TextLink href="/fair-use">how minutes work</TextLink>.
                   </p>
                 </>
               ),
@@ -213,7 +213,7 @@ export default function VsLushaPage() {
               points: [
                 'You are a small UK or EU team, roughly 1–20 reps, and calling mobiles is your main channel',
                 'You want data, a dialler, recording and a pipeline in one tool',
-                'You need a high volume of mobile reveals each month at a flat price per seat',
+                'You want the whole database and a dialler for one flat monthly price',
                 'You are happy to start with your own lists while our licensed data is onboarded',
               ],
             },

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Reveal } from '@/components/marketing/daygent';
 import { CompliancePills } from '@/components/marketing/compliance-pills';
 import { ASCII_FONT, Checklist, CtaPair, CtaStrip, DATA_FOOTNOTE, JsonLd, PageHero, Related, Section, Steps } from '@/components/marketing/page-kit';
-import { ANNUAL_SAVING_PCT, FAIR_USE_NOTE, PRO, PRO_FEATURES } from '@/lib/constants';
+import { FAIR_USE_NOTE, PRO, PRO_FEATURES } from '@/lib/constants';
 import { PRODUCT_LINKS } from '@/lib/marketing-pages';
 import { SITE_URL } from '@/lib/site';
 
@@ -88,8 +88,8 @@ export default function FeaturesPage() {
               <p className="eyebrow">[ Pricing ]</p>
               <h2 className="t-h1 mt-4 text-black-400">Every feature, one plan.</h2>
               <p className="mt-4 text-md leading-[26px] text-black-700">
-                {PRO.name} is £{PRO.monthly} per seat per month, or £{PRO.annual} per seat per year (save {ANNUAL_SAVING_PCT}%). Prices exclude VAT. There
-                are no feature tiers: every seat gets everything on this page.
+                {PRO.name} is £{PRO.monthly} a month, excluding VAT, and we set you up in {PRO.setupDays} days. There are no feature tiers: you
+                get everything on this page.
               </p>
               <Link href="/#pricing" className="link mt-6 inline-block text-base">
                 See pricing
@@ -102,7 +102,7 @@ export default function FeaturesPage() {
               <p className="mt-5 tabular-nums text-xs leading-[17px] tracking-[0.06em] text-faint">
                 {FAIR_USE_NOTE}{' '}
                 <Link href="/fair-use" className="link">
-                  Fair use policy
+                  How minutes work
                 </Link>
               </p>
             </Reveal>

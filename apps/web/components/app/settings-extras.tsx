@@ -8,7 +8,7 @@ import { Field, Input, PillSelect } from '@/components/ui/form';
 import { useToast } from '@/components/ui/overlay';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';
-import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, FAIR_USE_NOTE, PRO, PRO_FEATURES } from '@/lib/constants';
+import { FAIR_USE_NOTE, PRO, PRO_FEATURES } from '@/lib/constants';
 import { FOUNDER } from '@/lib/site';
 import { useMembers } from '@/lib/hooks';
 import { invoke, supabase } from '@/lib/supabase/client';
@@ -67,7 +67,8 @@ export function ChangePasswordSection() {
 export function ProPlanSection() {
   const { workspace, isOwner } = useApp();
   const members = useMembers();
-  const [interval, setIntervalValue] = useState<Interval>('monthly');
+  // monthly only (no annual plan)
+  const interval: Interval = 'monthly';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; calm: boolean } | null>(null);
   const seats = members.data?.length ?? 1;
@@ -92,17 +93,6 @@ export function ProPlanSection() {
       <Section
         title="Decibel Pro"
         description={`You have ${seats} member${seats === 1 ? '' : 's'}, so you will be billed for ${seats} seat${seats === 1 ? '' : 's'}.`}
-        actions={
-          <PillSelect<Interval>
-            single
-            value={[interval]}
-            onChange={(v) => setIntervalValue(v[0] ?? 'monthly')}
-            options={[
-              { value: 'monthly', label: 'Monthly' },
-              { value: 'annual', label: `Annual, save ${ANNUAL_SAVING_PCT}%` },
-            ]}
-          />
-        }
       >
         {error ? <Notice tone={error.calm ? 'neutral' : 'danger'} className="mb-4">{error.message}</Notice> : null}
         <div className="card flex max-w-[520px] flex-col p-6">
@@ -111,13 +101,11 @@ export function ProPlanSection() {
             {current ? <Badge tone="accent">Current plan</Badge> : null}
           </div>
           <p className="mt-4">
-            <span className="t-h1 tabular">£{(interval === 'annual' ? PRO.annual : PRO.monthly).toLocaleString('en-GB')}</span>
-            <span className="text-black-700"> / seat / {interval === 'annual' ? 'year' : 'month'}</span>
+            <span className="t-h1 tabular">£{PRO.monthly}</span>
+            <span className="text-black-700"> / seat / month</span>
           </p>
           <p className="t-small mt-1 text-black-700">
-            {interval === 'annual'
-              ? `£${Math.round(PRO.annual / 12)} a month, saving £${ANNUAL_SAVING.toLocaleString('en-GB')} a year. Excluding VAT.`
-              : `Billed monthly, or £${PRO.annual.toLocaleString('en-GB')} a year. Excluding VAT.`}
+            {`Billed monthly, excluding VAT. We set you up in ${PRO.setupDays} days.`}
           </p>
           <ul className="mt-5 flex-1 space-y-2">
             {PRO_FEATURES.map((f) => (
@@ -143,7 +131,7 @@ export function ProPlanSection() {
           <p className="t-small mt-4 text-black-700">
             {FAIR_USE_NOTE}{' '}
             <a href="/fair-use" target="_blank" rel="noreferrer" className="underline underline-offset-2">
-              Fair use policy
+              How minutes work
             </a>
           </p>
           <p className="t-small mt-2 text-black-700">

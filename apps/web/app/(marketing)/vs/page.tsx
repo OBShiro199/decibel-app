@@ -110,7 +110,7 @@ export default function VsHubPage() {
         title="Decibel vs. Cognism, Lusha and Kaspr"
         corners={['Compare', `Checked ${CHECKED_ON}`]}
         location="vs_hub"
-        lede={`Cognism, Lusha and Kaspr are established contact data tools. Decibel is newer and narrower: UK and EU mobiles, a browser dialler and a pipeline in one plan at £${PRO.monthly} per seat per month. Here is a fair side-by-side, sourced from each company’s own website, so you can pick what suits your team.`}
+        lede={`Cognism, Lusha and Kaspr are established contact data tools. Decibel is newer and narrower: UK and EU mobiles, a browser dialler and a pipeline in one plan at £${PRO.monthly} a month. Here is a fair side-by-side, sourced from each company’s own website, so you can pick what suits your team.`}
       />
 
       <Section eyebrow="At a glance" title="All four, side by side" lede="Scroll sideways on a phone. Every competitor detail is linked under Sources." flush>

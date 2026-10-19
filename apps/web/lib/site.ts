@@ -14,6 +14,6 @@ export const FOUNDER = {
 // Under 60 characters so Google shows it in full; no figures that need a footnote.
 export const SITE_TITLE = 'Decibel: verified UK & EU mobiles and a power dialler';
 export const SITE_DESCRIPTION =
-  'Find UK and EU decision makers, reveal their verified mobile numbers and call them from your browser with a built-in power dialler. Free 14-day trial.';
+  'Find UK and EU decision makers, reveal their verified mobile numbers and call them from your browser with a built-in power dialler. £149 a month.';
 
 // The public page list (for the sitemap) lives in lib/marketing-pages.ts.

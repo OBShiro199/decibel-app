@@ -15,7 +15,7 @@ import {
   TextLink,
   compareJsonLd,
 } from '@/components/marketing/compare';
-import { PRO, TRIAL_CREDITS } from '@/lib/constants';
+import { PRO } from '@/lib/constants';
 
 const PATH = '/vs/cognism';
 
@@ -42,7 +42,7 @@ const ROWS = [
 const FAQS: FaqItem[] = [
   {
     question: 'How much does Cognism cost compared with Decibel?',
-    answer: `Cognism does not publish prices. Its pricing page lists Standard and Pro packages with 5 seats included and asks you to talk to sales for a quote. Decibel has one published plan: £${PRO.monthly} per seat per month, or £${PRO.annual} per seat per year, excluding VAT, with ${PRO.credits.toLocaleString('en-GB')} mobile reveals per seat each month. Competitor details checked on ${CHECKED_ON}.`,
+    answer: `Cognism does not publish prices. Its pricing page lists Standard and Pro packages with 5 seats included and asks you to talk to sales for a quote. Decibel has one published plan: £${PRO.monthly} a month, excluding VAT, with the whole database unlocked and ${PRO.minutes.toLocaleString('en-GB')} dialler minutes a month. Competitor details checked on ${CHECKED_ON}.`,
   },
   {
     question: 'Does Cognism have a built-in dialler?',
@@ -87,12 +87,11 @@ export default function VsCognismPage() {
               body: (
                 <>
                   <p>
-                    One plan, Pro: £{PRO.monthly} per seat per month, or £{PRO.annual} per seat per year (save 44%), excluding VAT. Each seat includes{' '}
-                    {PRO.credits.toLocaleString('en-GB')} verified mobile reveals a month, where one credit reveals one mobile and revealed contacts stay free.
+                    One plan, Pro: £{PRO.monthly} a month, excluding VAT, with a {PRO.setupDays}-day setup. It unlocks the full 1M verified UK &amp; EU lead
+                    database from day one, ready to call and export, plus {PRO.visitors} website visitor identifications a month.
                   </p>
                   <p>
-                    Calling is included: {FAIR_USE_TEXT} See the <TextLink href="/fair-use">fair use policy</TextLink>. The free trial gives one seat,{' '}
-                    {TRIAL_CREDITS.toLocaleString('en-GB')} credits and 60 minutes for 14 days, without a card.
+                    Calling is included: {FAIR_USE_TEXT} See <TextLink href="/fair-use">how minutes work</TextLink>.
                   </p>
                 </>
               ),
@@ -213,7 +212,7 @@ export default function VsCognismPage() {
               points: [
                 'You are a small UK or EU team, roughly 1–20 reps, and calling mobiles is your main channel',
                 'You want data, a dialler, recording and a pipeline in one tool',
-                'You prefer a published monthly price per seat you can start and stop',
+                'You prefer a published monthly price you can start and stop',
                 'You are happy to start with your own lists while our licensed data is onboarded',
               ],
             },

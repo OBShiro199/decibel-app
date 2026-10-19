@@ -98,25 +98,35 @@ export const MARKETS: Record<string, string[]> = {
 export const JOB_TITLE_SUGGESTIONS = ['CEO', 'Founder', 'Managing Director', 'Head of Sales', 'Sales Director', 'CTO', 'Operations Director', 'Head of Marketing', 'Finance Director', 'Head of Procurement', 'HR Director'];
 
 /**
- * The one plan. Prices are per seat, excluding VAT. `tier` is what workspaces.plan stores and
- * what the billing function receives, so Pro reuses the existing top tier (and its Stripe
- * price env vars, STRIPE_PRICE_GROWTH_*, once Stripe is set up).
+ * The one plan: £149 a month (excluding VAT), no free trial, live after a 3-day setup. `tier` is what
+ * workspaces.plan stores and what the billing function receives (STRIPE_PRICE_GROWTH_* once Stripe is set up).
  */
-export const PRO = { name: 'Pro', tier: 'growth', monthly: 149, annual: 997, credits: 5000, recordings: '1 year' } as const;
-/** What annual billing saves against twelve monthly payments: £791, 44%. */
-export const ANNUAL_SAVING = PRO.monthly * 12 - PRO.annual;
-export const ANNUAL_SAVING_PCT = Math.round((ANNUAL_SAVING / (PRO.monthly * 12)) * 100);
-/** Unlimited browser calling is subject to fair use (see /fair-use). */
-export const FAIR_USE_MINUTES = 1000;
-export const FAIR_USE_NOTE = `*Unlimited calls are subject to fair use: ${FAIR_USE_MINUTES.toLocaleString('en-GB')} call minutes per seat each month, then minutes at cost.`;
+export const PRO = {
+  name: 'Pro',
+  tier: 'growth',
+  monthly: 149,
+  setupDays: 3,
+  minutes: 1000,
+  /** each dialler minute past the monthly allowance, in pence (wholesale UK mobile is roughly 1.5–4p) */
+  extraMinutePence: 5,
+  visitors: 300,
+  recordings: '1 year',
+} as const;
+const n = (v: number) => v.toLocaleString('en-GB');
+/** "£149 a month · 3-day setup": the line under every call to action */
+export const OFFER_LINE = `£${PRO.monthly} a month · ${PRO.setupDays}-day setup · ex VAT`;
+/** Dialler minutes: an allowance each month, then a per-minute price (see /fair-use). */
+export const FAIR_USE_MINUTES = PRO.minutes;
+export const MINUTES_TEXT = `${n(PRO.minutes)} dialler minutes a month are included, then ${PRO.extraMinutePence}p a minute.`;
+export const FAIR_USE_NOTE = `*${MINUTES_TEXT}`;
 export const PRO_FEATURES = [
-  `${PRO.credits.toLocaleString('en-GB')} verified mobile reveals per seat, every month`,
-  'Unlimited calls from the browser dialler*',
-  'Power dialler with a UK number per seat',
-  `Every call recorded, kept ${PRO.recordings}`,
-  'TPS and CTPS screening on every dial',
-  'Lists, pipeline, CSV import and per-rep dashboards',
-  'Website visitor identification: the companies on your site and their decision makers (coming soon)',
+  'Instant access to the 1M verified UK & EU lead database, ready to export',
+  `${n(PRO.minutes)} dialler minutes a month, then ${PRO.extraMinutePence}p a minute*`,
+  `${n(PRO.visitors)} website visitor identifications a month`,
+  'Unlimited call recording and call transcription',
+  'AI call analysis to help every rep improve',
+  'Analytics on calls, reps and outcomes',
+  'Power dialler with a UK number and TPS/CTPS screening on every dial',
 ];
 /** Welcome credits for every new account, granted once (enforced in the database, migration 0010). */
 export const TRIAL_CREDITS = 5000;

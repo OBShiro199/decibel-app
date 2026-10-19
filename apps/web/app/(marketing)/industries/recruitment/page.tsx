@@ -21,7 +21,7 @@ const PAINS: [string, string][] = [
 
 const HELPS: Feature[] = [
   { tag: 'Search', title: 'Find the hiring manager', body: 'Search UK and EU decision makers by title, seniority, company size, industry and country: head of engineering, finance director, operations manager.' },
-  { tag: 'Reveals', title: 'A direct mobile for one credit', body: `${PRO.credits.toLocaleString('en-GB')} verified mobile reveals per seat each month. Contacts you have revealed stay free for your workspace.` },
+  { tag: 'Data', title: 'Every direct mobile, unlocked', body: 'The whole 1M verified UK & EU database from day one, ready to call and export.' },
   { tag: 'Speed', title: 'A BD hour that is all calls', body: 'The power dialler calls down your list from the browser with a UK number per seat, and resumes the run where you stopped.' },
   { tag: 'Pipeline', title: 'Outcomes move the pipeline', body: 'Nine outcomes on keys 1 to 9. A meeting booked moves the stage; a call back creates a follow-up in the Today queue.' },
   { tag: 'Training', title: 'Every call recorded', body: 'Recordings sit on the call record for a year, so new consultants can learn from real BD calls and managers can coach on them.' },
@@ -129,7 +129,7 @@ export default function RecruitmentPage() {
         <PainGrid items={PAINS} />
       </Section>
 
-      <Section eyebrow="How Decibel helps" title="Less hunting for numbers, more conversations." lede={`Everything below is included in ${PRO.name}, £${PRO.monthly} per seat per month.`} flush>
+      <Section eyebrow="How Decibel helps" title="Less hunting for numbers, more conversations." lede={`Everything below is included in ${PRO.name}, £${PRO.monthly} a month.`} flush>
         <FeatureGrid items={HELPS} />
       </Section>
 

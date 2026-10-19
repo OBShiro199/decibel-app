@@ -88,7 +88,7 @@ const FAQS: FaqItem[] = [
   },
   {
     question: 'How long are recordings kept?',
-    answer: `${PRO.recordings[0].toUpperCase()}${PRO.recordings.slice(1)} on ${PRO.name}, and 90 days during a free trial. After that they are deleted. Recordings are stored in the UK.`,
+    answer: `${PRO.recordings[0].toUpperCase()}${PRO.recordings.slice(1)} on ${PRO.name}. After that they are deleted. Recordings are stored in the UK.`,
   },
   {
     question: 'Do I need separate recording software?',

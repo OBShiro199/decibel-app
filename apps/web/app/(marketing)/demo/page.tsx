@@ -16,7 +16,7 @@ const AGENDA = [
   'Revealing mobiles and building a call list in a couple of clicks',
   'The power dialler: TPS and CTPS checks, recording notice, outcomes on keys 1 to 9',
   'How outcomes move your pipeline and what your dashboards show',
-  'Pricing, fair use and what the free trial includes',
+  'Pricing, minutes and what the 3-day setup covers',
 ];
 
 export default function DemoPage() {
@@ -25,7 +25,7 @@ export default function DemoPage() {
       <div className="grid gap-12 px-5 py-16 md:grid-cols-[1fr_1.1fr] md:px-10 md:py-24">
         <div>
           <SectionHead eyebrow="Demo" title="Book a 15-minute demo with the founder.">
-            No slides and no sales team. Oliver shows you Decibel on your own market, answers your questions and sets up your trial if you want one.
+            No slides and no sales team. Oliver shows you Decibel on your own market, answers your questions and starts your 3-day setup if you want to go ahead.
           </SectionHead>
           <Reveal delay={100}>
             <Checklist items={AGENDA} className="mt-8" />
@@ -55,8 +55,8 @@ export default function DemoPage() {
           <DemoForm />
           <div className="mt-6 flex flex-wrap items-center gap-3 text-[13px] text-black-700">
             <span>Rather try it yourself?</span>
-            <CtaLink href="/signup" variant="primary" location="demo_page_trial">
-              Start free trial
+            <CtaLink href="/signup" variant="primary" location="demo_page_start">
+              Get started
             </CtaLink>
           </div>
         </Reveal>

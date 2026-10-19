@@ -82,7 +82,7 @@ export default function IndustriesPage() {
       <Section
         eyebrow="Every team"
         title="One plan, whatever you sell."
-        lede={`${PRO.name} is £${PRO.monthly} per seat per month, or £${PRO.annual.toLocaleString('en-GB')} per seat per year. Prices exclude VAT. Every seat includes:`}
+        lede={`${PRO.name} is £${PRO.monthly} a month, excluding VAT, with a ${PRO.setupDays}-day setup. It includes:`}
       >
         <div className="grid gap-10 md:grid-cols-[1fr_320px]">
           <div>
@@ -90,7 +90,7 @@ export default function IndustriesPage() {
             <p className="mt-4 tabular-nums text-xs leading-[17px] tracking-[0.06em] text-faint">
               {FAIR_USE_NOTE}{' '}
               <Link href="/fair-use" className="link">
-                Fair use policy
+                How minutes work
               </Link>
             </p>
           </div>

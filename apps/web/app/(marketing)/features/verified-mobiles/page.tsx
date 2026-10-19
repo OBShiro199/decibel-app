@@ -16,7 +16,7 @@ import {
   Section,
   Split,
 } from '@/components/marketing/page-kit';
-import { COUNTRIES, PRO, TRIAL_CREDITS } from '@/lib/constants';
+import { COUNTRIES, PRO } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -110,7 +110,7 @@ const LEDGER = [
 const FAQS: FaqItem[] = [
   {
     question: 'What counts as a credit?',
-    answer: `One credit reveals one mobile. ${PRO.name} includes ${PRO.credits.toLocaleString('en-GB')} reveals per seat every month and the free trial includes ${TRIAL_CREDITS.toLocaleString('en-GB')}. Searching and browsing results is free.`,
+    answer: `${PRO.name} unlocks the whole database from day one, ready to call and export. Searching and browsing results is free.`,
   },
   {
     question: 'Do I pay again if a teammate opens the same contact?',
@@ -177,8 +177,8 @@ export default function VerifiedMobilesPage() {
           <Checklist
             className="mt-8"
             items={[
-              `${PRO.credits.toLocaleString('en-GB')} reveals per seat, every month, on ${PRO.name}`,
-              `${TRIAL_CREDITS.toLocaleString('en-GB')} credits in the 14-day free trial, no card`,
+              `The whole database unlocked on ${PRO.name}, ready to export`,
+              `£${PRO.monthly} a month, live after a ${PRO.setupDays}-day setup`,
               'Searching and browsing results is free',
               'Revealed contacts stay free for the workspace',
             ]}

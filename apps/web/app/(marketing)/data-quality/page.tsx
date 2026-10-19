@@ -147,7 +147,7 @@ export default function DataQualityPage() {
         <FeatureGrid items={PROMISES} cols={4} />
         <div className="flex flex-col gap-6 px-5 py-8 md:flex-row md:items-center md:justify-between md:px-10">
           <p className="max-w-[560px] text-base leading-[24px] text-black-700">
-            See the checks on your own target list during the free trial, or walk through them with the founder.
+            See the checks on your own target list during your 3-day setup, or walk through them with the founder.
           </p>
           <CtaPair location="data_quality_mid" size="default" />
         </div>

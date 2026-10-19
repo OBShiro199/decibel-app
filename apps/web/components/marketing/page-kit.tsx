@@ -1,18 +1,18 @@
 // Building blocks for the marketing sub-pages (features, industries, comparisons, careers...).
 // They follow the landing page: bordered "rail" sections, [ bracketed ] eyebrows, Geist with
-// close tracking, quiet ASCII accents, and every page ends on the trial + demo pair.
+// close tracking, quiet ASCII accents, and every page ends on the get-started + demo pair.
 import Link from 'next/link';
-import { TRIAL_CREDITS } from '@/lib/constants';
+import { OFFER_LINE } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { CtaLink } from './analytics';
 import { Reveal } from './daygent';
 
-/** The two actions every page offers: the free trial and a 15-minute demo with the founder. */
+/** The two actions every page offers: get started and a 15-minute demo with the founder. */
 export function CtaPair({ location, className, size = 'lg' }: { location: string; className?: string; size?: 'lg' | 'default' }) {
   return (
     <div className={cn('flex flex-wrap items-center gap-3', className)}>
-      <CtaLink location={`${location}_trial`} href="/signup" variant="primary" size={size}>
-        Start free trial
+      <CtaLink location={`${location}_start`} href="/signup" variant="primary" size={size}>
+        Get started
       </CtaLink>
       <CtaLink location={`${location}_demo`} href="/demo" size={size}>
         Book a 15-min demo
@@ -21,7 +21,7 @@ export function CtaPair({ location, className, size = 'lg' }: { location: string
   );
 }
 
-export const TRIAL_LINE = `14 days · ${TRIAL_CREDITS.toLocaleString('en-GB')} credits · no card`;
+export const TRIAL_LINE = OFFER_LINE;
 
 const Corner = ({ className, children }: { className: string; children: React.ReactNode }) => (
   <span className={`pointer-events-none absolute tabular-nums text-xs tracking-[0.06em] text-faint max-md:hidden ${className}`}>{children}</span>
@@ -187,7 +187,7 @@ export const ASCII_FONT = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Conso
 /**
  * An ASCII box drawn around lines of text, e.g.
  *   ┌────────────────────────┐
- *   │  ► Start free trial    │
+ *   │  ► Get started    │
  *   └────────────────────────┘
  * Purely decorative (aria-hidden); the real links sit beside it.
  */
@@ -208,7 +208,7 @@ export function CtaStrip({ title = 'See Decibel on your own leads this week.', l
   return (
     <section className="rail dotgrid relative px-5 py-20 text-center md:py-24">
       <Reveal>
-        <AsciiBox lines={['► Start your 14-day free trial, no card', '► Or book a 15-minute demo with the founder']} className="max-sm:hidden" />
+        <AsciiBox lines={['► Get started: £149 a month, live in 3 days', '► Or book a 15-minute demo with the founder']} className="max-sm:hidden" />
         <h2 className="t-h1 mx-auto mt-8 max-w-[640px] text-black-400">{title}</h2>
         <CtaPair location={`${location}_footer`} className="mt-8 justify-center" />
         <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">{TRIAL_LINE}</p>

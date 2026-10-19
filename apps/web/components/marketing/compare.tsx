@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import type { FaqItem } from './faq';
 import { cn } from '@/lib/utils';
-import { FAIR_USE_NOTE, PRO, TRIAL_CREDITS } from '@/lib/constants';
+import { FAIR_USE_NOTE, PRO } from '@/lib/constants';
 import { SITE_URL } from '@/lib/site';
 import { Reveal } from './daygent';
 import { ASCII_FONT, AsciiBox, CtaPair, TRIAL_LINE } from './page-kit';
@@ -20,17 +20,17 @@ export const FAIR_USE_TEXT = FAIR_USE_NOTE.replace(/^\*/, '');
 /** Decibel's side of every table, from lib/constants so prices never drift. */
 export const DECIBEL = {
   focus: 'UK and EU decision makers, built for calling mobiles',
-  pricing: `One plan: £${PRO.monthly} per seat per month, or £${n(PRO.annual)} per seat per year (ex VAT)`,
-  mobiles: `${n(PRO.credits)} verified mobile reveals per seat per month (1 credit = 1 reveal)`,
+  pricing: `One plan: £${PRO.monthly} a month (ex VAT), with a ${PRO.setupDays}-day setup`,
+  mobiles: 'The full 1M verified UK & EU lead database, unlocked from day one and ready to export',
   data: '1M+ verified mobiles* (launch target; labelled sample data today)',
-  dialler: 'Built in: browser and power dialler, a UK number per seat, unlimited calls (fair use)',
-  pipeline: 'Built in: lists, stages, call outcomes and per-rep dashboards',
-  recording: `Every call recorded, kept ${PRO.recordings}`,
+  dialler: `Built in: browser and power dialler with a UK number; ${n(PRO.minutes)} minutes a month, then ${PRO.extraMinutePence}p a minute`,
+  pipeline: 'Built in: lists, stages, call outcomes, analytics and AI call analysis',
+  recording: 'Unlimited call recording and transcription',
   screening: 'TPS and CTPS checked on every dial, server-side',
   crm: 'CSV import and export today; native CRM integrations coming soon',
   extension: 'Web app; no extension needed',
   intent: 'No',
-  trial: `14-day free trial: 1 seat, ${n(TRIAL_CREDITS)} credits, 60 minutes, no card`,
+  trial: `No free trial: £${PRO.monthly} a month, live after a ${PRO.setupDays}-day setup`,
   bestFor: 'Small UK and EU teams (roughly 1–20 reps) whose main channel is calling mobiles',
 } as const;
 
@@ -94,10 +94,10 @@ export function CompareTable({ columns, rows, caption, highlight = 0 }: { column
 }
 
 /** Mid-page band after the table: the ASCII box beside the trial + demo pair. */
-export function CompareCta({ location, title = 'Try it on your own call list before you decide.' }: { location: string; title?: string }) {
+export function CompareCta({ location, title = 'See it on your own call list before you decide.' }: { location: string; title?: string }) {
   return (
     <div className="grid items-center gap-8 border-t border-white-800 bg-white-100 px-5 py-10 md:grid-cols-[auto_1fr] md:gap-12 md:px-8">
-      <AsciiBox lines={['► Start your 14-day free trial, no card', '► Or book a 15-minute demo with the founder']} className="max-sm:hidden" />
+      <AsciiBox lines={['► Get started: £149 a month, live in 3 days', '► Or book a 15-minute demo with the founder']} className="max-sm:hidden" />
       <div>
         <p className="text-lg font-medium tracking-[-0.03em] text-black-400">{title}</p>
         <CtaPair location={`${location}_table`} size="default" className="mt-5" />

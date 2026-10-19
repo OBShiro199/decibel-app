@@ -4,7 +4,7 @@ import { Prose } from '@/components/marketing/prose';
 
 export const metadata: Metadata = {
   title: 'Terms of service',
-  description: 'The terms that apply when you use Decibel, including trials, billing, acceptable use and liability.',
+  description: 'The terms that apply when you use Decibel, including billing, acceptable use and liability.',
   alternates: { canonical: '/terms' },
 };
 
@@ -20,14 +20,14 @@ export default function TermsPage() {
       <h2>2. The service</h2>
       <p>Decibel provides a B2B contact database, a browser-based dialler and a pipeline for managing outbound calling. Features may change as the product develops.</p>
 
-      <h2>3. Free trial</h2>
-      <p>Each new account gets a 14-day trial with 1 seat, 5,000 credits (granted once per account, not per workspace) and 60 call minutes. A credit reveals one contact, and one that your workspace has already revealed is never charged again. Every credit movement is recorded in a permanent ledger that you can see under Billing. No payment card is needed. When the trial ends you need a paid plan to keep calling.</p>
+      <h2>3. Setup</h2>
+      <p>There is no free trial. When you subscribe, we set up your workspace with you over 3 working days: your calling number, the dialler, website visitor tracking and your first lists.</p>
 
       <h2>4. Plans, credits and billing</h2>
       <ul>
-        <li>Plans are charged per seat, monthly or annually in advance, at the prices shown on our website.</li>
-        <li>Credits are used to reveal mobile numbers. One reveal uses one credit. Plan credits are allocated per seat each month.</li>
-        <li>Calls from the browser dialler are unlimited, subject to our <a href="/fair-use">fair use policy</a>: 1,000 minutes per seat each month, then minutes at cost.</li>
+        <li>Pro is charged monthly in advance, at the price shown on our website.</li>
+        <li>Pro includes access to the Decibel lead database for export, and 300 website visitor identifications a month.</li>
+        <li>Pro includes 1,000 dialler minutes a month; extra minutes are 5p each (see <a href="/fair-use">dialler minutes</a>).</li>
         <li>Prices exclude VAT. Payments are handled by Stripe.</li>
         <li>[Refunds, credit rollover and cancellation terms to be confirmed.]</li>
       </ul>

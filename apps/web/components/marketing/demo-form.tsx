@@ -53,7 +53,7 @@ export function DemoForm() {
       <div className="rounded-[6px] border border-white-800 bg-white-100 p-7">
         <p className="tabular-nums text-xs tracking-[0.06em] text-success-500">✓ Request sent</p>
         <h2 className="mt-3 text-lg font-medium tracking-[-0.03em] text-black-400">Thanks. Oliver will email you to find a time.</h2>
-        <p className="mt-2 text-base leading-[23px] text-black-700">Usually within one working day. In the meantime you can start the free trial and have a look around.</p>
+        <p className="mt-2 text-base leading-[23px] text-black-700">Usually within one working day. In the meantime you can create your account and have a look around.</p>
         {BOOKING_URL ? (
           <a href={BOOKING_URL} className="mt-5 inline-flex text-[13px] font-medium text-black-400 underline underline-offset-2">
             Or pick a slot now →

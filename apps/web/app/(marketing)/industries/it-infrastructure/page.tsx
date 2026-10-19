@@ -160,7 +160,7 @@ export default function ItInfrastructurePage() {
             <Link href="/local-businesses" className="link">
               Local businesses
             </Link>{' '}
-            tab. Both are included in {PRO.name}, £{PRO.monthly} per seat per month.
+            tab. Both are included in {PRO.name}, £{PRO.monthly} a month.
           </>
         }
         flush

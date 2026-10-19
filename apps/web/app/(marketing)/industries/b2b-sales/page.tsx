@@ -21,7 +21,7 @@ const PAINS: [string, string][] = [
 
 const HELPS: Feature[] = [
   { tag: 'Lists', title: 'Build a list in minutes', body: 'Search UK and EU decision makers by title, seniority, company size, industry and country, then add the matches to a list.' },
-  { tag: 'Reveals', title: '5,000 mobile reveals a seat', body: 'One credit reveals one verified mobile. Contacts you have revealed stay free for your workspace.' },
+  { tag: 'Data', title: 'The whole database, unlocked', body: 'All 1M verified UK & EU leads from day one, ready to filter, call and export.' },
   { tag: 'Dialler', title: 'A power dialler in the browser', body: 'Call down the list from Chrome with a UK number per seat. The dialler remembers where you stopped and resumes the run.' },
   { tag: 'Outcomes', title: 'Nine outcomes on keys 1 to 9', body: 'Log the call with one key. The pipeline stage moves and a follow-up is created when the outcome needs one.' },
   { tag: 'Dashboards', title: 'Per-rep dashboards', body: 'Calls, connects and meetings booked per rep, so managers can see the week without asking for a spreadsheet.' },
@@ -39,7 +39,7 @@ const DAY: [string, string][] = [
 const FAQS: FaqItem[] = [
   {
     question: 'How many calls can a rep make?',
-    answer: `Calls from the browser dialler are unlimited, subject to fair use of 1,000 minutes per seat per month, then minutes at cost. The power dialler places one call at a time with a rep on every call; there is no predictive dialling.`,
+    answer: `Pro includes 1,000 dialler minutes a month, then 5p a minute. The power dialler places one call at a time with a rep on every call; there is no predictive dialling.`,
   },
   {
     question: 'Where does the contact data come from?',
@@ -57,7 +57,7 @@ const FAQS: FaqItem[] = [
   },
   {
     question: 'How do we try it?',
-    answer: 'Start a 14-day free trial with one seat, 5,000 credits and 60 minutes of calling, no card needed. Or book a 15-minute demo and we will walk through it on your own target list.',
+    answer: 'Get started on Pro for £149 a month and we set you up in 3 days. Or book a 15-minute demo and we will walk through it on your own target list.',
   },
 ];
 
@@ -137,7 +137,7 @@ export default function B2bSalesPage() {
         <PainGrid items={PAINS} />
       </Section>
 
-      <Section eyebrow="How Decibel helps" title="Search, dial and log in one place." lede={`Everything below is included in ${PRO.name}, £${PRO.monthly} per seat per month.`} flush>
+      <Section eyebrow="How Decibel helps" title="Search, dial and log in one place." lede={`Everything below is included in ${PRO.name}, £${PRO.monthly} a month.`} flush>
         <FeatureGrid items={HELPS} />
       </Section>
 

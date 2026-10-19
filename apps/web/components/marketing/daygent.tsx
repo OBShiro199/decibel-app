@@ -3,7 +3,7 @@
 // procedural ASCII / ordered-dither canvas, marquee, live pill, console chrome,
 // the light "engine" and the single pricing card.
 import { useEffect, useRef, useState } from 'react';
-import { ANNUAL_SAVING, ANNUAL_SAVING_PCT, FAIR_USE_NOTE, PRO, PRO_FEATURES, TRIAL_CREDITS } from '@/lib/constants';
+import { FAIR_USE_NOTE, OFFER_LINE, PRO, PRO_FEATURES } from '@/lib/constants';
 import { FOUNDER } from '@/lib/site';
 import { CompliancePills } from './compliance-pills';
 import { cn } from '@/lib/utils';
@@ -332,47 +332,27 @@ export function PipelinePanel() {
 
 // ----------------------------------------------------------------- pricing --
 export function PricingCard() {
-  const [annual, setAnnual] = useState(false);
-  const seg = (on: boolean) => cn('h-8 px-3 tabular-nums text-xs tracking-[0.06em] transition-colors', on ? 'bg-white-300 text-black-400' : 'text-black-700 hover:bg-white-300');
   return (
     <div className="overflow-hidden rounded-card border border-white-800 bg-white-100">
       <div className="grid md:grid-cols-2">
         <div className="border-b border-rule p-7 md:border-b-0 md:border-r md:p-9">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-base font-medium text-black-400">{PRO.name}</span>
-            <div className="flex border border-btnborder" role="radiogroup" aria-label="Billing interval">
-              {[false, true].map((a) => (
-                <button
-                  key={String(a)}
-                  role="radio"
-                  aria-checked={annual === a}
-                  className={seg(annual === a)}
-                  onClick={() => {
-                    setAnnual(a);
-                    trackMarketing('pricing_toggle', { interval: a ? 'annual' : 'monthly' });
-                  }}
-                >
-                  {a ? `Annual, save ${ANNUAL_SAVING_PCT}%` : 'Monthly'}
-                </button>
-              ))}
-            </div>
-          </div>
+          <span className="text-base font-medium text-black-400">{PRO.name}</span>
           <p className="mt-8 flex items-end gap-2">
-            <span className="tabular text-3xl font-medium leading-[0.95] tracking-[-0.05em] text-black-300">£{(annual ? PRO.annual : PRO.monthly).toLocaleString('en-GB')}</span>
-            <span className="pb-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">{annual ? 'Per seat per year' : 'Per seat per month'}</span>
+            <span className="tabular text-3xl font-medium leading-[0.95] tracking-[-0.05em] text-black-300">£{PRO.monthly}</span>
+            <span className="pb-1.5 tabular-nums text-xs tracking-[0.06em] text-white-900">Per month</span>
           </p>
           <p className="mt-3 text-base leading-[23px] text-black-700">
-            {annual ? `Works out at £${Math.round(PRO.annual / 12)} a month, saving £${ANNUAL_SAVING.toLocaleString('en-GB')} a year.` : `Billed monthly, or £${PRO.annual.toLocaleString('en-GB')} a year.`} Prices exclude VAT.
+            Billed monthly, excluding VAT. We set you up in {PRO.setupDays} days: your number, the dialler, your website tracking and your first lists, done with you.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <CtaLink location={`pricing_pro_${annual ? 'annual' : 'monthly'}`} href="/signup" variant="primary" size="lg">
-              Start free trial
+            <CtaLink location="pricing_pro_monthly" href="/signup" variant="primary" size="lg">
+              Get started
             </CtaLink>
             <CtaLink location="pricing_talk" href={`mailto:${FOUNDER.email}`} size="lg">
               Talk to us
             </CtaLink>
           </div>
-          <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · 1 seat · {TRIAL_CREDITS.toLocaleString('en-GB')} credits · 60 minutes · no card</p>
+          <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">{OFFER_LINE}</p>
           <CompliancePills className="mt-6" />
         </div>
         <ul className="p-7 md:p-9">
@@ -385,7 +365,7 @@ export function PricingCard() {
           <li className="pt-4 text-xs leading-[17px] tracking-[0.02em] text-white-900">
             {FAIR_USE_NOTE}{' '}
             <a href="/fair-use" className="underline underline-offset-2 hover:text-black-700">
-              Fair use policy
+              How minutes work
             </a>
           </li>
         </ul>

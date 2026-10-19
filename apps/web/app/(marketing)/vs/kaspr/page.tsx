@@ -15,7 +15,7 @@ import {
   TextLink,
   compareJsonLd,
 } from '@/components/marketing/compare';
-import { PRO, TRIAL_CREDITS } from '@/lib/constants';
+import { PRO } from '@/lib/constants';
 
 const PATH = '/vs/kaspr';
 
@@ -41,7 +41,7 @@ const ROWS = [
 const FAQS: FaqItem[] = [
   {
     question: 'How much does Kaspr cost compared with Decibel?',
-    answer: `Kaspr publishes per-user prices in euros, pounds and dollars. In sterling, Starter is £39 a month billed annually or £51 billed monthly, with 1,200 phone credits a year, and Business is £69 a month billed annually or £85 monthly, with 2,400 phone credits a year. Decibel Pro is £${PRO.monthly} per seat per month or £${PRO.annual} per year, excluding VAT, with ${PRO.credits.toLocaleString('en-GB')} mobile reveals per seat each month and calling included. Competitor details checked on ${CHECKED_ON}.`,
+    answer: `Kaspr publishes per-user prices in euros, pounds and dollars. In sterling, Starter is £39 a month billed annually or £51 billed monthly, with 1,200 phone credits a year, and Business is £69 a month billed annually or £85 monthly, with 2,400 phone credits a year. Decibel Pro is £${PRO.monthly} a month, excluding VAT, with the whole database unlocked and calling included. Competitor details checked on ${CHECKED_ON}.`,
   },
   {
     question: 'Can I call from Kaspr?',
@@ -50,7 +50,7 @@ const FAQS: FaqItem[] = [
   },
   {
     question: 'Does Kaspr have a free plan?',
-    answer: `Yes. Kaspr’s Free plan includes 5 phone credits, 15 B2B email credits and 5 direct email credits a month, with no card required. Decibel does not have a free plan; it has a 14-day free trial with one seat, ${TRIAL_CREDITS.toLocaleString('en-GB')} credits and 60 minutes of calling, also without a card.`,
+    answer: `Yes. Kaspr’s Free plan includes 5 phone credits, 15 B2B email credits and 5 direct email credits a month, with no card required. Decibel does not have a free plan or a trial: Pro is £${PRO.monthly} a month and we set you up in ${PRO.setupDays} days.`,
   },
   {
     question: 'Which has more European data?',
@@ -85,11 +85,11 @@ export default function VsKasprPage() {
               body: (
                 <>
                   <p>
-                    One plan, Pro: £{PRO.monthly} per seat per month, or £{PRO.annual} per seat per year (save 44%), excluding VAT. Each seat includes{' '}
-                    {PRO.credits.toLocaleString('en-GB')} verified mobile reveals a month; one credit reveals one mobile and revealed contacts stay free.
+                    One plan, Pro: £{PRO.monthly} a month, excluding VAT, with a {PRO.setupDays}-day setup. It unlocks the full 1M verified UK &amp; EU lead
+                    database from day one, ready to call and export, plus {PRO.visitors} website visitor identifications a month.
                   </p>
                   <p>
-                    Calling is included: {FAIR_USE_TEXT} See the <TextLink href="/fair-use">fair use policy</TextLink>.
+                    Calling is included: {FAIR_USE_TEXT} See <TextLink href="/fair-use">how minutes work</TextLink>.
                   </p>
                 </>
               ),
@@ -208,7 +208,7 @@ export default function VsKasprPage() {
               points: [
                 'You are a small UK or EU team, roughly 1–20 reps, and calling mobiles is your main channel',
                 'You want data, a dialler, recording and a pipeline in one tool',
-                'You need a high volume of mobile reveals each month at a flat price per seat',
+                'You want the whole database and a dialler for one flat monthly price',
                 'You are happy to start with your own lists while our licensed data is onboarded',
               ],
             },

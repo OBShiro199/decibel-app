@@ -101,7 +101,6 @@ export default function CompliancePage() {
         head={['Data', 'Kept for']}
         rows={[
           ['Call recordings, Pro plan', '1 year'],
-          ['Call recordings, free trial', '90 days'],
           ['Call metadata (who, when, duration, outcome)', '3 years'],
           ['Deleted workspaces', 'Purged 30 days after deletion'],
         ]}

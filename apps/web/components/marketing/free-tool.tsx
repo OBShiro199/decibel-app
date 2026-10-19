@@ -251,7 +251,7 @@ export function FreeTool({ tool, dailyLimit }: { tool: ToolId; dailyLimit: numbe
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white-800 bg-white-200 px-5 py-3.5">
           <p className="text-[13px] text-black-700">Calling a whole list? Find, check and call numbers in one place with Decibel.</p>
           <CtaLink href="/signup" variant="primary" location={`tool_${tool}_result`} size="compact">
-            Start free trial
+            Get started
           </CtaLink>
         </div>
       ) : null}

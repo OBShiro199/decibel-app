@@ -13,7 +13,7 @@ import { LogoMarquee } from '@/components/marketing/logo-marquee';
 import { showSocialProof } from '@/components/marketing/social-proof';
 import { Testimonials } from '@/components/marketing/testimonials';
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from '@/lib/site';
-import { PRO, TRIAL_CREDITS } from '@/lib/constants';
+import { OFFER_LINE, PRO } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: { absolute: SITE_TITLE },
@@ -36,7 +36,7 @@ const FAQS: FaqItem[] = [
   },
   {
     question: 'Do I need my own Twilio?',
-    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Twilio account. Calls from the browser dialler are unlimited, subject to fair use: 1,000 minutes per seat each month, then minutes at cost.',
+    answer: 'No. Calling is built in and each workspace gets its own number. You do not need a Twilio account. Pro includes 1,000 dialler minutes a month, then 5p a minute.',
   },
   {
     question: 'Can I bring my own list?',
@@ -64,8 +64,7 @@ const STRUCTURED_DATA = {
       operatingSystem: 'Web browser',
       publisher: { '@id': `${SITE_URL}/#org` },
       offers: [
-        { '@type': 'Offer', name: `${PRO.name}, monthly`, price: PRO.monthly, priceCurrency: 'GBP', description: `Per seat per month, excluding VAT. ${PRO.credits.toLocaleString('en-GB')} mobile reveals included each month.` },
-        { '@type': 'Offer', name: `${PRO.name}, annual`, price: PRO.annual, priceCurrency: 'GBP', description: `Per seat per year, excluding VAT. ${PRO.credits.toLocaleString('en-GB')} mobile reveals included each month.` },
+        { '@type': 'Offer', name: `${PRO.name}, monthly`, price: PRO.monthly, priceCurrency: 'GBP', description: `Per month, excluding VAT. ${PRO.setupDays}-day setup, ${PRO.minutes.toLocaleString('en-GB')} dialler minutes and ${PRO.visitors} website visitor identifications a month.` },
       ],
     },
     {
@@ -90,7 +89,7 @@ const Corner = ({ className, children }: { className: string; children: React.Re
 );
 
 const PILLARS = [
-  ['data', 'Data', 'Search UK and EU contacts, reveal the mobile.', 'Filter by title, seniority, size and country. A reveal costs one credit and the record is yours to keep.'],
+  ['data', 'Data', 'Search UK and EU contacts, reveal the mobile.', 'Filter by title, seniority, size and country. The whole database is unlocked and ready to export.'],
   ['dialler', 'Dialler', 'Call from Chrome, every call recorded.', 'No desk phone and no telecoms setup. Each rep gets a number and a softphone that sits beside the record.'],
   ['pipeline', 'Pipeline', 'Lists, stages, notes, outcomes.', 'One click logs the outcome. The stage, the timeline and the follow-up task update on their own.'],
 ];
@@ -139,20 +138,20 @@ export default function LandingPage() {
           </Reveal>
           <Reveal eager delay={180}>
             <p className="mx-auto mt-5 max-w-[600px] text-md leading-[27px] text-black-700">
-              Decibel lets you search UK and EU decision makers by title, seniority, company size and country, reveal a direct mobile for one
-              credit and call it from your browser. Every outcome lands in your pipeline, with TPS screening and call recording built in.
+              Decibel lets you search UK and EU decision makers by title, seniority, company size and country, export their direct mobiles
+              and call them from your browser. Every outcome lands in your pipeline, with TPS screening and call recording built in.
             </p>
           </Reveal>
           <Reveal eager delay={270}>
             <div className="mx-auto mt-8 flex max-w-[280px] flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
               <CtaLink location="hero" href="/signup" variant="primary" size="lg">
-                Start free trial
+                Get started
               </CtaLink>
               <CtaLink location="hero_demo" href="/demo" size="lg">
                 Book a 15-min demo
               </CtaLink>
             </div>
-            <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">14 days · {TRIAL_CREDITS.toLocaleString('en-GB')} credits · no card</p>
+            <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">{OFFER_LINE}</p>
           </Reveal>
         </div>
         <Reveal eager delay={200} className="relative mx-auto max-w-[980px] px-5 pb-16 md:pb-20">
@@ -291,8 +290,8 @@ export default function LandingPage() {
 
       {/* pricing */}
       <section id="pricing" className="rail px-5 py-14 md:px-10 md:py-20">
-        <Head eyebrow="Pricing" title="One plan. Credits included.">
-          A credit is one mobile reveal. A contact you have revealed stays free for your workspace.
+        <Head eyebrow="Pricing" title="One plan. Everything included.">
+          The whole database, the dialler and website visitors for one monthly price, set up with you in 3 days.
         </Head>
         <Reveal delay={120} className="mt-10">
           <PricingCard />
@@ -309,13 +308,13 @@ export default function LandingPage() {
 
       {/* final cta */}
       <section className="rail dotgrid relative px-5 py-20 text-center md:py-28">
-        <Corner className="left-5 top-5">[ {TRIAL_CREDITS.toLocaleString('en-GB')} credits ]</Corner>
-        <Corner className="right-5 top-5">[ 60 minutes ]</Corner>
+        <Corner className="left-5 top-5">[ £{PRO.monthly} a month ]</Corner>
+        <Corner className="right-5 top-5">[ {PRO.setupDays}-day setup ]</Corner>
         <Reveal>
           <p className="eyebrow">[ Start ]</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <CtaLink location="final" href="/signup" variant="primary" size="lg">
-              Start free trial
+              Get started
             </CtaLink>
             <CtaLink location="final_demo" href="/demo" size="lg">
               Book a 15-min demo

@@ -233,7 +233,7 @@ export function SiteHeader() {
             Book a demo
           </CtaLink>
           <CtaLink href="/signup" variant="primary" location="header">
-            Start free trial
+            Get started
           </CtaLink>
           <button
             type="button"

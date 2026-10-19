@@ -103,7 +103,7 @@ const POWER_ASCII = [
 const FAQS: FaqItem[] = [
   {
     question: 'Is it really unlimited?',
-    answer: `Calls from the browser dialler are unlimited, subject to fair use: ${FAIR_USE_MINUTES.toLocaleString('en-GB')} call minutes per seat each month, then minutes at cost.`,
+    answer: `Pro includes ${FAIR_USE_MINUTES.toLocaleString('en-GB')} dialler minutes a month, then 5p a minute.`,
   },
   {
     question: 'Is this a predictive dialler?',
@@ -182,21 +182,21 @@ export default function PowerDiallerPage() {
           <div className="border-b border-white-800 px-5 py-14 md:border-b-0 md:border-r md:px-10 md:py-20">
             <Reveal>
               <p className="eyebrow">[ Minutes ]</p>
-              <h2 className="t-h1 mt-4 text-black-400">Unlimited calls from the browser.*</h2>
+              <h2 className="t-h1 mt-4 text-black-400">1,000 minutes a month, built in.*</h2>
               <p className="mt-4 text-md leading-[26px] text-black-700">
-                Calling is included with every seat. There is no per-minute meter to watch for ordinary use, and no separate telecoms bill.
+                Calling is part of Pro: 1,000 dialler minutes every month, then 5p a minute. No separate telecoms bill, and your minutes are always visible in the app.
               </p>
               <p className="mt-5 tabular-nums text-xs leading-[17px] tracking-[0.06em] text-faint">
                 {FAIR_USE_NOTE}{' '}
                 <Link href="/fair-use" className="link">
-                  Fair use policy
+                  How minutes work
                 </Link>
               </p>
             </Reveal>
           </div>
           <div className="flex flex-col justify-center px-5 py-14 md:px-10 md:py-20">
             <Reveal delay={100}>
-              <p className="text-md leading-[26px] text-black-700">Try it on your own list: the free trial includes 60 minutes of calling and one seat.</p>
+              <p className="text-md leading-[26px] text-black-700">Pro includes 1,000 dialler minutes a month, then 5p a minute, with every call recorded and transcribed.</p>
               <CtaPair location="power_dialler_mid" size="default" className="mt-6" />
             </Reveal>
           </div>
