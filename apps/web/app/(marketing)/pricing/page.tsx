@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { CtaStrip, PageHero } from '@/components/marketing/page-kit';
+import { CtaStrip, JsonLd, PageHero } from '@/components/marketing/page-kit';
 import { RegionalPricing } from '@/components/marketing/regional-pricing';
-import { marketFor } from '@/lib/regional-pricing';
+import { formatPrice, marketFor } from '@/lib/regional-pricing';
+import { SITE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Pricing',
@@ -19,9 +20,27 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
   const detected = h.get('x-vercel-ip-country');
   const override = typeof sp.country === 'string' ? sp.country : null;
   const market = marketFor(override ?? detected);
+  // every price on the page is the visitor's own: the hero and closing lines, and the structured data
+  const price = formatPrice(market);
+  const offer = `${price} a month · 3-day setup · ex VAT`;
+  const structured = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `Decibel ${market.plan}`,
+    url: `${SITE_URL}/pricing`,
+    offers: {
+      '@type': 'Offer',
+      price: market.base,
+      priceCurrency: market.currency,
+      eligibleRegion: market.code,
+      description: `Per month, excluding VAT, with ${market.included.toLocaleString('en-GB')} dialler minutes included.`,
+    },
+  };
   return (
     <>
+      <JsonLd data={structured} />
       <PageHero
+        offer={offer}
         eyebrow="Pricing"
         location="pricing_hero"
         corners={[market.label, `${market.included.toLocaleString('en-GB')} minutes included`]}
@@ -32,7 +51,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
           <RegionalPricing key={market.code} market={market} detected={override ? null : detected} debug={sp.debug === '1'} />
         </div>
       </PageHero>
-      <CtaStrip location="pricing_page" title="See it on your own call list this week." />
+      <CtaStrip location="pricing_page" title="See it on your own call list this week." offer={offer} price={`${price} a month`} />
     </>
   );
 }

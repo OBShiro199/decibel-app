@@ -34,6 +34,7 @@ export function PageHero({
   lede,
   location,
   corners,
+  offer = TRIAL_LINE,
   children,
 }: {
   eyebrow: string;
@@ -42,6 +43,8 @@ export function PageHero({
   /** analytics label for the CTAs, e.g. "vs_cognism" */
   location: string;
   corners?: [string, string];
+  /** the line under the CTAs; /pricing passes the visitor's own price */
+  offer?: string;
   /** a visual under the CTAs (mock, ASCII, table) */
   children?: React.ReactNode;
 }) {
@@ -65,7 +68,7 @@ export function PageHero({
         </Reveal>
         <Reveal eager delay={220}>
           <CtaPair location={location} className="mt-8 justify-center" />
-          <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">{TRIAL_LINE}</p>
+          <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">{offer}</p>
         </Reveal>
       </div>
       {children ? (
@@ -204,14 +207,27 @@ export function AsciiBox({ lines, className, double }: { lines: string[]; classN
 }
 
 /** The closing band on every page: ASCII box, headline, trial + demo pair. */
-export function CtaStrip({ title = 'See Decibel on your own leads this week.', location, note }: { title?: string; location: string; note?: React.ReactNode }) {
+export function CtaStrip({
+  title = 'See Decibel on your own leads this week.',
+  location,
+  note,
+  offer = TRIAL_LINE,
+  price = '£149 a month',
+}: {
+  title?: string;
+  location: string;
+  note?: React.ReactNode;
+  offer?: string;
+  /** "£149 a month" in the ASCII box; /pricing passes the visitor's own price */
+  price?: string;
+}) {
   return (
     <section className="rail dotgrid relative px-5 py-20 text-center md:py-24">
       <Reveal>
-        <AsciiBox lines={['► Get started: £149 a month, live in 3 days', '► Or book a 15-minute demo with the founder']} className="max-sm:hidden" />
+        <AsciiBox lines={[`► Get started: ${price}, live in 3 days`, '► Or book a 15-minute demo with the founder']} className="max-sm:hidden" />
         <h2 className="t-h1 mx-auto mt-8 max-w-[640px] text-black-400">{title}</h2>
         <CtaPair location={`${location}_footer`} className="mt-8 justify-center" />
-        <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">{TRIAL_LINE}</p>
+        <p className="mt-5 tabular-nums text-xs tracking-[0.06em] text-white-900">{offer}</p>
         {note ? <p className="mx-auto mt-10 max-w-[600px] tabular-nums text-xs leading-[17px] tracking-[0.06em] text-faint">{note}</p> : null}
       </Reveal>
     </section>

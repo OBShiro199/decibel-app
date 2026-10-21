@@ -5,7 +5,7 @@
 // With ?debug=1 it also shows what the minutes cost us and the margin at the slider's value.
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { MARKETS, quote, type Market } from '@/lib/regional-pricing';
+import { formatPrice, MARKETS, quote, type Market } from '@/lib/regional-pricing';
 import { cn } from '@/lib/utils';
 import { CtaLink, trackMarketing } from './analytics';
 
@@ -19,9 +19,7 @@ const SHARED = [
 
 const n = (v: number) => v.toLocaleString('en-GB');
 
-function money(m: Market, v: number, decimals = 0) {
-  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: m.currency, minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
-}
+const money = (m: Market, v: number, decimals = 0) => formatPrice(m, v, decimals);
 /** a per-minute price: pence, cents or øre when under one unit */
 function rate(m: Market, v: number) {
   if (v >= 1) return money(m, v, 2);

@@ -132,3 +132,8 @@ export function quote(m: Market, minutes: number) {
     minuteMargin: m.perMinute ? (m.perMinute * (1 - discount) - m.costPerMinute) / (m.perMinute * (1 - discount)) : 0,
   };
 }
+
+/** "£149", "DKK 1,395": the plan's monthly price in its own currency */
+export function formatPrice(m: Market, v: number = m.base, decimals = 0): string {
+  return new Intl.NumberFormat('en-GB', { style: 'currency', currency: m.currency, minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
+}
