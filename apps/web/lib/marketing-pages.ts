@@ -46,6 +46,7 @@ export const COMPANY_LINKS: { href: string; label: string }[] = [
 export const PUBLIC_PAGES: { path: string; priority: number; changeFrequency: 'weekly' | 'monthly' | 'yearly' }[] = [
   { path: '/', priority: 1, changeFrequency: 'weekly' },
   { path: '/features', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/pricing', priority: 0.9, changeFrequency: 'monthly' },
   ...PRODUCT_LINKS.map((l) => ({ path: l.href, priority: l.href === '/compliance' ? 0.7 : 0.8, changeFrequency: 'monthly' as const })),
   { path: '/industries', priority: 0.7, changeFrequency: 'monthly' },
   ...INDUSTRY_LINKS.map((l) => ({ path: l.href, priority: 0.7, changeFrequency: 'monthly' as const })),

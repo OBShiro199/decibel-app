@@ -9,7 +9,7 @@ type FooterLink = { href: string; label: string; external?: boolean };
 const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Product',
-    links: [{ href: '/features', label: 'All features' }, ...PRODUCT_LINKS.filter((l) => l.href !== '/compliance'), { href: '/#pricing', label: 'Pricing' }],
+    links: [{ href: '/features', label: 'All features' }, ...PRODUCT_LINKS.filter((l) => l.href !== '/compliance'), { href: '/pricing', label: 'Pricing' }],
   },
   {
     title: 'Industries',

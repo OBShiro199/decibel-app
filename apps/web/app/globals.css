@@ -726,3 +726,21 @@ html:has([data-page-scroll]) {
     display: none;
   }
 }
+
+/* /pricing talk-time slider: a thin track filled up to the thumb (--fill), a white thumb with a hairline */
+.price-slider { -webkit-appearance: none; appearance: none; height: 20px; background: transparent; cursor: pointer; }
+.price-slider::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 999px;
+  background: linear-gradient(to right, var(--color-black-400) var(--fill, 0%), var(--color-white-800) var(--fill, 0%));
+}
+.price-slider::-moz-range-track { height: 4px; border-radius: 999px; background: var(--color-white-800); }
+.price-slider::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--color-black-400); }
+.price-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: -8px; width: 20px; height: 20px; border-radius: 999px;
+  background: #fff; box-shadow: 0 0 0 1px rgba(8, 9, 10, 0.18), 0 1px 3px rgba(8, 9, 10, 0.12);
+  transition: transform var(--dur-fast, 120ms) var(--ease-out);
+}
+.price-slider::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 999px; background: #fff; box-shadow: 0 0 0 1px rgba(8, 9, 10, 0.18), 0 1px 3px rgba(8, 9, 10, 0.12); }
+.price-slider:active::-webkit-slider-thumb { transform: scale(1.1); }
+.price-slider:focus-visible { outline: none; }
+.price-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 1px rgba(8, 9, 10, 0.18), 0 0 0 4px rgba(95, 134, 224, 0.35); }

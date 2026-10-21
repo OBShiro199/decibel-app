@@ -13,7 +13,7 @@ import { Logo } from './logo';
 type MenuId = 'product' | 'industries' | 'integrations' | 'tools';
 
 const PLAIN = [
-  { href: '/#pricing', label: 'Pricing' },
+  { href: '/pricing', label: 'Pricing' },
 ];
 
 const ASCII_FONT = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace";
