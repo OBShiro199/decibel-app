@@ -66,7 +66,7 @@ export function RegionalPricing({ market: m, detected, debug }: { market: Market
                 {m.plan} · {m.label}
               </span>
             </div>
-            <p className="mt-8 flex items-end gap-2">
+            <p className="mt-8 flex flex-wrap items-end gap-x-2 gap-y-1">
               <span className="tabular text-3xl font-medium leading-[0.95] tracking-[-0.05em] text-black-300" data-testid="pricing-total">
                 {money(m, q.total)}
               </span>
