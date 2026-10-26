@@ -17,7 +17,6 @@ import { CompanyLogo, EmptyState, ErrorCard, TableSkeleton, Tag } from '@/compon
 import { Field, Input, Select, Textarea } from '@/components/ui/form';
 import { Dialog, Drawer, useToast } from '@/components/ui/overlay';
 
-type Row = TenantCompany & { people: { count: number }[] };
 
 export default function CompaniesPage() {
   const { workspace, user } = useApp();

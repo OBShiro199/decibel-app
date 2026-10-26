@@ -1,5 +1,5 @@
 'use client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { PREFETCH_ROUTES, prefetchRoute } from '@/lib/queries';
 import { Check, ChevronsUpDown, Coins, LogOut, Mail, Phone, Plus, Settings, RotateCcw, Sparkles } from 'lucide-react';
 import { FOUNDER } from '@/lib/site';
@@ -8,11 +8,10 @@ import { AddressBook, CaretRight, Eye, GearSix, Lightning, ListBullets, PhoneCal
 import { GoogleIcon } from '@/components/ui/google-icon';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { AppProvider, useApp, type AppContextValue } from '@/lib/app-context';
 import { invoke, supabase } from '@/lib/supabase/client';
 import { destroyDevice } from '@/lib/twilio/device';
-import type { Person } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CreditsMeter } from '@/components/app/credits-meter';
 import { HOME } from '@/lib/constants';
@@ -245,7 +244,7 @@ function AccountMenu() {
 function Sidebar() {
   // the dev-only design preview mirrors /app routes under /dev-preview; treat them alike
   const pathname = usePathname().replace(/^\/dev-preview(?=\/|$)/, '/app');
-  const { workspace, workspaces, profile, switchWorkspace, user } = useApp();
+  const { workspace, workspaces, switchWorkspace, user } = useApp();
   const qc = useQueryClient();
   const prefetch = (href: string) => prefetchRoute(qc, href, workspace.id, user.id);
   // Warm every tab's data as soon as the browser is idle after the first page has loaded, so the

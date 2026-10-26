@@ -5,7 +5,6 @@ import {
   Flag, Linkedin, MapPin, Mic, Pencil, Phone, PhoneCall, ShieldAlert, Smartphone, StickyNote, Tag, Upload, UserRound, UserPlus, X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/lib/app-context';
@@ -13,7 +12,7 @@ import { countryName, outcomeMeta, seniorityLabel, TPS_LABEL } from '@/lib/const
 import { useMemberNames, useMembers, useStages } from '@/lib/hooks';
 import { personActivitiesQuery, personCallsQuery, personNotesQuery, personQuery, personTasksQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
-import type { Activity, Call, Note, Person, Recording, Task, TenantCompany } from '@/lib/types';
+import type { Activity, Call, Note, Person, Recording, Task } from '@/lib/types';
 import { cn, dayLabel, formatDate, formatDuration, formatPhone, normalizePhone, timeAgo } from '@/lib/utils';
 import { RecordingPlayer } from '@/components/app/recording-player';
 import { RecordSkeleton } from '@/components/app/skeletons';

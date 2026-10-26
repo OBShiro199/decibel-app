@@ -7,7 +7,7 @@ import { FAIR_USE_NOTE, OFFER_LINE, PRO, PRO_FEATURES } from '@/lib/constants';
 import { FOUNDER } from '@/lib/site';
 import { CompliancePills } from './compliance-pills';
 import { cn } from '@/lib/utils';
-import { CtaLink, trackMarketing } from './analytics';
+import { CtaLink } from './analytics';
 
 // ------------------------------------------------------------------ reveal --
 export function Reveal({ children, delay = 0, className, eager }: { children: React.ReactNode; delay?: number; className?: string; eager?: boolean }) {

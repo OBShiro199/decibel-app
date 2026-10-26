@@ -9,7 +9,7 @@ import { applyLeadFilters, type LeadFilters } from '@/lib/leads';
 import { saveInBackground } from '@/lib/background-save';
 import { invoke, supabase } from '@/lib/supabase/client';
 import type { CompanySizeBand, ContactPublic, PhoneNumber, RecordingPolicy, Seniority, Workspace, WorkspaceRole } from '@/lib/types';
-import { firstName, formatPhone, isFreeMail, normalizePhone, slugify } from '@/lib/utils';
+import { firstName, formatPhone, isFreeMail, slugify } from '@/lib/utils';
 import { MicTest } from '@/components/app/mic-test';
 import { BuyNumberPanel, VerifyCallerIdPanel } from '@/components/app/number-flows';
 import { useSoftphoneActions } from '@/components/softphone/provider';

@@ -18,7 +18,7 @@ import { peopleQuery, todayQueueQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
 import { isLive, PHASE_LABEL } from '@/lib/twilio/call-machine';
 import type { CallOutcome } from '@/lib/types';
-import { cn, formatDuration, formatPhone, normalizePhone, timeAgo } from '@/lib/utils';
+import { cn, formatDuration, formatPhone, timeAgo } from '@/lib/utils';
 import { FilterMenu } from '@/components/app/filter-menu';
 import { isBlocked } from '@/components/app/records';
 import { useSoftphoneActions, useSoftphoneState, type NoteSaveStatus } from '@/components/softphone/provider';

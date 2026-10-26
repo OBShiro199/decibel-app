@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/lib/app-context';
 import { listsQuery, numbersQuery } from '@/lib/queries';
 import { supabase } from '@/lib/supabase/client';
-import type { List, Member, PhoneNumber, PipelineStage } from '@/lib/types';
+import type { Member, PipelineStage } from '@/lib/types';
 import { knownFitRows, rememberFitRows } from '@/lib/fit-rows';
 
 export { PERSON_SELECT } from '@/lib/queries';

@@ -8,7 +8,6 @@ import { Field, Input, Select, Switch } from '@/components/ui/form';
 import { useToast } from '@/components/ui/overlay';
 import { useApp } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
-import { normalizePhone } from '@/lib/utils';
 import { errorMessage, Notice, Section } from '@/app/app/settings/_components';
 import { ChangePasswordSection } from '@/components/app/settings-extras';
 import { countryFromInternational, DEFAULT_DIAL_COUNTRY, toE164, type DialCountry } from '@/lib/phone';

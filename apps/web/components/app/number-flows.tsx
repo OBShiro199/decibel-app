@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { FunctionError, invoke, supabase } from '@/lib/supabase/client';
 import type { PhoneNumber } from '@/lib/types';
-import { formatPhone, normalizePhone } from '@/lib/utils';
+import { formatPhone } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ErrorCard, Skeleton } from '@/components/ui/display';
 import { Field, Input, PillSelect, Select } from '@/components/ui/form';

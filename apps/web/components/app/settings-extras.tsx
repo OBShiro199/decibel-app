@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/display';
-import { Field, Input, PillSelect } from '@/components/ui/form';
+import { Field, Input } from '@/components/ui/form';
 import { useToast } from '@/components/ui/overlay';
 import { track } from '@/lib/analytics';
 import { useApp } from '@/lib/app-context';

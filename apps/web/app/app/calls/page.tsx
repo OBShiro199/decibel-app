@@ -8,7 +8,7 @@ import { CALLS_PAGE as PAGE, callsQuery, prefetchPerson, type CallLogRow } from 
 import { BLOCK_REASONS, CALL_STATUS_LABEL, OUTCOMES } from '@/lib/constants';
 import { useLists, useMemberNames, useMembers } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
-import type { Call, CallOutcome, Recording } from '@/lib/types';
+import type { CallOutcome, Recording } from '@/lib/types';
 import { formatDate, formatDuration, formatPhone, formatWhen } from '@/lib/utils';
 import { FilterMenu } from '@/components/app/filter-menu';
 import { RecordingPlayer } from '@/components/app/recording-player';
@@ -16,7 +16,7 @@ import { OutcomeBadge } from '@/components/app/records';
 import { RevealOnce } from '@/components/ui/reveal';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Badge, EmptyState, ErrorCard, TableSkeleton } from '@/components/ui/display';
-import { Field, Input, Select, Textarea } from '@/components/ui/form';
+import { Field, Select, Textarea } from '@/components/ui/form';
 import { Drawer, useToast } from '@/components/ui/overlay';
 
 type Row = CallLogRow;

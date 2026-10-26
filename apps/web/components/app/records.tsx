@@ -9,7 +9,6 @@ import { useApp } from '@/lib/app-context';
 import { useLists, useMembers, useStages } from '@/lib/hooks';
 import { supabase } from '@/lib/supabase/client';
 import type { CallOutcome, List, Person, TpsStatus } from '@/lib/types';
-import { normalizePhone } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Avatar, Badge, OptionCard } from '@/components/ui/display';
 import { Field, Input, Select } from '@/components/ui/form';
