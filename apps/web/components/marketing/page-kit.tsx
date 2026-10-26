@@ -81,11 +81,24 @@ export function PageHero({
 }
 
 /** Section heading, as on the landing page. */
-export function SectionHead({ eyebrow, title, children, center }: { eyebrow: string; title: string; children?: React.ReactNode; center?: boolean }) {
+export function SectionHead({
+  eyebrow,
+  title,
+  children,
+  center,
+  as: Heading = 'h2',
+}: {
+  eyebrow: string;
+  title: string;
+  children?: React.ReactNode;
+  center?: boolean;
+  /** h1 when it is the page's main heading (a page without a PageHero) */
+  as?: 'h1' | 'h2';
+}) {
   return (
     <Reveal className={center ? 'mx-auto max-w-[640px] text-center' : 'max-w-[680px]'}>
       <p className="eyebrow">[ {eyebrow} ]</p>
-      <h2 className="t-h1 mt-4 text-black-400">{title}</h2>
+      <Heading className="t-h1 mt-4 text-black-400">{title}</Heading>
       {children ? <p className="mt-4 text-md leading-[26px] text-black-700">{children}</p> : null}
     </Reveal>
   );

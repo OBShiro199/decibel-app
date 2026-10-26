@@ -24,7 +24,7 @@ export default function DemoPage() {
     <section className="rail dotgrid">
       <div className="grid gap-12 px-5 py-16 md:grid-cols-[1fr_1.1fr] md:px-10 md:py-24">
         <div>
-          <SectionHead eyebrow="Demo" title="Book a 15-minute demo with the founder.">
+          <SectionHead as="h1" eyebrow="Demo" title="Book a 15-minute demo with the founder.">
             No slides and no sales team. Oliver shows you Decibel on your own market, answers your questions and starts your 3-day setup if you want to go ahead.
           </SectionHead>
           <Reveal delay={100}>

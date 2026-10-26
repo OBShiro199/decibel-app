@@ -22,7 +22,7 @@ export function DesktopOnly({ children }: { children: React.ReactNode }) {
     <>
       <div className="desktop-gate card p-6 text-center">
         <Monitor size={20} strokeWidth={1.5} className="mx-auto text-black-700" />
-        <h1 className="t-h3 mt-3">Sign up on your computer</h1>
+        <h2 className="t-h3 mt-3">Sign up on your computer</h2>
         <p className="mt-2 text-black-700">
           Decibel runs on desktop only. The dialler works in Chrome beside your records, so you will need a laptop or desktop and a headset. Open
           this page on your computer to start your free trial.
