@@ -6,7 +6,7 @@ import type { Profile, Workspace, WorkspaceRole } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 // the signed-in app never appears in search results
-export const metadata: Metadata = { title: { absolute: 'Decibel' }, robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: 'Decibel', template: '%s · Decibel' }, robots: { index: false, follow: false } };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
