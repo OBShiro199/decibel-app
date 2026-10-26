@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, Badge } from '@/components/ui/display';
-import { Field, Input, Select } from '@/components/ui/form';
+import { Field, Input, Select, Switch } from '@/components/ui/form';
 import { useToast } from '@/components/ui/overlay';
 import { useApp } from '@/lib/app-context';
 import { supabase } from '@/lib/supabase/client';
@@ -181,7 +181,48 @@ export function ProfileSections() {
           </div>
         </form>
       </Section>
+      <EmailSection />
       <ChangePasswordSection />
     </>
+  );
+}
+
+/** Product emails you can switch off for yourself (stored in profiles.notification_prefs, read by the sender). */
+const EMAIL_PREFS: { key: string; title: string; help: string }[] = [
+  { key: 'visitor_alerts', title: 'New company on your website', help: 'An email the first time a company is identified visiting your website, with its decision makers.' },
+];
+
+function EmailSection() {
+  const { user, profile } = useApp();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [prefs, setPrefs] = useState<Record<string, boolean>>(profile.notification_prefs ?? {});
+
+  async function set(key: string, on: boolean) {
+    const next = { ...prefs, [key]: on };
+    setPrefs(next);
+    const { error: err } = await supabase().from('profiles').update({ notification_prefs: next }).eq('id', user.id);
+    if (err) {
+      setPrefs(prefs);
+      return void toast(errorMessage(err));
+    }
+    void qc.invalidateQueries({ queryKey: ['profile'] });
+    toast(on ? 'Turned on' : 'Turned off');
+  }
+
+  return (
+    <Section title="Emails" description="Account and billing emails always reach you. These ones are up to you.">
+      <div className="divide-y divide-white-800">
+        {EMAIL_PREFS.map((p) => (
+          <div key={p.key} className="flex items-center justify-between gap-6 py-3 first:pt-0 last:pb-0">
+            <div>
+              <p className="font-medium text-black-400">{p.title}</p>
+              <p className="text-black-700">{p.help}</p>
+            </div>
+            <Switch checked={prefs[p.key] !== false} onChange={(on) => void set(p.key, on)} aria-label={p.title} />
+          </div>
+        ))}
+      </div>
+    </Section>
   );
 }

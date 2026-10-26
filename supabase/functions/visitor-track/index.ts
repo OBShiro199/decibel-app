@@ -133,10 +133,14 @@ async function newCompanyEmail(site: { id: string; workspace_id: string; domain:
   const db = admin();
   const { data: allowed } = await db.rpc('check_rate_limit', { p_key: `visitor-alert:${site.workspace_id}`, p_limit: ALERTS_PER_DAY, p_window_seconds: 86_400 });
   if (allowed === false) return;
-  const { data: members } = await db.from('workspace_members').select('user_id,profiles(email,full_name,email_opt_out_at)').eq('workspace_id', site.workspace_id);
+  const { data: members } = await db.from('workspace_members').select('user_id,profiles(email,full_name,email_opt_out_at,notification_prefs)').eq('workspace_id', site.workspace_id);
   const to = (members ?? [])
-    .map((m) => ({ id: (m as { user_id: string }).user_id, ...((m as { profiles?: { email?: string; email_opt_out_at?: string | null } }).profiles ?? {}) }))
-    .filter((m) => m.email && !m.email_opt_out_at);
+    .map((m) => ({
+      id: (m as { user_id: string }).user_id,
+      ...((m as { profiles?: { email?: string; email_opt_out_at?: string | null; notification_prefs?: Record<string, boolean> | null } }).profiles ?? {}),
+    }))
+    // anyone who unsubscribed, or switched these off in Settings › General › Emails, is skipped
+    .filter((m) => m.email && !m.email_opt_out_at && m.notification_prefs?.visitor_alerts !== false);
   if (!to.length) return;
 
   const { people, found } = await decisionMakers(domain);
@@ -177,7 +181,11 @@ export function newCompanyHtml(
     : p(`We don't have decision makers on file for ${esc(domain)} yet, but you can see every page they looked at.`);
   return layout(
     `${esc(name)} just visited ${esc(siteDomain)}`,
-    p('A new company has been resolved from a visit to your website.') + details(rows) + lead + list,
+    p('A new company has been resolved from a visit to your website.') +
+      details(rows) +
+      lead +
+      list +
+      `<p style="margin:16px 0 0;font-size:13px;line-height:20px;color:#9a9a9a">Turn these emails off in Decibel under Settings, General, Emails.</p>`,
     { label: people.length ? 'See the decision makers' : 'See the visit', url: `${APP_URL}/app/visitors` },
     `${name} just visited ${siteDomain}.`,
     unsubscribeUrl,
