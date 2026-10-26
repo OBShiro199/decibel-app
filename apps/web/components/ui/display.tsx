@@ -80,7 +80,7 @@ export function Skeleton({ className, style }: { className?: string; style?: Rea
   return <span className={cn('skeleton block h-4', className)} style={style} aria-hidden />;
 }
 
-/** Same geometry as `.tbl`: 36px header, 40px rows, so real rows drop in without a shift. */
+/** Same geometry as the app's `.tbl`: 36px header, 48px rows, so real rows drop in without a shift. */
 export function TableSkeleton({ rows = 8, cols = 5 }: { rows?: number; cols?: number }) {
   const widths = [38, 62, 48, 70, 44, 56, 40, 52];
   return (
@@ -94,7 +94,7 @@ export function TableSkeleton({ rows = 8, cols = 5 }: { rows?: number; cols?: nu
         ))}
       </div>
       {Array.from({ length: rows }).map((_, r) => (
-        <div key={r} className="flex h-10 items-center gap-6 border-b border-rule bg-white-100 px-3">
+        <div key={r} className="flex h-12 items-center gap-6 border-b border-rule bg-white-100 px-3">
           {Array.from({ length: cols }).map((_, c) => (
             <div key={c} className="flex-1">
               <Skeleton className="h-3" style={{ width: `${widths[(r + c * 3) % widths.length]}%` }} />

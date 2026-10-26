@@ -11,7 +11,7 @@ import { useApp } from '@/lib/app-context';
 import { revealLeads } from '@/lib/reveal';
 import { SITE_URL } from '@/lib/site';
 import { invoke, supabase } from '@/lib/supabase/client';
-import { cn, formatPhone, timeAgo } from '@/lib/utils';
+import { cn, exportCsv, formatPhone, timeAgo } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { codeFor } from '@/components/app/quick-filters';
 import { EmptyState, ErrorCard, Skeleton, Tabs } from '@/components/ui/display';
@@ -154,7 +154,7 @@ const COMPANY_COLS = [240, 220, 210, 160, 104, 130, 160, 120, 100, 210];
 const VISIT_COLS = [120, 220, 140, 200, 190, 100, 180, 200];
 
 /** The whole page while the website loads: toolbar, tabs and table, so nothing moves when it arrives. */
-function PageSkeleton() {
+export function VisitorsSkeleton() {
   return (
     <div className="flex h-full flex-col bg-white-100" aria-busy="true">
       <div className="flex h-12 shrink-0 items-center gap-3 border-b border-white-800 px-4">
@@ -163,6 +163,7 @@ function PageSkeleton() {
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-3 w-20" />
         <div className="ml-auto flex gap-2">
+          <Skeleton className="h-7 w-24 rounded-sm" />
           <Skeleton className="h-7 w-28 rounded-sm" />
           <Skeleton className="h-7 w-28 rounded-sm" />
         </div>
@@ -281,6 +282,7 @@ export function WebsiteVisitors() {
   const [tab, setTab] = useState<'companies' | 'visits'>('companies');
   const [changing, setChanging] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   // rows rise in the first time each table shows this session
   const revealCompanies = useFirstReveal('visitors-companies');
   const revealVisits = useFirstReveal('visitors-visits');
@@ -332,6 +334,40 @@ export function WebsiteVisitors() {
     void qc.invalidateQueries({ queryKey: ['visitor-companies', workspace.id] });
   }
 
+  /** every company found on the website (not just this page), newest first */
+  async function exportCompanies() {
+    if (!site) return;
+    setExporting(true);
+    const { data: rows, error } = await supabase()
+      .from('visitor_companies')
+      .select('organization,domain,city,region,country,isp,visits,page_views,pages,first_seen,last_seen')
+      .eq('site_id', site.id)
+      .order('last_seen', { ascending: false })
+      .limit(5000);
+    setExporting(false);
+    if (error) return void toast(error.message);
+    if (!rows?.length) return void toast('No companies to export yet.');
+    exportCsv(
+      workspace.id,
+      'visitors',
+      `decibel-website-visitors-${site.domain}-${new Date().toISOString().slice(0, 10)}.csv`,
+      rows.map((r) => ({
+        company: r.organization ?? r.domain,
+        website: r.domain,
+        city: r.city,
+        region: r.region,
+        country: r.country,
+        network: r.isp,
+        visits: r.visits,
+        page_views: r.page_views,
+        pages: ((r.pages as string[] | null) ?? []).join(' '),
+        first_seen: r.first_seen,
+        last_seen: r.last_seen,
+      })),
+    );
+    track('visitor_companies_exported', { rows: rows.length });
+  }
+
   async function removeSite() {
     if (!site) return;
     setRemoving(true);
@@ -344,7 +380,7 @@ export function WebsiteVisitors() {
     await sites.refetch();
   }
 
-  if (sites.isLoading) return <PageSkeleton />;
+  if (sites.isLoading) return <VisitorsSkeleton />;
   if (sites.error) return <div className="p-4"><ErrorCard message={(sites.error as Error).message} onRetry={() => sites.refetch()} /></div>;
   if (!site) return <Setup onAdded={() => void sites.refetch().then(() => setInstall(true))} />;
 
@@ -367,6 +403,9 @@ export function WebsiteVisitors() {
           {data ? `${n(data.total)} ${data.total === 1 ? 'company' : 'companies'}` : '…'}
         </span>
         <div className="ml-auto flex items-center gap-2">
+          <Button size="compact" variant="ghost" loading={exporting} disabled={!data?.total} onClick={() => void exportCompanies()}>
+            Export CSV
+          </Button>
           <Button size="compact" onClick={() => setInstall(true)}>
             Install snippet
           </Button>

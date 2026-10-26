@@ -8,6 +8,25 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   transpilePackages: ['@decibels/design-tokens'],
   eslint: { ignoreDuringBuilds: true },
+  // Safe defaults on every response. No CSP yet: Twilio, PostHog and Stripe need a tested allow-list first.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          // the dialler needs the microphone on our own pages; nothing else needs devices
+          { key: 'Permissions-Policy', value: 'microphone=(self), camera=(), geolocation=(), payment=(), usb=()' },
+        ],
+      },
+      // the visitor snippet is loaded by customers' websites: cache it briefly so updates reach them within the hour
+      { source: '/v.js', headers: [{ key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' }] },
+      // flags never change
+      { source: '/flags/:file*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
+    ];
+  },
   experimental: {
     // import only the icons used, in dev as well as production (lucide-react is covered by default)
     optimizePackageImports: ['@phosphor-icons/react'],
