@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Fill public.us_data_list with US decision makers from BlitzAPI, most senior first, until the month's
-records run low. Every saved person has a verified work email and a mobile, in data_list's own formats.
+"""Fill public.us_data_list with US decision makers from BlitzAPI, most senior first, until told to stop or the
+month's records run low. Every saved person has a verified work email and a mobile, in data_list's formats.
 
-  python3 scripts/blitz-us-leads.py                       # runs until records_remaining hits the reserve
   python3 scripts/blitz-us-leads.py --max 10000           # stop after 10,000 new leads
+  python3 scripts/blitz-us-leads.py                       # run until records_remaining hits the reserve
   python3 scripts/blitz-us-leads.py --reserve 5000        # keep 5,000 records back (default 1,000)
-  ... --pages 8                                           # pages of 25 fetched before each lookup round (default 8)
-  ... --no-mx                                             # don't limit to companies whose domain takes email
 
 Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
-Progress is kept in ~/decibel-imports/blitz-us-leads.state.json, so a rerun carries on where it stopped.
+Progress is kept in ~/decibel-imports/blitz-us-slices.state.json, so a rerun carries on where it stopped.
 
-Order: Blitz job levels C-Team (founders, owners, CEOs and other chiefs), then VP, Director, Manager; US
-people at companies of any size, like data_list, limited to companies whose domain has mail (MX) records
-(more of them have a verified email). Several pages of 25 people (1 record each) are fetched, then everyone is
-looked up together so the email endpoint, the bottleneck, stays busy. Anyone already in us_data_list is
-skipped before any lookup; then the email (charged only when found), the mobile (only for people with an
-email) and the company (cached). Complete people are inserted after every round.
+How it works:
+- Tiers, most senior first: CEOs/founders/owners/presidents, then other C-level (excluding those titles, so no
+  one is bought twice), then VP, Director, Manager. US people only, companies with mail (MX) records.
+- Blitz stops any one search after 50,000 people, so each tier is cut into non-overlapping slices: one per
+  company size band, and a band too big for one search is cut again by industry (534 + Unknown). A company has
+  one size and one industry, so slices never overlap. A slice's first page tells its size; a page from a slice
+  that has to be split is the only waste (at most 25 records).
+- Several pages are gathered, people already in us_data_list are dropped, then everyone is looked up together
+  (email first, mobile only with an email, company cached) so the email endpoint, the bottleneck, stays busy.
+- The speed follows the plan's limit (GET /account/key-info), so upgrading to Scale needs no change.
 """
 import importlib.util
 import json
@@ -40,8 +42,18 @@ def load(name, file):
 scrape = load('scrape_blitz', 'scrape-blitz.py')   # Blitz calls and the per-person lookups
 shape = load('import_blitz', 'import-blitz.py')    # Blitz row -> data_list columns
 
-TIERS = ['C-Team', 'VP', 'Director', 'Manager']
-STATE = os.path.expanduser('~/decibel-imports/blitz-us-leads.state.json')
+TOP = ['CEO', 'Chief Executive', 'Founder', 'Co-Founder', 'Cofounder', 'Owner', 'President']
+TIERS = [
+    ('CEOs and founders', {'job_level': ['C-Team'], 'job_title': {'include': TOP}}),
+    ('Other C-level', {'job_level': ['C-Team'], 'job_title': {'exclude': TOP}}),
+    ('VP', {'job_level': ['VP']}),
+    ('Director', {'job_level': ['Director']}),
+    ('Manager', {'job_level': ['Manager']}),
+]
+BANDS = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1001-5000', '5001-10000', '10001+']
+INDUSTRIES = json.load(open(os.path.join(HERE, 'data', 'blitz-industries.json')))
+DEPTH = 50000   # Blitz's ceiling per search
+STATE = os.path.expanduser('~/decibel-imports/blitz-us-slices.state.json')
 URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
 SKEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 HDR = {'apikey': SKEY, 'authorization': f'Bearer {SKEY}', 'content-type': 'application/json'}
@@ -64,11 +76,58 @@ def rest(method, path, body=None):
 
 def already_have(urls):
     """LinkedIn URLs (as stored) already in us_data_list"""
-    if not urls:
-        return set()
-    q = ','.join('"' + u.replace('"', '') + '"' for u in urls)
-    rows = rest('GET', f'us_data_list?select=linkedin_url&linkedin_url=in.({urllib.parse.quote(q)})') or []
-    return {r['linkedin_url'] for r in rows}
+    have = set()
+    for i in range(0, len(urls), 50):
+        q = ','.join('"' + u.replace('"', '') + '"' for u in urls[i:i + 50])
+        have |= {r['linkedin_url'] for r in rest('GET', f'us_data_list?select=linkedin_url&linkedin_url=in.({urllib.parse.quote(q)})') or []}
+    return have
+
+
+def search_body(tier, sl, cursor):
+    people = {**TIERS[tier][1], 'location': {'country_code': ['US']}}
+    company = {'mx': {'provider': {'include': ['any']}}, 'employee_range': [sl['band']]}
+    if sl.get('industry'):
+        company['industry'] = {'include': [sl['industry']]}
+    body = {'people': people, 'company': company, 'max_results': 25}
+    if cursor:
+        body['cursor'] = cursor
+    return body
+
+
+def label(state):
+    if state['tier'] >= len(TIERS):
+        return 'done'
+    sl = state['slices'][0] if state['slices'] else {}
+    return f"{TIERS[state['tier']][0]} · {sl.get('band', '…')}{' · ' + sl['industry'] if sl.get('industry') else ''}"
+
+
+def next_page(state, stats):
+    """the next page of people, moving through slices and tiers; None when every tier is done"""
+    while state['tier'] < len(TIERS):
+        if not state['slices']:
+            if state.get('tier_started'):
+                state['tier'] += 1
+                state['tier_started'] = False
+                continue
+            state['slices'] = [{'band': b} for b in BANDS]
+            state['tier_started'] = True
+        sl = state['slices'][0]
+        page = scrape.call('/search/people', search_body(state['tier'], sl, state.get('cursor')))
+        total = page.get('total_results') or 0
+        if not state.get('cursor'):   # first page of this slice: does it fit in one search?
+            if total > DEPTH and not sl.get('industry'):
+                state['slices'] = [{'band': sl['band'], 'industry': i} for i in INDUSTRIES] + state['slices'][1:]
+                stats['slices split'] = stats.get('slices split', 0) + 1
+                continue
+            if total > DEPTH:
+                stats['slices over 50k'] = stats.get('slices over 50k', 0) + 1
+        state['cursor'] = page.get('cursor')
+        if not state['cursor'] or not page.get('results'):
+            state['slices'].pop(0)
+            state['cursor'] = None
+            stats['slices done'] = stats.get('slices done', 0) + 1
+        return page
+    return None
 
 
 def main():
@@ -77,32 +136,31 @@ def main():
     cap = int(sys.argv[sys.argv.index('--max') + 1]) if '--max' in sys.argv else None
     reserve = int(sys.argv[sys.argv.index('--reserve') + 1]) if '--reserve' in sys.argv else 1000
     pages = int(sys.argv[sys.argv.index('--pages') + 1]) if '--pages' in sys.argv else 8
-    mx = '--no-mx' not in sys.argv
+    rps, left = scrape.set_rate()
+    print(f'Blitz limit {rps:g} requests/second per endpoint · {left} records left', flush=True)
     os.makedirs(os.path.dirname(STATE), exist_ok=True)
-    state = json.load(open(STATE)) if os.path.exists(STATE) else {'tier': 0, 'cursor': None, 'saved': 0, 'stats': {}}
+    state = json.load(open(STATE)) if os.path.exists(STATE) else {'tier': 0, 'slices': [], 'cursor': None, 'saved': 0, 'stats': {}}
     stats, saved_now, started = state['stats'], 0, time.time()
 
-    with ThreadPoolExecutor(max_workers=16) as pool:
-        while state['tier'] < len(TIERS):
-            level = TIERS[state['tier']]
-            people, left = [], None
+    with ThreadPoolExecutor(max_workers=24) as pool:
+        while True:
+            people, left, where = [], None, label(state)
             for _ in range(pages):
-                body = {'people': {'job_level': [level], 'location': {'country_code': ['US']}}, 'max_results': 25}
-                if mx:
-                    body['company'] = {'mx': {'provider': {'include': ['any']}}}
-                if state['cursor']:
-                    body['cursor'] = state['cursor']
-                page = scrape.call('/search/people', body)
-                people += [p for p in page.get('results') or [] if p.get('linkedin_url')]
-                left = (page.get('fair_usage') or {}).get('records_remaining')
-                state['cursor'] = page.get('cursor')
-                if not state['cursor']:
-                    state['tier'] += 1
+                page = next_page(state, stats)
+                if page is None:
                     break
-            have = set()
-            for i in range(0, len(people), 50):
-                have |= already_have([shape.li(p['linkedin_url']) for p in people[i:i + 50]])
-            fresh = [p for p in people if shape.li(p['linkedin_url']) not in have]
+                people += [p for p in page.get('results') or [] if p.get('linkedin_url')]
+                left = (page.get('fair_usage') or {}).get('records_remaining', left)
+            if not people and state['tier'] >= len(TIERS):
+                print('every tier done')
+                break
+            have = already_have([shape.li(p['linkedin_url']) for p in people])
+            fresh, seen_li = [], set()
+            for p in people:
+                u = shape.li(p['linkedin_url'])
+                if u not in have and u not in seen_li:
+                    seen_li.add(u)
+                    fresh.append(p)
             stats['already in table'] = stats.get('already in table', 0) + len(people) - len(fresh)
 
             rows = []
@@ -110,29 +168,26 @@ def main():
                 stats[why] = stats.get(why, 0) + 1
                 if row:
                     rows.append(shape.to_row(row))
-            # the same person twice in one page, or the same email twice, is inserted once
             seen, unique = set(), []
             for r in rows:
-                k = (r['linkedin_url'], r['work_email'])
-                if r['mobile_phone'] and r['work_email'] and k not in seen:
-                    seen.add(k)
+                if r['mobile_phone'] and r['work_email'] and r['linkedin_url'] not in seen and r['work_email'] not in seen:
+                    seen |= {r['linkedin_url'], r['work_email']}
                     unique.append(r)
             if unique:
                 rest('POST', 'us_data_list', unique)
             state['saved'] += len(unique)
             saved_now += len(unique)
-
             json.dump(state, open(STATE, 'w'))
 
             rate = saved_now / max(1, time.time() - started) * 3600
-            print(f'[{level}] +{len(unique)} · {saved_now} this run, {state["saved"]} total · {rate:,.0f}/h · {stats} · records left {left}', flush=True)
+            print(f'[{where}] +{len(unique)} · {saved_now:,} this run, {state["saved"]:,} total · {rate:,.0f}/h · {stats} · records left {left}', flush=True)
             if isinstance(left, int) and left <= reserve:
                 print(f'stopping: {left} records left (reserve {reserve})')
                 break
             if cap and saved_now >= cap:
                 print(f'stopping: reached --max {cap}')
                 break
-    print(f'done: {saved_now} new leads this run, {state["saved"]} in total')
+    print(f'done: {saved_now:,} new leads this run, {state["saved"]:,} in total')
 
 
 if __name__ == '__main__':

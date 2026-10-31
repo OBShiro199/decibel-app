@@ -40,15 +40,26 @@ COLUMNS = ['First Name', 'Last Name', 'Full Name', 'Job Title', 'LinkedIn Headli
 
 KEY = os.environ.get('BLITZ_API_KEY') or (open(os.path.expanduser('~/.blitz_api_key')).read().strip() if os.path.exists(os.path.expanduser('~/.blitz_api_key')) else '')
 lock = threading.Lock()
-# Blitz limits each endpoint to 10 requests a second, so each endpoint is paced on its own at ~9/s
+# Blitz limits each endpoint separately (10 a second on Start, 25 on Scale); each endpoint is paced on its own.
+# set_rate() reads the plan's limit from /account/key-info; until then ~9 a second.
 _last: dict = {}
+INTERVAL = [0.11]
+
+
+def set_rate():
+    req = urllib.request.Request(f'{API}/account/key-info', headers={'x-api-key': KEY})
+    with urllib.request.urlopen(req, timeout=30) as res:
+        info = json.loads(res.read())
+    rps = float(info.get('max_requests_per_seconds') or 10)
+    INTERVAL[0] = 1 / (rps * 0.92)   # a little under the limit, spread evenly
+    return rps, info.get('records_remaining')
 
 
 def call(path: str, body: dict) -> dict:
     """POST with a shared ~8 requests/second pace and retries on 429/5xx (those cost no records)"""
     for attempt in range(6):
         with lock:
-            slot = max(time.time(), _last.get(path, 0.0) + 0.11)
+            slot = max(time.time(), _last.get(path, 0.0) + INTERVAL[0])
             _last[path] = slot
         if slot > time.time():
             time.sleep(slot - time.time())
