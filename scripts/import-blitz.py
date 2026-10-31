@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Import a Blitz people export (CSV) into public.data_list, in data_list's own formats.
+"""Import a Blitz people export (CSV) into public.us_data_list (migration 0045), in data_list's own formats.
 
   python3 scripts/import-blitz.py blitz.csv                 # dry run: prints the mapping and what would be skipped
   python3 scripts/import-blitz.py blitz.csv --write         # inserts, writes the new contact_ids to <csv>.ids.txt
+  ... --table data_list                                     # into data_list instead (not checked for existing rows)
 
 --write needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment (never in the repo). Rows go in
-through PostgREST in batches of 200, a second apart, so the database stays responsive. Afterwards, send the
-ids file to the search server and run `python3 load-leads.py --ids-file ids.txt` there (see search/typesense).
+through PostgREST in batches of 200, a second apart, so the database stays responsive. us_data_list is not
+searched by the app yet, so there is no search-server step; for data_list, send the ids file to the search
+server and run `python3 load-leads.py --ids-file ids.txt` there (see search/typesense).
 
 Rules:
 - every row needs a mobile and a work email, or it is skipped
-- duplicates inside the file (same LinkedIn URL or work email) are skipped; there is no check against existing
-  data_list rows (no index on linkedin_url/work_email, and a 3.1M-row scan is not allowed in the daytime)
+- duplicates inside the file (same LinkedIn URL or work email) are skipped, and so are people already in
+  us_data_list (looked up by its linkedin_url and work_email indexes; data_list has no such index)
 - values are converted to the formats already in data_list (country names, "51 to 200", "$10M to <$50M",
   seniority "c-level", comma-separated skills, "+1 617-320-1138")
 - Blitz fields with no data_list column are dropped (connections, certifications, education, specialties...)
@@ -22,6 +24,7 @@ import os
 import re
 import sys
 import time
+import urllib.parse
 import urllib.request
 import uuid
 
@@ -117,7 +120,7 @@ def to_row(r: dict) -> dict:
         'last_name': clean(r.get('Last Name')),
         'full_name': clean(r.get('Full Name')),
         'work_email': (clean(r.get('Work Email')) or '').lower() or None,
-        'email_status': None,  # Blitz doesn't say whether it verified the mailbox
+        'email_status': 'VALID',  # Blitz SMTP-verifies every email it returns (docs: guide/concepts/quality)
         'personal_emails': alt.lower() if alt else None,
         'mobile_phone': phone(r.get('Mobile Phone')),
         'current_title': clean(r.get('Job Title')),
@@ -164,6 +167,9 @@ def to_row(r: dict) -> dict:
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     write = '--write' in sys.argv
+    table = sys.argv[sys.argv.index('--table') + 1] if '--table' in sys.argv else 'us_data_list'
+    if table not in ('us_data_list', 'data_list'):
+        sys.exit('--table must be us_data_list or data_list')
     if not args:
         sys.exit(__doc__)
     path = args[0]
@@ -204,13 +210,27 @@ def main():
     url, key = os.environ.get('SUPABASE_URL', '').rstrip('/'), os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
     if not url or not key:
         sys.exit('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set for --write')
+    hdr = {'apikey': key, 'authorization': f'Bearer {key}', 'content-type': 'application/json'}
+    if table == 'us_data_list':
+        # people already in the table, by LinkedIn URL or work email (both indexed), 100 at a time
+        existing = set()
+        for col in ('linkedin_url', 'work_email'):
+            vals = [r[col] for r in rows if r[col]]
+            for i in range(0, len(vals), 100):
+                q = ','.join('"' + v.replace('"', '') + '"' for v in vals[i:i + 100])
+                req = urllib.request.Request(f'{url}/rest/v1/{table}?select={col}&{col}=in.({urllib.parse.quote(q)})', headers=hdr)
+                with urllib.request.urlopen(req, timeout=60) as res:
+                    existing |= {(col, x[col]) for x in json.loads(res.read())}
+        before = len(rows)
+        rows = [r for r in rows if ('linkedin_url', r['linkedin_url']) not in existing and ('work_email', r['work_email']) not in existing]
+        print(f'{before - len(rows)} already in {table}, {len(rows)} new')
     done = 0
     ids_path = path + '.ids.txt'
     with open(ids_path, 'w') as ids:
         for i in range(0, len(rows), 200):
             batch = rows[i:i + 200]
             req = urllib.request.Request(
-                f'{url}/rest/v1/data_list',
+                f'{url}/rest/v1/{table}',
                 data=json.dumps(batch).encode(),
                 method='POST',
                 headers={'apikey': key, 'authorization': f'Bearer {key}', 'content-type': 'application/json', 'prefer': 'return=minimal'},
