@@ -5,6 +5,7 @@ month's records run low. Every saved person has a verified work email and a mobi
   python3 scripts/blitz-us-leads.py --max 10000           # stop after 10,000 new leads
   python3 scripts/blitz-us-leads.py                       # run until records_remaining hits the reserve
   python3 scripts/blitz-us-leads.py --reserve 5000        # keep 5,000 records back (default 1,000)
+  python3 scripts/blitz-us-leads.py --emails-only         # no mobile lookup: keep everyone with a verified email
 
 Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
 Progress is kept in ~/decibel-imports/blitz-us-slices.state.json, so a rerun carries on where it stopped.
@@ -135,14 +136,17 @@ def main():
         sys.exit('Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY')
     cap = int(sys.argv[sys.argv.index('--max') + 1]) if '--max' in sys.argv else None
     reserve = int(sys.argv[sys.argv.index('--reserve') + 1]) if '--reserve' in sys.argv else 1000
-    pages = int(sys.argv[sys.argv.index('--pages') + 1]) if '--pages' in sys.argv else 8
+    pages = int(sys.argv[sys.argv.index('--pages') + 1]) if '--pages' in sys.argv else 16
+    emails_only = '--emails-only' in sys.argv
+    scrape.MOBILE[0] = not emails_only
     rps, left = scrape.set_rate()
-    print(f'Blitz limit {rps:g} requests/second per endpoint · {left} records left', flush=True)
+    print(f'Blitz limit {rps:g} requests/second per endpoint · {left} records left · {"emails only" if emails_only else "email and mobile"}', flush=True)
     os.makedirs(os.path.dirname(STATE), exist_ok=True)
     state = json.load(open(STATE)) if os.path.exists(STATE) else {'tier': 0, 'slices': [], 'cursor': None, 'saved': 0, 'stats': {}}
     stats, saved_now, started = state['stats'], 0, time.time()
 
-    with ThreadPoolExecutor(max_workers=24) as pool:
+    # enough lookups in flight to keep every endpoint at its limit (about 2 per request-per-second of limit)
+    with ThreadPoolExecutor(max_workers=max(24, int(rps * 2.5))) as pool:
         while True:
             people, left, where = [], None, label(state)
             for _ in range(pages):
@@ -170,7 +174,7 @@ def main():
                     rows.append(shape.to_row(row))
             seen, unique = set(), []
             for r in rows:
-                if r['mobile_phone'] and r['work_email'] and r['linkedin_url'] not in seen and r['work_email'] not in seen:
+                if (r['mobile_phone'] or emails_only) and r['work_email'] and r['linkedin_url'] not in seen and r['work_email'] not in seen:
                     seen |= {r['linkedin_url'], r['work_email']}
                     unique.append(r)
             if unique:

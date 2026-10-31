@@ -44,6 +44,8 @@ lock = threading.Lock()
 # set_rate() reads the plan's limit from /account/key-info; until then ~9 a second.
 _last: dict = {}
 INTERVAL = [0.11]
+# False: emails only, no mobile lookup (the person is kept without a mobile)
+MOBILE = [True]
 
 
 def set_rate():
@@ -107,9 +109,11 @@ def person_row(p: dict):
     dom = (job.get('company_domain') or '').lower().removeprefix('www.')
     emails = [em['email']] + [a.get('email') for a in em.get('all_emails') or [] if a.get('email')]
     email = next((e for e in emails if dom and e.lower().split('@')[-1].endswith(dom)), em['email'])
-    ph = call('/enrichment/phone', {'person_linkedin_url': li})
-    if not ph.get('found') or not ph.get('phone'):
-        return None, 'no mobile'
+    ph = {}
+    if MOBILE[0]:
+        ph = call('/enrichment/phone', {'person_linkedin_url': li})
+        if not ph.get('found') or not ph.get('phone'):
+            return None, 'no mobile'
     c = company(job.get('company_linkedin_url'))
     hq = c.get('hq') or {}
     loc = p.get('location') or {}
