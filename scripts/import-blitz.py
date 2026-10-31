@@ -103,7 +103,7 @@ def li(url: str):
 
 
 def clean(v):
-    v = (v or '').strip()
+    v = ('' if v is None else str(v)).strip()  # numbers arrive as ints when rows come straight from the API
     return v or None
 
 

@@ -40,17 +40,18 @@ COLUMNS = ['First Name', 'Last Name', 'Full Name', 'Job Title', 'LinkedIn Headli
 
 KEY = os.environ.get('BLITZ_API_KEY') or (open(os.path.expanduser('~/.blitz_api_key')).read().strip() if os.path.exists(os.path.expanduser('~/.blitz_api_key')) else '')
 lock = threading.Lock()
-_last = [0.0]
+# Blitz limits each endpoint to 10 requests a second, so each endpoint is paced on its own at ~9/s
+_last: dict = {}
 
 
 def call(path: str, body: dict) -> dict:
     """POST with a shared ~8 requests/second pace and retries on 429/5xx (those cost no records)"""
     for attempt in range(6):
         with lock:
-            wait = _last[0] + 0.125 - time.time()
-            if wait > 0:
-                time.sleep(wait)
-            _last[0] = time.time()
+            slot = max(time.time(), _last.get(path, 0.0) + 0.11)
+            _last[path] = slot
+        if slot > time.time():
+            time.sleep(slot - time.time())
         req = urllib.request.Request(f'{API}{path}', data=json.dumps(body).encode(), method='POST',
                                      headers={'x-api-key': KEY, 'content-type': 'application/json'})
         try:
@@ -130,12 +131,12 @@ def main():
     state_path = out + '.state.json'
     state = json.load(open(state_path)) if os.path.exists(state_path) else {'cursor': None, 'tried': [], 'stats': {}}
     tried = set(state['tried'])
-    have = sum(1 for _ in open(out)) - 1 if os.path.exists(out) else 0
+    # count rows with the CSV reader: bios and descriptions contain line breaks, so lines overcount
+    have = sum(1 for _ in csv.DictReader(open(out, encoding='utf-8'))) if os.path.exists(out) else 0
     f = open(out, 'a', newline='', encoding='utf-8')
     w = csv.DictWriter(f, fieldnames=COLUMNS)
-    if have <= 0:
+    if not os.path.getsize(out):
         w.writeheader()
-        have = 0
     stats = state['stats']
     print(f'starting with {have} saved, target {target}')
     with ThreadPoolExecutor(max_workers=4) as pool:
