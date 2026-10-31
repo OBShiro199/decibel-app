@@ -91,20 +91,24 @@ def person_row(p: dict):
     em = call('/enrichment/email', {'person_linkedin_url': li})
     if not em.get('found') or not em.get('email'):
         return None, 'no email'
+    job = next((x for x in p.get('experiences') or [] if x.get('job_is_current')), (p.get('experiences') or [{}])[0])
+    # the email at the company we list them under, when Blitz has one (its main pick can be a side business)
+    dom = (job.get('company_domain') or '').lower().removeprefix('www.')
+    emails = [em['email']] + [a.get('email') for a in em.get('all_emails') or [] if a.get('email')]
+    email = next((e for e in emails if dom and e.lower().split('@')[-1].endswith(dom)), em['email'])
     ph = call('/enrichment/phone', {'person_linkedin_url': li})
     if not ph.get('found') or not ph.get('phone'):
         return None, 'no mobile'
-    job = next((x for x in p.get('experiences') or [] if x.get('job_is_current')), (p.get('experiences') or [{}])[0])
     c = company(job.get('company_linkedin_url'))
     hq = c.get('hq') or {}
     loc = p.get('location') or {}
     edu = (p.get('education') or [{}])[0]
-    others = [a.get('email') for a in em.get('all_emails') or [] if a.get('email') and a.get('email') != em.get('email')]
+    others = [e for e in emails if e != email]
     founded = c.get('founded_year')
     return {
         'First Name': p.get('first_name'), 'Last Name': p.get('last_name'), 'Full Name': p.get('full_name'),
         'Job Title': job.get('job_title'), 'LinkedIn Headline': p.get('headline'), 'Mobile Phone': ph.get('phone'),
-        'Work Email': em.get('email'), 'Alternate Email': others[0] if others else '', 'Email Provider': '',
+        'Work Email': email, 'Alternate Email': others[0] if others else '', 'Email Provider': '',
         'Person LinkedIn URL': li, 'LinkedIn Connections': p.get('connections_count'),
         'Person City': loc.get('city'), 'Person State': loc.get('state_code'), 'Person Country': loc.get('country_code'),
         'Role Start Date': job.get('job_start_date'), 'Years in Role': '', 'Contract Type': job.get('job_contract_type'),
@@ -116,7 +120,7 @@ def person_row(p: dict):
         'Company Website': c.get('website'), 'Company LinkedIn URL': job.get('company_linkedin_url'), 'Industry': c.get('industry'),
         'Company Type': c.get('type'), 'Employee Range': c.get('size'), 'Employees on LinkedIn': c.get('employees_on_linkedin'),
         'Revenue Range': c.get('revenue_range'), 'Founded Year': founded, 'Company Age (yrs)': '',
-        'HQ City': hq.get('city'), 'HQ State': hq.get('state'), 'HQ Country': hq.get('country_code'),
+        'HQ City': hq.get('city'), 'HQ State': hq.get('state'), 'HQ Country': hq.get('country_name') or hq.get('country_code'),
         'Company LinkedIn Followers': c.get('followers'), 'Company Specialties': '; '.join(c.get('specialties') or []),
         'Company Description': (c.get('about') or '')[:4000],
     }, 'ok'

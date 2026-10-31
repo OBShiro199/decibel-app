@@ -34,7 +34,34 @@ COUNTRIES = {
     'AU': 'Australia', 'IN': 'India', 'SE': 'Sweden', 'DK': 'Denmark', 'NO': 'Norway', 'FI': 'Finland',
     'CH': 'Switzerland', 'BE': 'Belgium', 'AT': 'Austria', 'PT': 'Portugal', 'PL': 'Poland', 'IL': 'Israel',
     'SG': 'Singapore', 'AE': 'United Arab Emirates', 'MX': 'Mexico', 'BR': 'Brazil', 'NZ': 'New Zealand',
+    'AR': 'Argentina', 'BD': 'Bangladesh', 'HK': 'Hong Kong', 'JM': 'Jamaica', 'LK': 'Sri Lanka', 'LU': 'Luxembourg',
+    'MY': 'Malaysia', 'NG': 'Nigeria', 'NI': 'Nicaragua', 'PK': 'Pakistan', 'RO': 'Romania', 'ZA': 'South Africa',
+    'PH': 'Philippines', 'CN': 'China', 'JP': 'Japan', 'KR': 'South Korea', 'TW': 'Taiwan', 'TH': 'Thailand',
+    'VN': 'Vietnam', 'ID': 'Indonesia', 'TR': 'Turkey', 'GR': 'Greece', 'CZ': 'Czech Republic', 'HU': 'Hungary',
+    'UA': 'Ukraine', 'EG': 'Egypt', 'KE': 'Kenya', 'SA': 'Saudi Arabia', 'QA': 'Qatar', 'CL': 'Chile', 'CO': 'Colombia',
+    'PE': 'Peru', 'CR': 'Costa Rica', 'PR': 'Puerto Rico', 'DO': 'Dominican Republic', 'BM': 'Bermuda', 'KY': 'Cayman Islands',
 }
+# country calling codes the phone formatter recognises; longer codes are matched first
+CALLING = ['1', '7', '20', '27', '30', '31', '32', '33', '34', '36', '39', '40', '41', '43', '44', '45', '46', '47', '48', '49',
+           '51', '52', '54', '55', '56', '57', '60', '61', '62', '63', '64', '65', '66', '81', '82', '84', '86', '90', '91', '92',
+           '94', '234', '254', '351', '352', '353', '358', '852', '880', '886', '966', '971', '972', '974']
+
+# post-nominals stripped from names (data_list names rarely carry them)
+CREDENTIALS = (r'(?:MBA|EMBA|PhD|Ph\.D\.?|MD|M\.D\.?|DO|JD|J\.D\.?|CPA|CFA|CFP®?|CAIA|PE|P\.E\.?|PMP|SHRM-?\w*|SPHR|PHR|CSP|'
+               r'SIOR|CCIM|BCBA|LBA|MSED|MPH|MS|MA|BS|B\.S\.?|BA|CIP|CLC|CRC|CISSP|CISA|CISM|Esq\.?|RN|LCSW|PsyD|EdD|'
+               r'Ed\.D\.?|PharmD|MSc|BSc|MEng|BEng|DPT|DNP|DrPH|LLM|LL\.M\.?|MSN|BSN|DDS|DMD|FACHE|CAE|CRE|ACC|PCC|MCC|CPCU|CLU|ChFC|AIF|CEPA|II|III|IV|Jr\.?|Sr\.?)')
+
+DEPARTMENTS = [  # data_list's department names, picked from the title
+    (r'\b(cfo|finance|financial|accounting|controller|treasur\w*)\b', 'Finance & Accounting'),
+    (r'\b(cto|cio|ciso|technology|technical|engineering|it|information|data|software)\b', 'Information Technology & Engineering'),
+    (r'\b(cmo|marketing|brand|product)\b', 'Marketing & Product Management'),
+    (r'\b(cro|sales|revenue|business development|commercial)\b', 'Sales & Business Development'),
+    (r'\b(coo|operations|operating|supply chain|logistics)\b', 'Operations & Supply Chain'),
+    (r'\b(chro|people|human resources|hr|talent)\b', 'Human Resources'),
+    (r'\b(legal|counsel|compliance|clo)\b', 'Legal & Compliance'),
+    (r'\b(creative|design)\b', 'Design & Creative Services'),
+    (r'\b(customer|client|support|success)\b', 'Customer Service & Support'),
+]
 SIZES = {  # Blitz "51-200" -> data_list "51 to 200", with min/max
     '1-10': ('1 to 10', 1, 10), '2-10': ('1 to 10', 2, 10), '11-50': ('11 to 50', 11, 50), '51-200': ('51 to 200', 51, 200),
     '201-500': ('201 to 500', 201, 500), '501-1000': ('501 to 1000', 501, 1000), '1001-5000': ('1001 to 5000', 1001, 5000),
@@ -66,12 +93,15 @@ def country(v: str):
 
 
 def seniority(title: str):
+    """as data_list (GetLeads) classes titles: chiefs, presidents, founders and owners are c-level; partners,
+    managing directors and chairs without one of those words are director"""
     t = title.lower()
-    if re.search(r'\b(ceo|cfo|coo|cto|cmo|cro|cio|chief|president|founder|co-founder|owner|chair(man|woman|person)?|managing partner|managing director|partner)\b', t):
+    if re.search(r'\b(ceo|cfo|coo|cto|cmo|cro|cio|cpo|chief|president|founder|co-founder|cofounder|owner)\b', t) \
+            and not re.search(r'\bvice president\b', t):
         return 'c-level'
     if re.search(r'\b(vp|vice president|svp|evp)\b', t):
         return 'vp'
-    if re.search(r'\b(director|head of)\b', t):
+    if re.search(r'\b(director|head of|partner|chair(man|woman|person)?|principal)\b', t):
         return 'director'
     if re.search(r'\bmanager\b', t):
         return 'manager'
@@ -79,8 +109,9 @@ def seniority(title: str):
 
 
 def phone(v: str):
-    """'+16173201138' -> '+1 617-320-1138' for North America; other numbers keep their digits with a space after the code"""
-    d = re.sub(r'[^\d+]', '', v or '')
+    """data_list's formats: '+16173201138' -> '+1 617-320-1138', '+447808234444' -> '+44 7808 234444', other
+    countries '+351918918993' -> '+351 918 918 993' (the code, then groups of three)"""
+    d = re.sub(r'[^\d+]', '', str(v or ''))
     if not d:
         return None
     if not d.startswith('+'):
@@ -88,7 +119,53 @@ def phone(v: str):
     m = re.fullmatch(r'\+1(\d{3})(\d{3})(\d{4})', d)
     if m:
         return f'+1 {m.group(1)}-{m.group(2)}-{m.group(3)}'
-    return d
+    m = re.fullmatch(r'\+44(\d{4})(\d{6})', d)
+    if m:
+        return f'+44 {m.group(1)} {m.group(2)}'
+    digits = d[1:]
+    cc = next((c for c in sorted(CALLING, key=len, reverse=True) if digits.startswith(c)), None)
+    if not cc:
+        return d
+    rest = digits[len(cc):]
+    groups = [rest[i:i + 3] for i in range(0, len(rest), 3)]
+    if len(groups) > 1 and len(groups[-1]) < 3:
+        tail = groups.pop()
+        groups[-1] += tail
+    return f'+{cc} ' + ' '.join(groups)
+
+
+def clean_name(v):
+    """'Dr. Eric A. Hughes, MD, PhD' -> 'Eric A. Hughes'; 'James A. (Jim) Westropp' -> 'James A. Westropp';
+    'Professor Ari Zoldan - Public and Investor Relations Expert' -> 'Ari Zoldan'"""
+    n = clean(v)
+    if not n:
+        return None
+    n = re.split(r'\s+[-–—|]\s+|\s*\|\s*', n)[0]                      # taglines after " - " or " | "
+    n = re.sub(r'\s*\([^)]*\)', '', n)                                  # nicknames in brackets
+    n = re.sub(r'^(?:Dr\.?|Prof\.?|Professor|Mr\.?|Mrs\.?|Ms\.?|Miss|Rev\.?)\s+', '', n, flags=re.I)
+    n = re.sub(r'\s+(?:President|CEO|Founder|Owner)(?:\s*/\s*\w+)*\s*$', '', n)   # "Guy Pierce President/CEO"
+    def credential(seg):
+        # 'PharmD', 'RVT', 'CIO/CTO', 'MSc, MBA FASA', 'RBLP-T': short tokens, mostly capitals
+        toks = seg.split()
+        return bool(toks) and all(len(t) <= 10 and sum(ch.isupper() for ch in t) >= max(1, len(re.sub(r'[^A-Za-z]', '', t)) // 2)
+                                  for t in toks)
+    parts = [p.strip() for p in n.split(',')]
+    keep = [parts[0]] + [p for p in parts[1:] if p and not re.fullmatch(rf'(?:{CREDENTIALS}[\s.]*)+', p) and not credential(p)]
+    if len(keep) < len(parts):                                          # 'Julie Cardoso RDCS, RVT' -> drop 'RDCS' too
+        keep[0] = re.sub(r'(?:\s+[A-Z][A-Z.\-]{1,9})+$', '', keep[0])
+    n = ', '.join(keep)
+    n = re.sub(rf'(?:\s+{CREDENTIALS})+\s*$', '', n)                   # trailing "Joe Hillyer MBA"
+    n = re.sub(r'\s{2,}', ' ', n).strip(' ,')
+    return n or clean(v)
+
+
+def department(title, level):
+    t = (title or '').lower()
+    for pattern, name in DEPARTMENTS:
+        if re.search(pattern, t):
+            return name
+    # general leadership roles: data_list files most of them under Consulting & Strategy
+    return 'Consulting & Strategy' if level in ('c-level', 'director') else None
 
 
 def bare(url: str):
@@ -116,15 +193,15 @@ def to_row(r: dict) -> dict:
     alt = clean(r.get('Alternate Email'))
     return {
         'contact_id': str(uuid.uuid4()),
-        'first_name': clean(r.get('First Name')),
-        'last_name': clean(r.get('Last Name')),
-        'full_name': clean(r.get('Full Name')),
+        'first_name': clean_name(r.get('First Name')),
+        'last_name': clean_name(r.get('Last Name')),
+        'full_name': clean_name(r.get('Full Name')),
         'work_email': (clean(r.get('Work Email')) or '').lower() or None,
         'email_status': 'VALID',  # Blitz SMTP-verifies every email it returns (docs: guide/concepts/quality)
         'personal_emails': alt.lower() if alt else None,
         'mobile_phone': phone(r.get('Mobile Phone')),
         'current_title': clean(r.get('Job Title')),
-        'department': None,
+        'department': department(r.get('Job Title'), seniority(r.get('Job Title') or '')),
         'seniority_level': seniority(r.get('Job Title') or ''),
         'role_start_date': clean(r.get('Role Start Date')),
         'current_employer': clean(r.get('Company Name')),
