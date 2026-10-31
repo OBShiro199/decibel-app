@@ -5,7 +5,7 @@ records run low. Every saved person has a verified work email and a mobile, in d
   python3 scripts/blitz-us-leads.py                       # runs until records_remaining hits the reserve
   python3 scripts/blitz-us-leads.py --max 10000           # stop after 10,000 new leads
   python3 scripts/blitz-us-leads.py --reserve 5000        # keep 5,000 records back (default 1,000)
-  ... --pages 4                                           # pages of 25 fetched before each lookup round (default 4)
+  ... --pages 8                                           # pages of 25 fetched before each lookup round (default 8)
   ... --no-mx                                             # don't limit to companies whose domain takes email
 
 Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
@@ -76,7 +76,7 @@ def main():
         sys.exit('Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY')
     cap = int(sys.argv[sys.argv.index('--max') + 1]) if '--max' in sys.argv else None
     reserve = int(sys.argv[sys.argv.index('--reserve') + 1]) if '--reserve' in sys.argv else 1000
-    pages = int(sys.argv[sys.argv.index('--pages') + 1]) if '--pages' in sys.argv else 4
+    pages = int(sys.argv[sys.argv.index('--pages') + 1]) if '--pages' in sys.argv else 8
     mx = '--no-mx' not in sys.argv
     os.makedirs(os.path.dirname(STATE), exist_ok=True)
     state = json.load(open(STATE)) if os.path.exists(STATE) else {'tier': 0, 'cursor': None, 'saved': 0, 'stats': {}}
