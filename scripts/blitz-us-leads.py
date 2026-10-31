@@ -6,6 +6,7 @@ month's records run low. Every saved person has a verified work email and a mobi
   python3 scripts/blitz-us-leads.py                       # run until records_remaining hits the reserve
   python3 scripts/blitz-us-leads.py --reserve 5000        # keep 5,000 records back (default 1,000)
   python3 scripts/blitz-us-leads.py --emails-only         # no mobile lookup: keep everyone with a verified email
+  ... --floor 0.3                                         # park a slice when under 30% of a round are kept
 
 Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
 Progress is kept in ~/decibel-imports/blitz-us-slices.state.json, so a rerun carries on where it stopped.
@@ -103,8 +104,20 @@ def label(state):
 
 
 def next_page(state, stats):
-    """the next page of people, moving through slices and tiers; None when every tier is done"""
-    while state['tier'] < len(TIERS):
+    """the next page of people, moving through slices and tiers, then back through parked slices; None at the end"""
+    while True:
+        if state.get('mode') == 'parked':
+            if not state['slices']:
+                if not state.get('parked'):
+                    return None
+                p = state['parked'].pop(0)
+                state['tier'], state['slices'], state['cursor'] = p['tier'], [p['slice']], p['cursor']
+            return fetch(state, stats)
+        if state['tier'] >= len(TIERS):
+            if state.get('parked'):   # every slice skimmed: go back for what was left in each
+                state['mode'] = 'parked'
+                continue
+            return None
         if not state['slices']:
             if state.get('tier_started'):
                 state['tier'] += 1
@@ -112,23 +125,30 @@ def next_page(state, stats):
                 continue
             state['slices'] = [{'band': b} for b in BANDS]
             state['tier_started'] = True
-        sl = state['slices'][0]
-        page = scrape.call('/search/people', search_body(state['tier'], sl, state.get('cursor')))
-        total = page.get('total_results') or 0
-        if not state.get('cursor'):   # first page of this slice: does it fit in one search?
-            if total > DEPTH and not sl.get('industry'):
-                state['slices'] = [{'band': sl['band'], 'industry': i} for i in INDUSTRIES] + state['slices'][1:]
-                stats['slices split'] = stats.get('slices split', 0) + 1
-                continue
-            if total > DEPTH:
-                stats['slices over 50k'] = stats.get('slices over 50k', 0) + 1
-        state['cursor'] = page.get('cursor')
-        if not state['cursor'] or not page.get('results'):
-            state['slices'].pop(0)
-            state['cursor'] = None
-            stats['slices done'] = stats.get('slices done', 0) + 1
+        page = fetch(state, stats)
+        if page is None:   # the slice was split; go round again
+            continue
         return page
-    return None
+
+
+def fetch(state, stats):
+    """one page of the current slice; None when the slice turned out too big and was split by industry"""
+    sl = state['slices'][0]
+    page = scrape.call('/search/people', search_body(state['tier'], sl, state.get('cursor')))
+    total = page.get('total_results') or 0
+    if not state.get('cursor'):   # first page of this slice: does it fit in one search?
+        if total > DEPTH and not sl.get('industry'):
+            state['slices'] = [{'band': sl['band'], 'industry': i} for i in INDUSTRIES] + state['slices'][1:]
+            stats['slices split'] = stats.get('slices split', 0) + 1
+            return None
+        if total > DEPTH:
+            stats['slices over 50k'] = stats.get('slices over 50k', 0) + 1
+    state['cursor'] = page.get('cursor')
+    if not state['cursor'] or not page.get('results'):
+        state['slices'].pop(0)
+        state['cursor'] = None
+        stats['slices done'] = stats.get('slices done', 0) + 1
+    return page
 
 
 def main():
@@ -138,6 +158,7 @@ def main():
     reserve = int(sys.argv[sys.argv.index('--reserve') + 1]) if '--reserve' in sys.argv else 1000
     pages = int(sys.argv[sys.argv.index('--pages') + 1]) if '--pages' in sys.argv else 16
     emails_only = '--emails-only' in sys.argv
+    floor = float(sys.argv[sys.argv.index('--floor') + 1]) if '--floor' in sys.argv else 0.3
     scrape.MOBILE[0] = not emails_only
     rps, left = scrape.set_rate()
     print(f'Blitz limit {rps:g} requests/second per endpoint · {left} records left · {"emails only" if emails_only else "email and mobile"}', flush=True)
@@ -155,8 +176,10 @@ def main():
                     break
                 people += [p for p in page.get('results') or [] if p.get('linkedin_url')]
                 left = (page.get('fair_usage') or {}).get('records_remaining', left)
-            if not people and state['tier'] >= len(TIERS):
-                print('every tier done')
+                if label(state) != where:   # one slice per round, so its hit rate can be judged
+                    break
+            if not people and page is None:
+                print('every tier and parked slice done')
                 break
             have = already_have([shape.li(p['linkedin_url']) for p in people])
             fresh, seen_li = [], set()
@@ -181,10 +204,18 @@ def main():
                 rest('POST', 'us_data_list', unique)
             state['saved'] += len(unique)
             saved_now += len(unique)
+            # skim: when a slice's hit rate falls below the floor, park it (keeping its place) and move on to
+            # fresh slices, whose first pages are richer; parked slices are finished after every slice is skimmed
+            hit = len(unique) / max(1, len(fresh))
+            if state.get('mode') != 'parked' and state.get('cursor') and label(state) == where and len(fresh) >= 100 and hit < floor:
+                state.setdefault('parked', []).append({'tier': state['tier'], 'slice': state['slices'][0], 'cursor': state['cursor']})
+                state['slices'].pop(0)
+                state['cursor'] = None
+                stats['slices parked'] = stats.get('slices parked', 0) + 1
             json.dump(state, open(STATE, 'w'))
 
             rate = saved_now / max(1, time.time() - started) * 3600
-            print(f'[{where}] +{len(unique)} · {saved_now:,} this run, {state["saved"]:,} total · {rate:,.0f}/h · {stats} · records left {left}', flush=True)
+            print(f'[{where}] +{len(unique)} ({hit:.0%}) · {saved_now:,} this run, {state["saved"]:,} total · {rate:,.0f}/h · {stats} · records left {left}', flush=True)
             if isinstance(left, int) and left <= reserve:
                 print(f'stopping: {left} records left (reserve {reserve})')
                 break
