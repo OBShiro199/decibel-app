@@ -201,7 +201,22 @@ def main():
                     seen |= {r['linkedin_url'], r['work_email']}
                     unique.append(r)
             if unique:
-                rest('POST', 'us_data_list', unique)
+                try:
+                    rest('POST', 'us_data_list', unique)
+                except RuntimeError as e:   # one malformed row fails the batch: save the rest one by one
+                    if 'HTTP 4' not in str(e):
+                        raise
+                    kept = []
+                    for r in unique:
+                        try:
+                            rest('POST', 'us_data_list', [r])
+                            kept.append(r)
+                        except RuntimeError as e1:
+                            if 'HTTP 4' not in str(e1):
+                                raise
+                            stats['rejected by table'] = stats.get('rejected by table', 0) + 1
+                            print(f'skipped {r["linkedin_url"]}: {str(e1)[:160]}', flush=True)
+                    unique = kept
             state['saved'] += len(unique)
             saved_now += len(unique)
             # skim: when a slice's hit rate falls below the floor, park it (keeping its place) and move on to

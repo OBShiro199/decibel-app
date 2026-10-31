@@ -184,6 +184,15 @@ def clean(v):
     return v or None
 
 
+def start_date(v):
+    """Blitz role start dates, kept only when the year is plausible ('19-01-01T00:00:00Z' has a two-digit year)"""
+    v = clean(v)
+    m = re.match(r'(\d{4})-(\d{2})(?:-(\d{2}))?', v or '')
+    if not m or not 1950 <= int(m[1]) <= time.gmtime().tm_year + 1 or not 1 <= int(m[2]) <= 12:
+        return None
+    return v
+
+
 def to_row(r: dict) -> dict:
     size = SIZES.get((r.get('Employee Range') or '').replace(' ', ''))
     city, state, ctry = clean(r.get('Person City')), clean(r.get('Person State')), country(r.get('Person Country'))
@@ -203,7 +212,7 @@ def to_row(r: dict) -> dict:
         'current_title': clean(r.get('Job Title')),
         'department': department(r.get('Job Title'), seniority(r.get('Job Title') or '')),
         'seniority_level': seniority(r.get('Job Title') or ''),
-        'role_start_date': clean(r.get('Role Start Date')),
+        'role_start_date': start_date(r.get('Role Start Date')),
         'current_employer': clean(r.get('Company Name')),
         'current_employer_website': domain,
         'company_website': domain,
@@ -217,7 +226,7 @@ def to_row(r: dict) -> dict:
         'employee_count_max': size[2] if size else None,
         'linkedin_employee_count_exact': int(emp) if emp and emp.isdigit() else None,
         'revenue_range': norm_rev(r.get('Revenue Range') or ''),
-        'company_founded_year': f'{founded}-01-01T00:00:00Z' if founded and founded.isdigit() else None,
+        'company_founded_year': f'{founded}-01-01T00:00:00Z' if founded and founded.isdigit() and 1600 <= int(founded) <= time.gmtime().tm_year else None,
         'company_hq_country': country(r.get('HQ Country')),
         'company_hq_city': clean(r.get('HQ City')),
         'contact_location': ', '.join(x for x in (city, state, ctry) if x) or None,
