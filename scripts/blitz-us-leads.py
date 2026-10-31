@@ -5,14 +5,18 @@ records run low. Every saved person has a verified work email and a mobile, in d
   python3 scripts/blitz-us-leads.py                       # runs until records_remaining hits the reserve
   python3 scripts/blitz-us-leads.py --max 10000           # stop after 10,000 new leads
   python3 scripts/blitz-us-leads.py --reserve 5000        # keep 5,000 records back (default 1,000)
+  ... --pages 4                                           # pages of 25 fetched before each lookup round (default 4)
+  ... --no-mx                                             # don't limit to companies whose domain takes email
 
 Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
 Progress is kept in ~/decibel-imports/blitz-us-leads.state.json, so a rerun carries on where it stopped.
 
 Order: Blitz job levels C-Team (founders, owners, CEOs and other chiefs), then VP, Director, Manager; US
-people at companies of any size, like data_list. For each page of 25 people (1 record each), anyone already
-in us_data_list is skipped before any lookup; then the email (charged only when found), the mobile (only
-for people with an email) and the company (cached). Complete people are inserted after every page.
+people at companies of any size, like data_list, limited to companies whose domain has mail (MX) records
+(more of them have a verified email). Several pages of 25 people (1 record each) are fetched, then everyone is
+looked up together so the email endpoint, the bottleneck, stays busy. Anyone already in us_data_list is
+skipped before any lookup; then the email (charged only when found), the mobile (only for people with an
+email) and the company (cached). Complete people are inserted after every round.
 """
 import importlib.util
 import json
@@ -72,19 +76,32 @@ def main():
         sys.exit('Needs BLITZ_API_KEY (or ~/.blitz_api_key), SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY')
     cap = int(sys.argv[sys.argv.index('--max') + 1]) if '--max' in sys.argv else None
     reserve = int(sys.argv[sys.argv.index('--reserve') + 1]) if '--reserve' in sys.argv else 1000
+    pages = int(sys.argv[sys.argv.index('--pages') + 1]) if '--pages' in sys.argv else 4
+    mx = '--no-mx' not in sys.argv
     os.makedirs(os.path.dirname(STATE), exist_ok=True)
     state = json.load(open(STATE)) if os.path.exists(STATE) else {'tier': 0, 'cursor': None, 'saved': 0, 'stats': {}}
     stats, saved_now, started = state['stats'], 0, time.time()
 
-    with ThreadPoolExecutor(max_workers=12) as pool:
+    with ThreadPoolExecutor(max_workers=16) as pool:
         while state['tier'] < len(TIERS):
             level = TIERS[state['tier']]
-            body = {'people': {'job_level': [level], 'location': {'country_code': ['US']}}, 'max_results': 25}
-            if state['cursor']:
-                body['cursor'] = state['cursor']
-            page = scrape.call('/search/people', body)
-            people = [p for p in page.get('results') or [] if p.get('linkedin_url')]
-            have = already_have([shape.li(p['linkedin_url']) for p in people])
+            people, left = [], None
+            for _ in range(pages):
+                body = {'people': {'job_level': [level], 'location': {'country_code': ['US']}}, 'max_results': 25}
+                if mx:
+                    body['company'] = {'mx': {'provider': {'include': ['any']}}}
+                if state['cursor']:
+                    body['cursor'] = state['cursor']
+                page = scrape.call('/search/people', body)
+                people += [p for p in page.get('results') or [] if p.get('linkedin_url')]
+                left = (page.get('fair_usage') or {}).get('records_remaining')
+                state['cursor'] = page.get('cursor')
+                if not state['cursor']:
+                    state['tier'] += 1
+                    break
+            have = set()
+            for i in range(0, len(people), 50):
+                have |= already_have([shape.li(p['linkedin_url']) for p in people[i:i + 50]])
             fresh = [p for p in people if shape.li(p['linkedin_url']) not in have]
             stats['already in table'] = stats.get('already in table', 0) + len(people) - len(fresh)
 
@@ -105,12 +122,8 @@ def main():
             state['saved'] += len(unique)
             saved_now += len(unique)
 
-            state['cursor'] = page.get('cursor')
-            if not state['cursor']:
-                state['tier'] += 1
             json.dump(state, open(STATE, 'w'))
 
-            left = (page.get('fair_usage') or {}).get('records_remaining')
             rate = saved_now / max(1, time.time() - started) * 3600
             print(f'[{level}] +{len(unique)} · {saved_now} this run, {state["saved"]} total · {rate:,.0f}/h · {stats} · records left {left}', flush=True)
             if isinstance(left, int) and left <= reserve:
