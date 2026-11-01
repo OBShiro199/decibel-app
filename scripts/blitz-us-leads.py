@@ -27,6 +27,7 @@ import json
 import os
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -74,6 +75,10 @@ def rest(method, path, body=None):
                 time.sleep(2 ** attempt)
                 continue
             raise RuntimeError(f'{method} {path[:60]} HTTP {e.code}: {e.read()[:200]!r}')
+        except (urllib.error.URLError, OSError):   # timeouts, connection resets
+            if attempt == 4:
+                raise
+            time.sleep(2 ** attempt)
 
 
 def already_have(urls):

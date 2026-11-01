@@ -63,8 +63,7 @@ def call(path: str, body: dict) -> dict:
         with lock:
             slot = max(time.time(), _last.get(path, 0.0) + INTERVAL[0])
             _last[path] = slot
-        if slot > time.time():
-            time.sleep(slot - time.time())
+        time.sleep(max(0.0, slot - time.time()))
         req = urllib.request.Request(f'{API}{path}', data=json.dumps(body).encode(), method='POST',
                                      headers={'x-api-key': KEY, 'content-type': 'application/json'})
         try:
@@ -77,7 +76,7 @@ def call(path: str, body: dict) -> dict:
                 time.sleep(2 ** attempt)
                 continue
             raise RuntimeError(f'{path} HTTP {e.code}: {e.read()[:200]!r}')
-        except (urllib.error.URLError, TimeoutError):
+        except (urllib.error.URLError, OSError):   # timeouts, connection resets
             time.sleep(2 ** attempt)
     raise RuntimeError(f'{path} kept failing')
 
