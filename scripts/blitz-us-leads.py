@@ -139,7 +139,16 @@ def next_page(state, stats):
 def fetch(state, stats):
     """one page of the current slice; None when the slice turned out too big and was split by industry"""
     sl = state['slices'][0]
-    page = scrape.call('/search/people', search_body(state['tier'], sl, state.get('cursor')))
+    try:
+        page = scrape.call('/search/people', search_body(state['tier'], sl, state.get('cursor')))
+    except RuntimeError as e:   # Blitz refused this slice's filters (HTTP 422): skip the slice, don't stop the run
+        if 'HTTP 422' not in str(e):
+            raise
+        print(f'skipping slice {sl}: {str(e)[:160]}', flush=True)
+        stats['slices refused'] = stats.get('slices refused', 0) + 1
+        state['slices'].pop(0)
+        state['cursor'] = None
+        return {'results': []}
     total = page.get('total_results') or 0
     if not state.get('cursor'):   # first page of this slice: does it fit in one search?
         if total > DEPTH and not sl.get('industry'):
