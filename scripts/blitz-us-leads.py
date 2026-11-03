@@ -65,18 +65,18 @@ HDR = {'apikey': SKEY, 'authorization': f'Bearer {SKEY}', 'content-type': 'appli
 def rest(method, path, body=None):
     req = urllib.request.Request(f'{URL}/rest/v1/{path}', method=method, headers={**HDR, 'prefer': 'return=minimal'},
                                  data=json.dumps(body).encode() if body is not None else None)
-    for attempt in range(5):
+    for attempt in range(8):   # patient: once the table is large, Supabase's disk can slow to a crawl
         try:
-            with urllib.request.urlopen(req, timeout=60) as res:
+            with urllib.request.urlopen(req, timeout=180) as res:
                 raw = res.read()
                 return json.loads(raw) if raw else None
         except urllib.error.HTTPError as e:
-            if e.code >= 500 and attempt < 4:
+            if e.code >= 500 and attempt < 7:
                 time.sleep(2 ** attempt)
                 continue
             raise RuntimeError(f'{method} {path[:60]} HTTP {e.code}: {e.read()[:200]!r}')
         except (urllib.error.URLError, OSError):   # timeouts, connection resets
-            if attempt == 4:
+            if attempt == 7:
                 raise
             time.sleep(2 ** attempt)
 
@@ -216,7 +216,8 @@ def main():
                     unique.append(r)
             if unique:
                 try:
-                    rest('POST', 'us_data_list', unique)
+                    for i in range(0, len(unique), 50):   # small inserts stay under the statement timeout
+                        rest('POST', 'us_data_list', unique[i:i + 50])
                 except RuntimeError as e:   # one malformed row fails the batch: save the rest one by one
                     if 'HTTP 4' not in str(e):
                         raise
