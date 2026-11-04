@@ -26,3 +26,14 @@ read-only on Supabase; the app stayed fast at this rate). Quicker after an impor
 e.g. the first column of the CSVs) in a file on the server and run `python3 load-leads.py --ids-file ids.txt`,
 which looks them up 1,000 at a time by index (87k leads in about 2 minutes, no full read of data_list). A full rebuild into a fresh collection (drops
 leads deleted from data_list) is the same command without `--in-place`; it briefly needs twice the memory.
+
+## US leads (separate project)
+
+The US leads (`us_data_list`, scraped from Blitz) are **not** part of Decibel. They have their own collection behind the
+alias `us_leads`, built from the view `search_export.leads_us` (migration 0046, same shape as `search_export.leads`):
+
+    python3 load-leads.py --view search_export.leads_us --alias us_leads --max-rate 1500
+
+The loader only accepts `--view search_export.leads --alias leads` or `--view search_export.leads_us --alias us_leads`, so the
+two can never mix. The nightly top-up (`decibel-leads-nightly`) is unchanged and only touches `leads`. Run US loads at night;
+the 1.35M US leads add about 1.3 GB of Typesense memory.

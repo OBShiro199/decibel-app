@@ -10,6 +10,7 @@ collection, so a reload never interrupts search. Runs on the search server:
     python3 load-leads.py --max-rate 2000    # cap rows per second (gentler on Supabase)
     python3 load-leads.py --in-place         # add new leads / refresh existing ones in the live collection
     python3 load-leads.py --ids-file ids.txt # just these leads (one contact_id per line), in place; no full read
+    python3 load-leads.py --view search_export.leads_us --alias us_leads   # the separate US project's collection
 
 Needs /opt/typesense/.env (TYPESENSE_API_KEY) and /opt/typesense/reader.env (PG*).
 Phone numbers and emails never reach this server: the view only has yes/no flags
@@ -99,6 +100,8 @@ def main():
     ap.add_argument('--alias', default='leads', help='alias to point at the new collection')
     ap.add_argument('--max-memory-gb', type=float, default=6.0, help='stop (and keep the current collection) above this')
     ap.add_argument('--in-place', action='store_true', help='upsert into the collection behind the alias instead of building a new one (new leads are added, existing ones refreshed; memory stays flat)')
+    ap.add_argument('--view', default='search_export.leads',
+                    help='export view to read: search_export.leads (Decibel, data_list) or search_export.leads_us (the separate US project)')
     ap.add_argument('--ids-file', help='load only these contact_ids (one per line), in place, looked up 1,000 at a time by index instead of reading the whole table')
     a = ap.parse_args()
     ids = None
@@ -110,6 +113,9 @@ def main():
         if not ids:
             sys.exit('no contact ids in the file')
 
+    # each view has its own collection: Decibel's leads must never get the US project's leads, or the other way round
+    if (a.view, a.alias) not in (('search_export.leads', 'leads'), ('search_export.leads_us', 'us_leads')):
+        sys.exit('use --view search_export.leads with --alias leads, or --view search_export.leads_us with --alias us_leads')
     schema = json.load(open(a.schema))
     keep = {f['name'] for f in schema['fields']}
     types = {f['name']: f['type'] for f in schema['fields']}
@@ -123,7 +129,7 @@ def main():
         ts('POST', '/collections', schema)
         print(f'created {name}', flush=True)
 
-    base = f"select {', '.join(COLS)} from search_export.leads"
+    base = f"select {', '.join(COLS)} from {a.view}"
     if ids is None:
         sqls = [base + (f' limit {a.limit}' if a.limit else '')]
     else:
